@@ -1,7 +1,7 @@
 import { Box, Text, useApp, useInput, useWindowSize } from 'ink'
 import { useState } from 'react'
 
-import type { Screen } from '../hooks/useScreenRouter.ts'
+import type { Screen } from '../stores/router.ts'
 
 type Props = {
   onSelect: (screen: Screen) => void

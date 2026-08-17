@@ -1,6 +1,7 @@
 import { Box, Text, useInput } from 'ink'
+import { useEffect } from 'react'
 
-import { POLL_INTERVAL_STEP_MS, useDashboard } from './useDashboard.ts'
+import { POLL_INTERVAL_STEP_MS, useDashboardStore } from '../../stores/dashboard.ts'
 
 /** CJK 字符按宽度 2 计算的显示宽度 (不引入 string-width 依赖) */
 const displayWidth = (value: string) =>
@@ -36,7 +37,18 @@ type Props = {
 }
 
 export default function Dashboard({ isActive }: Props) {
-  const { step, pollIntervalMs, handleRefreshNow, handleAdjustInterval } = useDashboard()
+  const step = useDashboardStore((state) => state.step)
+  const pollIntervalMs = useDashboardStore((state) => state.pollIntervalMs)
+  const start = useDashboardStore((state) => state.start)
+  const stop = useDashboardStore((state) => state.stop)
+  const handleRefreshNow = useDashboardStore((state) => state.refreshNow)
+  const handleAdjustInterval = useDashboardStore((state) => state.adjustInterval)
+
+  // 轮询生命周期跟随页面挂载: 进入启动, 离开停止 (store 常驻, 必须显式控制)
+  useEffect(() => {
+    start()
+    return () => stop()
+  }, [start, stop])
 
   useInput(
     (input, key) => {

@@ -6,14 +6,9 @@ import Dashboard from './commands/dashboard/index.tsx'
 import RemoveStock from './commands/remove-stock/index.tsx'
 import MenuDialog from './components/MenuDialog.tsx'
 import StatusBar from './components/StatusBar.tsx'
-import { useScreenRouter, type Screen } from './hooks/useScreenRouter.ts'
+import { useRouterStore, type Screen } from './stores/router.ts'
 
 type CommandScreen = Screen
-
-type Props = {
-  /** 通过命令行子命令直接进入的页面, 默认直接进看板 */
-  initialScreen?: Screen
-}
 
 const screenComponentMap = new Map<CommandScreen, ComponentType<{ onBack: () => void; isActive: boolean }>>([
   ['dashboard', Dashboard],
@@ -27,8 +22,11 @@ const SCREEN_HINTS: Record<Screen, string> = {
   ['remove-stock']: '菜单(esc)   退出(q)',
 }
 
-export default function App({ initialScreen = 'dashboard' }: Props = {}) {
-  const { screen, menuOpen, toggleMenu, goTo } = useScreenRouter(initialScreen)
+export default function App() {
+  const screen = useRouterStore((state) => state.screen)
+  const menuOpen = useRouterStore((state) => state.menuOpen)
+  const toggleMenu = useRouterStore((state) => state.toggleMenu)
+  const goTo = useRouterStore((state) => state.goTo)
   const { rows } = useWindowSize()
   const { exit } = useApp()
 

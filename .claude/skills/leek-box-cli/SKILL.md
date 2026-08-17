@@ -5,28 +5,31 @@ description: leek-box-cli 项目规范与开发经验. 当任务涉及修改/扩
 
 # leek-box-cli 项目规范与经验
 
-终端股票自选股看板, 基于 Ink 构建的交互式 CLI. 技术栈: `ink@7.1.1` + `react@19.2.8` + `meow`, ESM 模式, `tsx` 开发 / `vite` 构建. 零外部工具依赖 (行情走 Node 原生 `fetch`, 无需 curl 等).
+终端股票自选股看板, 基于 Ink 构建的交互式 CLI. 技术栈: `ink@7.1.1` + `react@19.2.8` + `zustand@5` + `meow`, ESM 模式, `tsx` 开发 / `vite` 构建. 零外部工具依赖 (行情走 Node 原生 `fetch`, 无需 curl 等).
 
 ## 架构与目录
 
 ```
-src/cli.tsx          meow 解析子命令 -> render(<App initialScreen={...}/>, {alternateScreen, concurrent}); 无命令时默认进 dashboard
+src/cli.tsx          meow 解析子命令 -> render 前 setState 写入 router store 初始页 -> render(<App/>, {alternateScreen, concurrent}); 无命令时默认进 dashboard
 src/app.tsx          顶层: 页面路由 + 全局 esc/q 键 + 条件渲染 MenuDialog 浮层 + StatusBar (按页面动态 hint)
 src/components/       通用组件 (MenuDialog / TextInput / Message / StatusBar / BackToDashboard / ProgressBar)
-src/hooks/            通用 hooks (useScreenRouter / useValidatedInput / useYnConfirm)
-src/commands/<cmd>/   每个命令一个目录: index.tsx (纯渲染) + use<Cmd>.ts (状态机逻辑)
+src/stores/          zustand store, 全部应用状态的唯一来源 (router / dashboard / addStock / removeStock / yn 纯函数)
+src/commands/<cmd>/   每个命令一个目录: index.tsx (纯渲染, 订阅 store 选择器, 不持有状态)
 src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) — 与界面无关的逻辑
 ```
 
-- 每个命令页面是 **step 状态机**: `use<Cmd>()` hook 持有状态, `index.tsx` 按 `step.type` 分支渲染纯展示, 不跑副作用.
+- 每个命令页面是 **step 状态机**: store 持有 step 与动作, `index.tsx` 用 `useXxxStore((s) => s.xxx)` 选择器订阅, 按 `step.type` 分支渲染纯展示, 不跑副作用.
+- **store 常驻进程级**: 页面挂载/卸载只调 store 动作 — dashboard 挂载 `start()` / 卸载 `stop()` (轮询循环); add-stock 挂载 `reset()` (防残留上次流程); remove-stock 挂载 `load()` (重新加载列表). 异步动作用模块级 `flowSeq` 代数守卫丢弃过期结果 (离开页面后旧响应不污染新流程).
+- 轮询循环的非响应式状态 (timer / inFlight / cancelled / interval) 是 store 文件内**模块级变量**, 不进 zustand state; state 只承载展示数据.
+- 输入校验状态 (inputError / inputKey) 也提升在 store 内; y/n 解析纯函数共用 `src/lib/yn.ts`. **stores 目录只放 zustand store**: 无状态纯函数放 `src/lib` (依赖方向 lib <- stores <- 组件). 组件内部瞬时 UI 状态 (TextInput 的 value / MenuDialog 的 highlight / StatusBar 的时钟) 留在组件内.
 - 页面组件 props 为 `{ onBack, isActive }`; 映射在 `app.tsx` 的 `screenComponentMap`.
-- 新增子命令需同步注册**三处**: `cli.tsx` 的 `COMMANDS`, `app.tsx` 的 `screenComponentMap`, `MenuDialog.tsx` 的 `MENU_ITEMS`.
+- 新增子命令需同步注册**三处**: `cli.tsx` 的 `COMMANDS`, `app.tsx` 的 `screenComponentMap`, `MenuDialog.tsx` 的 `MENU_ITEMS`; 并新增对应 store.
 - 文件后缀显式导入 (`./xxx.ts` / `.tsx`), ESM 风格.
 
 ## 交互架构
 
 - **启动直接进 dashboard**, 不再有 menu 屏; 菜单是 `esc` 调起的**浮层弹窗** (`MenuDialog`).
-- `useScreenRouter` 状态: `screen` (页面) + `menuOpen` (弹窗开关), 互相独立; `goTo(screen)` 切页并关弹窗.
+- `router store` 状态: `screen` (页面) + `menuOpen` (弹窗开关), 互相独立; `goTo(screen)` 切页并关弹窗.
 - **全局按键** (`app.tsx` 的 useInput): `esc` -> `toggleMenu()`; `q` -> 仅 `!menuOpen` 时 `useApp().exit()` (菜单开着时 q 不退出, 防止误触).
 - **MenuDialog**: 绝对定位居中覆盖 (`position="absolute"` + `top/left` 用 `useWindowSize` 计算), `↑/↓` 高亮 + `enter` 确认 + 数字键 `1-4` 快捷 (4 = 退出); 高亮项反色 (`backgroundColor="cyan"` + `color="black"`).
 - **isActive 传播链**: 菜单打开时当前页的输入必须禁用 — `app.tsx` 传 `isActive={!menuOpen}` 给页面, 页面把它传给自己的 `useInput` 和所有 `TextInput`/`BackToDashboard` 的 `isActive` prop. **新增页面/组件时不要漏掉这条链** (漏了会导致菜单打开时还能操作底层页面).
@@ -48,9 +51,9 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) �
 - Schema: 裸数组 `[{ code, name, addedAt }]`, 插入序即显示序; `name` 在添加时缓存, 删除页离线也能显示名称.
 - 文件损坏时 `loadWatchlist` **throw** (提示用户删文件自愈), 不静默吞错; `saveWatchlist` 前 `mkdir recursive`.
 
-## 看板轮询模式 (`src/commands/dashboard/useDashboard.ts`)
+## 看板轮询模式 (`src/stores/dashboard.ts`)
 
-- 5s 轮询: **自调度 `setTimeout`** (fetch 完成后才排下一次) + `inFlightRef` 守卫, 避免 8s 超时与 5s 间隔重叠; unmount 时 `cancelled` 标志 + `clearTimeout` 清理.
+- 5s 轮询: **自调度 `setTimeout`** (fetch 完成后才排下一次) + 模块级 `inFlight` 守卫, 避免 8s 超时与 5s 间隔重叠; 页面卸载时 `stop()` 置 `cancelled` 标志 + `clearTimeout`, 进行中的 fetch 结果被丢弃 (fetch 完成后检查 `cancelled` 再 set).
 - 错误语义: 首次失败 (无旧数据) -> `error` 步 + BackToDashboard; 后续轮询失败 -> **保留旧表格 + 内联黄色 errorLine + 继续轮询自愈** (`setStep(prev => prev.type === 'table' ? {...prev, errorLine} : {type:'error', ...})`).
 - 手动刷新 `r` 键在 `index.tsx` 的 `useInput` (带 `{ isActive }`) 里调 `handleRefreshNow()` (有 in-flight 则忽略).
 
@@ -80,7 +83,7 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) �
 
 ## 常见坑清单
 
-1. 忘记给下一步输入框递增 `key` -> 输入框"卡死"无法继续输入 (见 useValidatedInput 注释); 连续两步都有输入框且 key 同值时会 React 复用实例继承旧值 (remove-stock 的 select->confirm, 修复为 `key={'yn-' + confirmInputKey}` 字符串前缀).
+1. 忘记给下一步输入框递增 `key` -> 输入框"卡死"无法继续输入 (输入校验的 key 递增逻辑在 store 的 reject/accept 动作里); 连续两步都有输入框且 key 同值时会 React 复用实例继承旧值 (remove-stock 的 select->confirm, 修复为 `key={'yn-' + confirmInputKey}` 字符串前缀).
 2. 用 `process.stdout.write` 而非 `useStdout().write` 写界面 -> 与 Ink 输出冲突错乱.
 3. 中文/emoji 字符宽度: 布局用 `useWindowSize`, 表格列宽用 padCJK, 不要硬编码.
 4. `useEffect` 里更新状态导致无限重渲染 - Ink 每帧重绘, 状态更新要谨慎.

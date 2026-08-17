@@ -45,7 +45,8 @@
     "react-devtools-core": "7.0.1",
     "tsx": "4.23.12",
     "typescript": "7.0.2",
-    "vite": "8.2.1"
+    "vite": "8.2.1",
+    "zustand": "5.0.15"
   },
   "engines": {
     "node": ">=26.7.0",

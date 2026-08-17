@@ -1,8 +1,9 @@
 import { Box, Text } from 'ink'
+import { useEffect } from 'react'
 
 import ActionResult from '../../components/ActionResult.tsx'
 import TextInput from '../../components/TextInput.tsx'
-import { useAddStock } from './useAddStock.ts'
+import { useAddStockStore } from '../../stores/addStock.ts'
 
 type Props = {
   onBack: () => void
@@ -11,8 +12,19 @@ type Props = {
 }
 
 export default function AddStock({ onBack, isActive }: Props) {
-  const { step, codeInputError, codeInputKey, confirmInputError, confirmInputKey, handleCodeInput, handleConfirm } =
-    useAddStock()
+  const step = useAddStockStore((state) => state.step)
+  const codeInputError = useAddStockStore((state) => state.codeInputError)
+  const codeInputKey = useAddStockStore((state) => state.codeInputKey)
+  const confirmInputError = useAddStockStore((state) => state.confirmInputError)
+  const confirmInputKey = useAddStockStore((state) => state.confirmInputKey)
+  const reset = useAddStockStore((state) => state.reset)
+  const handleCodeInput = useAddStockStore((state) => state.handleCodeInput)
+  const handleConfirm = useAddStockStore((state) => state.handleConfirm)
+
+  // store 常驻, 每次进入页面重置流程, 保证与旧版"挂载即新流程"行为一致
+  useEffect(() => {
+    reset()
+  }, [reset])
 
   if (step.type === 'input-code') {
     return (
@@ -20,9 +32,14 @@ export default function AddStock({ onBack, isActive }: Props) {
         <Box marginBottom={1}>
           <Text color="cyan">添加自选股</Text>
         </Box>
-        <Text color="gray">支持 600000 / sh600000 / 600000.SH 等写法</Text>
         {codeInputError && <Text color="red">{codeInputError}</Text>}
-        <TextInput isActive={isActive} key={codeInputKey} prompt="请输入股票代码: " onSubmit={handleCodeInput} />
+        <TextInput
+          isActive={isActive}
+          key={codeInputKey}
+          prompt="请输入股票代码: "
+          placeholder={<Text color="gray">支持 600000 / sh600000 / 600000.SH 等写法</Text>}
+          onSubmit={handleCodeInput}
+        />
       </>
     )
   }

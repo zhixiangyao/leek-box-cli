@@ -1,8 +1,9 @@
 import { Box, Text } from 'ink'
+import { useEffect } from 'react'
 
 import ActionResult from '../../components/ActionResult.tsx'
 import TextInput from '../../components/TextInput.tsx'
-import { useRemoveStock } from './useRemoveStock.ts'
+import { useRemoveStockStore } from '../../stores/removeStock.ts'
 
 type Props = {
   onBack: () => void
@@ -11,8 +12,19 @@ type Props = {
 }
 
 export default function RemoveStock({ onBack, isActive }: Props) {
-  const { step, indexInputError, indexInputKey, confirmInputError, confirmInputKey, handleChoice, handleConfirm } =
-    useRemoveStock()
+  const step = useRemoveStockStore((state) => state.step)
+  const indexInputError = useRemoveStockStore((state) => state.indexInputError)
+  const indexInputKey = useRemoveStockStore((state) => state.indexInputKey)
+  const confirmInputError = useRemoveStockStore((state) => state.confirmInputError)
+  const confirmInputKey = useRemoveStockStore((state) => state.confirmInputKey)
+  const load = useRemoveStockStore((state) => state.load)
+  const handleChoice = useRemoveStockStore((state) => state.handleChoice)
+  const handleConfirm = useRemoveStockStore((state) => state.handleConfirm)
+
+  // store 常驻, 每次进入页面重新加载列表并复位输入状态
+  useEffect(() => {
+    load()
+  }, [load])
 
   if (step.type === 'loading') {
     return <Text color="cyan">正在加载自选股...</Text>
@@ -31,7 +43,13 @@ export default function RemoveStock({ onBack, isActive }: Props) {
           </Text>
         ))}
         {indexInputError && <Text color="red">{indexInputError}</Text>}
-        <TextInput isActive={isActive} key={indexInputKey} prompt="请输入要删除的序号: " onSubmit={handleChoice} />
+        <TextInput
+          marginTop={1}
+          isActive={isActive}
+          key={indexInputKey}
+          prompt="请输入要删除的序号: "
+          onSubmit={handleChoice}
+        />
       </>
     )
   }

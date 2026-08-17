@@ -2,7 +2,7 @@ import { render } from 'ink'
 import meow from 'meow'
 
 import App from './app.tsx'
-import type { Screen } from './hooks/useScreenRouter.ts'
+import { useRouterStore, type Screen } from './stores/router.ts'
 
 const COMMANDS = ['dashboard', 'add-stock', 'remove-stock'] as const satisfies readonly Exclude<Screen, 'menu'>[]
 
@@ -34,4 +34,7 @@ const screenFromCommand = (command: string | undefined): Screen =>
     ? (command as (typeof COMMANDS)[number])
     : 'dashboard'
 
-render(<App initialScreen={screenFromCommand(cli.command)} />, { alternateScreen: true, concurrent: true })
+// store 是路由状态唯一来源, render 前写入初始页
+useRouterStore.setState({ screen: screenFromCommand(cli.command) })
+
+render(<App />, { alternateScreen: true, concurrent: true })
