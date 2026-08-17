@@ -6,7 +6,7 @@ import Dashboard from './commands/dashboard/index.tsx'
 import RemoveStock from './commands/remove-stock/index.tsx'
 import MenuDialog from './components/MenuDialog.tsx'
 import StatusBar from './components/StatusBar.tsx'
-import { useRouterStore, type Screen } from './stores/router.ts'
+import { useRouterStore, type Screen } from './stores/useRouterStore.ts'
 
 type CommandScreen = Screen
 

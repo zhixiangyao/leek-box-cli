@@ -1,9 +1,9 @@
 import { Box, Text } from 'ink'
-import { useEffect } from 'react'
 
 import ActionResult from '../../components/ActionResult.tsx'
 import TextInput from '../../components/TextInput.tsx'
-import { useRemoveStockStore } from '../../stores/removeStock.ts'
+import { useRemoveStockStore } from '../../stores/useRemoveStockStore.ts'
+import { useRemoveStockPage } from './hooks/useRemoveStock.ts'
 
 type Props = {
   onBack: () => void
@@ -17,14 +17,10 @@ export default function RemoveStock({ onBack, isActive }: Props) {
   const indexInputKey = useRemoveStockStore((state) => state.indexInputKey)
   const confirmInputError = useRemoveStockStore((state) => state.confirmInputError)
   const confirmInputKey = useRemoveStockStore((state) => state.confirmInputKey)
-  const load = useRemoveStockStore((state) => state.load)
   const handleChoice = useRemoveStockStore((state) => state.handleChoice)
   const handleConfirm = useRemoveStockStore((state) => state.handleConfirm)
 
-  // store 常驻, 每次进入页面重新加载列表并复位输入状态
-  useEffect(() => {
-    load()
-  }, [load])
+  useRemoveStockPage()
 
   if (step.type === 'loading') {
     return <Text color="cyan">正在加载自选股...</Text>

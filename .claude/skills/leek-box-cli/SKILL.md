@@ -13,12 +13,12 @@ description: leek-box-cli 项目规范与开发经验. 当任务涉及修改/扩
 src/cli.tsx          meow 解析子命令 -> render 前 setState 写入 router store 初始页 -> render(<App/>, {alternateScreen, concurrent}); 无命令时默认进 dashboard
 src/app.tsx          顶层: 页面路由 + 全局 esc/q 键 + 条件渲染 MenuDialog 浮层 + StatusBar (按页面动态 hint)
 src/components/       通用组件 (MenuDialog / TextInput / Message / StatusBar / BackToDashboard / ProgressBar)
-src/stores/          zustand store, 全部应用状态的唯一来源 (router / dashboard / addStock / removeStock / yn 纯函数)
-src/commands/<cmd>/   每个命令一个目录: index.tsx (纯渲染, 订阅 store 选择器, 不持有状态)
+src/stores/          zustand store, 全部应用状态的唯一来源, 文件名统一 `useXxxStore.ts` (useRouterStore / useDashboardStore / useAddStockStore / useRemoveStockStore)
+src/commands/<cmd>/   每个命令一个目录: index.tsx (纯渲染, 订阅 store 选择器, 不持有状态) + hooks/ (页面副作用: 生命周期/快捷键) + lib/ (页面级纯函数, 如 dashboard 的 table.ts)
 src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) — 与界面无关的逻辑
 ```
 
-- 每个命令页面是 **step 状态机**: store 持有 step 与动作, `index.tsx` 用 `useXxxStore((s) => s.xxx)` 选择器订阅, 按 `step.type` 分支渲染纯展示, 不跑副作用.
+- 每个命令页面是 **step 状态机**: store 持有 step 与动作, `index.tsx` 用 `useXxxStore((s) => s.xxx)` 选择器订阅, 按 `step.type` 分支渲染纯展示, 不跑副作用. **非视图逻辑放 `hooks/`**: 生命周期/快捷键封装为 `useXxxPage()` hook (dashboard 的 useDashboardPage / add-stock 的 useAddStockPage / remove-stock 的 useRemoveStockPage), 纯函数放命令目录的 `lib/` (dashboard 的 `lib/table.ts`).
 - **store 常驻进程级**: 页面挂载/卸载只调 store 动作 — dashboard 挂载 `start()` / 卸载 `stop()` (轮询循环); add-stock 挂载 `reset()` (防残留上次流程); remove-stock 挂载 `load()` (重新加载列表). 异步动作用模块级 `flowSeq` 代数守卫丢弃过期结果 (离开页面后旧响应不污染新流程).
 - 轮询循环的非响应式状态 (timer / inFlight / cancelled / interval) 是 store 文件内**模块级变量**, 不进 zustand state; state 只承载展示数据.
 - 输入校验状态 (inputError / inputKey) 也提升在 store 内; y/n 解析纯函数共用 `src/lib/yn.ts`. **stores 目录只放 zustand store**: 无状态纯函数放 `src/lib` (依赖方向 lib <- stores <- 组件). 组件内部瞬时 UI 状态 (TextInput 的 value / MenuDialog 的 highlight / StatusBar 的时钟) 留在组件内.
@@ -51,11 +51,11 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) �
 - Schema: 裸数组 `[{ code, name, addedAt }]`, 插入序即显示序; `name` 在添加时缓存, 删除页离线也能显示名称.
 - 文件损坏时 `loadWatchlist` **throw** (提示用户删文件自愈), 不静默吞错; `saveWatchlist` 前 `mkdir recursive`.
 
-## 看板轮询模式 (`src/stores/dashboard.ts`)
+## 看板轮询模式 (`src/stores/useDashboardStore.ts`)
 
 - 5s 轮询: **自调度 `setTimeout`** (fetch 完成后才排下一次) + 模块级 `inFlight` 守卫, 避免 8s 超时与 5s 间隔重叠; 页面卸载时 `stop()` 置 `cancelled` 标志 + `clearTimeout`, 进行中的 fetch 结果被丢弃 (fetch 完成后检查 `cancelled` 再 set).
 - 错误语义: 首次失败 (无旧数据) -> `error` 步 + BackToDashboard; 后续轮询失败 -> **保留旧表格 + 内联黄色 errorLine + 继续轮询自愈** (`setStep(prev => prev.type === 'table' ? {...prev, errorLine} : {type:'error', ...})`).
-- 手动刷新 `r` 键在 `index.tsx` 的 `useInput` (带 `{ isActive }`) 里调 `handleRefreshNow()` (有 in-flight 则忽略).
+- 手动刷新 `r` 键在 `hooks/useDashboard.ts` 的 `useInput` (带 `{ isActive }`) 里调 `handleRefreshNow()` (有 in-flight 则忽略).
 
 ## 界面风格约定
 
@@ -63,7 +63,7 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) �
 - **界面文案不含任何 emoji** (2026-08 重构移除全部 emoji, 新增文案不要加).
 - 颜色语义: `magenta` 标题, `cyan` 信息/引导, `yellow` 警告, `red` 错误, `green` 成功, `gray` 占位/光标.
 - **A股配色: 涨红跌绿平灰** (`trendColor(value)`: >0 red, <0 green, =0 gray), 涨跌幅/涨跌额带显式 `+`/`-` 前缀.
-- 表格对齐用本地 `padCJK`/`cell` 辅助 (`src/commands/dashboard/index.tsx`): CJK 字符按宽度 2 计算, **不要引入 string-width 依赖, 不要硬编码宽度**.
+- 表格对齐用本地 `displayWidth`/`cell` 辅助 (`src/commands/dashboard/lib/table.ts`): CJK 字符按宽度 2 计算, **不要引入 string-width 依赖, 不要硬编码宽度**.
 - 页面级结果/警告消息用 `<Message tone="error|warning|success">`, 返回提示用 `<BackToDashboard onBack=.../>` (文案 "按 Enter 返回看板..."). **只用于 add-stock/remove-stock 页 (返回看板有意义); dashboard 自身 (empty/error 步) 不用 — 已经在看板上, 返回是无效操作且会误导 (曾有反馈 "按 Enter 无反应"), 用引导文案 + StatusBar 提示即可.**
 - **StatusBar** (`src/components/StatusBar.tsx`): 左侧 `hint` 按键提示 (app.tsx 按页面传), 右侧日期 `YYYY-MM-DD` — `Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', ... })` (en-CA 恰好输出该格式; 时区固定上海, 不要用本地时区).
 - 顶层 Box 统一 `borderStyle="classic"` 经典边框 + `padding={1}`, 尺寸撑满 `columns/rows` (useWindowSize).

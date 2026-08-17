@@ -2,7 +2,7 @@ import { render } from 'ink'
 import meow from 'meow'
 
 import App from './app.tsx'
-import { useRouterStore, type Screen } from './stores/router.ts'
+import { useRouterStore, type Screen } from './stores/useRouterStore.ts'
 
 const COMMANDS = ['dashboard', 'add-stock', 'remove-stock'] as const satisfies readonly Exclude<Screen, 'menu'>[]
 

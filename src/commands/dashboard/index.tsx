@@ -1,35 +1,8 @@
-import { Box, Text, useInput } from 'ink'
-import { useEffect } from 'react'
+import { Box, Text } from 'ink'
 
-import { POLL_INTERVAL_STEP_MS, useDashboardStore } from '../../stores/dashboard.ts'
-
-/** CJK 字符按宽度 2 计算的显示宽度 (不引入 string-width 依赖) */
-const displayWidth = (value: string) =>
-  [...value].reduce((width, ch) => width + (ch.codePointAt(0)! > 0x2e80 ? 2 : 1), 0)
-
-const cell = (text: string, width: number, align: 'left' | 'right' = 'left') =>
-  align === 'right'
-    ? ' '.repeat(Math.max(0, width - displayWidth(text))) + text
-    : text + ' '.repeat(Math.max(0, width - displayWidth(text)))
-
-const COLUMNS = [
-  { title: '代码', width: 10 },
-  { title: '名称', width: 12 },
-  { title: '现价', width: 8, align: 'right' as const },
-  { title: '涨跌幅', width: 9, align: 'right' as const },
-  { title: '涨跌额', width: 8, align: 'right' as const },
-  { title: '今开', width: 8, align: 'right' as const },
-  { title: '昨收', width: 8, align: 'right' as const },
-  { title: '最高', width: 8, align: 'right' as const },
-  { title: '最低', width: 8, align: 'right' as const },
-]
-
-const formatPrice = (value: number) => (value > 0 ? value.toFixed(2) : '--')
-const formatSigned = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)}`
-const formatPercent = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
-
-/** A股约定: 涨红跌绿平灰 */
-const trendColor = (value: number) => (value > 0 ? 'red' : value < 0 ? 'green' : 'gray')
+import { useDashboardStore } from '../../stores/useDashboardStore.ts'
+import { useDashboardPage } from './hooks/useDashboard.ts'
+import { cell, COLUMNS, formatPercent, formatPrice, formatSigned, trendColor } from './lib/table.ts'
 
 type Props = {
   /** 菜单弹窗打开时禁用刷新键 */
@@ -39,30 +12,8 @@ type Props = {
 export default function Dashboard({ isActive }: Props) {
   const step = useDashboardStore((state) => state.step)
   const pollIntervalMs = useDashboardStore((state) => state.pollIntervalMs)
-  const start = useDashboardStore((state) => state.start)
-  const stop = useDashboardStore((state) => state.stop)
-  const handleRefreshNow = useDashboardStore((state) => state.refreshNow)
-  const handleAdjustInterval = useDashboardStore((state) => state.adjustInterval)
 
-  // 轮询生命周期跟随页面挂载: 进入启动, 离开停止 (store 常驻, 必须显式控制)
-  useEffect(() => {
-    start()
-    return () => stop()
-  }, [start, stop])
-
-  useInput(
-    (input, key) => {
-      if (key.ctrl) return
-      if (input === 'r') {
-        handleRefreshNow()
-      } else if (input === '-') {
-        handleAdjustInterval(-POLL_INTERVAL_STEP_MS)
-      } else if (input === '+') {
-        handleAdjustInterval(POLL_INTERVAL_STEP_MS)
-      }
-    },
-    { isActive },
-  )
+  useDashboardPage(isActive)
 
   if (step.type === 'loading') {
     return <Text color="cyan">正在获取行情数据...</Text>

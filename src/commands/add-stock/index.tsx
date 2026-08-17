@@ -1,9 +1,9 @@
 import { Box, Text } from 'ink'
-import { useEffect } from 'react'
 
 import ActionResult from '../../components/ActionResult.tsx'
 import TextInput from '../../components/TextInput.tsx'
-import { useAddStockStore } from '../../stores/addStock.ts'
+import { useAddStockStore } from '../../stores/useAddStockStore.ts'
+import { useAddStockPage } from './hooks/useAddStock.ts'
 
 type Props = {
   onBack: () => void
@@ -17,14 +17,10 @@ export default function AddStock({ onBack, isActive }: Props) {
   const codeInputKey = useAddStockStore((state) => state.codeInputKey)
   const confirmInputError = useAddStockStore((state) => state.confirmInputError)
   const confirmInputKey = useAddStockStore((state) => state.confirmInputKey)
-  const reset = useAddStockStore((state) => state.reset)
   const handleCodeInput = useAddStockStore((state) => state.handleCodeInput)
   const handleConfirm = useAddStockStore((state) => state.handleConfirm)
 
-  // store 常驻, 每次进入页面重置流程, 保证与旧版"挂载即新流程"行为一致
-  useEffect(() => {
-    reset()
-  }, [reset])
+  useAddStockPage()
 
   if (step.type === 'input-code') {
     return (
