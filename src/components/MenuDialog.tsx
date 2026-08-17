@@ -2,6 +2,7 @@ import { Box, Text, useApp, useInput, useWindowSize } from 'ink'
 import { useState } from 'react'
 
 import type { Screen } from '../lib/screens.ts'
+import { useMenuStore } from '../stores/useMenuStore.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
 
 const MENU_ITEMS: { label: string; screen: Screen | null }[] = [
@@ -17,10 +18,22 @@ const MENU_WIDTH = 30
 const MENU_HEIGHT = MENU_ITEMS.length + 4
 
 export default function MenuDialog() {
-  const goTo = useRouterStore((state) => state.goTo)
-  const [highlight, setHighlight] = useState(0)
-  const { rows, columns } = useWindowSize()
+  const routerStore = useRouterStore()
+  const menuStore = useMenuStore()
   const { exit } = useApp()
+  const { rows, columns } = useWindowSize()
+  const [highlight, setHighlight] = useState(0)
+  const top = Math.max(0, Math.floor((rows - MENU_HEIGHT) / 2))
+  const left = Math.max(0, Math.floor((columns - MENU_WIDTH) / 2))
+
+  const choose = (item: (typeof MENU_ITEMS)[number]) => {
+    if (item.screen) {
+      menuStore.close()
+      routerStore.goTo(item.screen)
+    } else {
+      exit()
+    }
+  }
 
   useInput((input, key) => {
     if (key.upArrow) {
@@ -35,17 +48,6 @@ export default function MenuDialog() {
       choose(MENU_ITEMS[index]!)
     }
   })
-
-  const choose = (item: (typeof MENU_ITEMS)[number]) => {
-    if (item.screen) {
-      goTo(item.screen)
-    } else {
-      exit()
-    }
-  }
-
-  const top = Math.max(0, Math.floor((rows - MENU_HEIGHT) / 2))
-  const left = Math.max(0, Math.floor((columns - MENU_WIDTH) / 2))
 
   return (
     <Box

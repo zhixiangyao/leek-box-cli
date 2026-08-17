@@ -4,12 +4,12 @@ import { useRouterStore } from '../stores/useRouterStore.ts'
 import TextInput from './TextInput.tsx'
 
 export default function BackToDashboard() {
-  const goTo = useRouterStore((state) => state.goTo)
+  const routerStore = useRouterStore()
 
   return (
     <>
       <Newline />
-      <TextInput prompt="按 Enter 返回看板..." onSubmit={() => goTo('dashboard')} />
+      <TextInput prompt="按 Enter 返回看板..." onSubmit={() => routerStore.goTo('dashboard')} />
     </>
   )
 }

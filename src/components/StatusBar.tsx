@@ -2,13 +2,14 @@ import { Box } from 'ink'
 import { useEffect, useState } from 'react'
 
 import { SCREEN_META } from '../lib/screens.ts'
+import { useMenuStore } from '../stores/useMenuStore.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
 import Text from './Text.tsx'
 
 export default function StatusBar() {
-  const screen = useRouterStore((state) => state.screen)
-  const menuOpen = useRouterStore((state) => state.menuOpen)
-  const hint = SCREEN_META[screen].hint
+  const routerStore = useRouterStore()
+  const menuStore = useMenuStore()
+  const hint = SCREEN_META[routerStore.screen].hint
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -30,8 +31,8 @@ export default function StatusBar() {
       height={1}
       justifyContent="space-between"
       paddingX={1}
-      // 菜单打开时背景变灰, 配合本地 Text 的 menuOpen 订阅形成整体遮罩
-      backgroundColor={menuOpen ? 'gray' : 'blue'}
+      // 菜单打开时背景变灰, 配合本地 Text 的 open 订阅形成整体遮罩
+      backgroundColor={menuStore.open ? 'gray' : 'blue'}
     >
       <Text color="white" wrap="truncate-start">
         {hint}

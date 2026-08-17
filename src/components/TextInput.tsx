@@ -1,7 +1,7 @@
-import { Box, BoxProps, useInput } from 'ink'
-import { ReactNode, useState } from 'react'
+import { Box, type BoxProps, useInput } from 'ink'
+import { type ReactNode, useState } from 'react'
 
-import { useRouterStore } from '../stores/useRouterStore.ts'
+import { useMenuStore } from '../stores/useMenuStore.ts'
 import Text from './Text.tsx'
 
 type Props = {
@@ -15,7 +15,7 @@ export default function TextInput(props: Props) {
   const { prompt, onSubmit, placeholder, ...boxProps } = props
   const [value, setValue] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const menuOpen = useRouterStore((state) => state.menuOpen)
+  const menuStore = useMenuStore()
 
   useInput(
     (input, key) => {
@@ -30,7 +30,7 @@ export default function TextInput(props: Props) {
         setValue((prev) => prev + input)
       }
     },
-    { isActive: !menuOpen && !submitted },
+    { isActive: !menuStore.open && !submitted },
   )
 
   return (

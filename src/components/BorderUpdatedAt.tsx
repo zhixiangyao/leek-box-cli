@@ -5,11 +5,10 @@ import { useRouterStore } from '../stores/useRouterStore.ts'
 import Text from './Text.tsx'
 
 export default function BorderUpdatedAt() {
-  const screen = useRouterStore((state) => state.screen)
-  const step = useDashboardStore((state) => state.step)
-  const pollIntervalMs = useDashboardStore((state) => state.pollIntervalMs)
+  const routerStore = useRouterStore()
+  const dashboardStore = useDashboardStore()
 
-  if (screen !== 'dashboard' || step.type !== 'table') {
+  if (routerStore.screen !== 'dashboard' || dashboardStore.step.type !== 'table') {
     return null
   }
 
@@ -17,7 +16,7 @@ export default function BorderUpdatedAt() {
     <Box position="absolute" top={0} right={2}>
       <Text>|</Text>
       <Text color="cyan">
-        {step.updatedAt} ({pollIntervalMs}ms)
+        {dashboardStore.step.updatedAt} ({dashboardStore.pollIntervalMs}ms)
       </Text>
       <Text>|</Text>
     </Box>

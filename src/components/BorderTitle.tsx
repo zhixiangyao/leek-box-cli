@@ -5,9 +5,8 @@ import { useRouterStore } from '../stores/useRouterStore.ts'
 import Text from './Text.tsx'
 
 export default function BorderTitle() {
-  const screen = useRouterStore((state) => state.screen)
-
-  const title = SCREEN_META[screen].title
+  const routerStore = useRouterStore()
+  const title = SCREEN_META[routerStore.screen].title
 
   return (
     <Box position="absolute" top={0} left={2}>
