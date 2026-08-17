@@ -1,5 +1,6 @@
-import { Text } from 'ink'
 import type { ReactNode } from 'react'
+
+import Text from './Text.tsx'
 
 export type MessageTone = 'error' | 'warning' | 'success'
 

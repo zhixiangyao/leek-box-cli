@@ -1,18 +1,12 @@
-import { Text } from 'ink'
-
+import Text from '../../components/Text.tsx'
 import { useDashboardStore } from '../../stores/useDashboardStore.ts'
 import { useDashboardPage } from './hooks/useDashboard.ts'
 import { cell, COLUMNS, formatPercent, formatPrice, formatSigned, trendColor } from './lib/table.ts'
 
-type Props = {
-  /** 菜单弹窗打开时禁用刷新键 */
-  isActive: boolean
-}
-
-export default function Dashboard({ isActive }: Props) {
+export default function Dashboard() {
   const step = useDashboardStore((state) => state.step)
 
-  useDashboardPage(isActive)
+  useDashboardPage()
 
   if (step.type === 'loading') {
     return <Text color="cyan">正在获取行情数据...</Text>
@@ -41,38 +35,38 @@ export default function Dashboard({ isActive }: Props) {
         return (
           <Text key={quote.code}>
             <Text color="gray">
-              {cell(quote.code, COLUMNS[0]!.width)}
-              {cell(quote.name, COLUMNS[1]!.width)}
+              {cell(quote.code, COLUMNS[0]!.width, COLUMNS[0]!.align)}
+              {cell(quote.name, COLUMNS[1]!.width, COLUMNS[1]!.align)}
             </Text>
             {suspended ? (
               <>
                 <Text color="gray">
-                  {cell('--', COLUMNS[2]!.width, 'right')}
-                  {cell('停牌', COLUMNS[3]!.width, 'right')}
+                  {cell('--', COLUMNS[2]!.width, COLUMNS[2]!.align)}
+                  {cell('停牌', COLUMNS[3]!.width, COLUMNS[3]!.align)}
                 </Text>
                 <Text color="gray">
-                  {cell('--', COLUMNS[4]!.width, 'right')}
-                  {cell('--', COLUMNS[5]!.width, 'right')}
-                  {cell('--', COLUMNS[6]!.width, 'right')}
-                  {cell('--', COLUMNS[7]!.width, 'right')}
-                  {cell('--', COLUMNS[8]!.width, 'right')}
+                  {cell('--', COLUMNS[4]!.width, COLUMNS[4]!.align)}
+                  {cell('--', COLUMNS[5]!.width, COLUMNS[5]!.align)}
+                  {cell('--', COLUMNS[6]!.width, COLUMNS[6]!.align)}
+                  {cell('--', COLUMNS[7]!.width, COLUMNS[7]!.align)}
+                  {cell('--', COLUMNS[8]!.width, COLUMNS[8]!.align)}
                 </Text>
               </>
             ) : (
               <>
                 <Text color={trendColor(quote.change)}>
-                  {cell(formatPrice(quote.current), COLUMNS[2]!.width, 'right')}
+                  {cell(formatPrice(quote.current), COLUMNS[2]!.width, COLUMNS[2]!.align)}
                 </Text>
                 <Text color={trendColor(quote.changePercent)}>
-                  {cell(formatPercent(quote.changePercent), COLUMNS[3]!.width, 'right')}
+                  {cell(formatPercent(quote.changePercent), COLUMNS[3]!.width, COLUMNS[3]!.align)}
                 </Text>
                 <Text color={trendColor(quote.change)}>
-                  {cell(formatSigned(quote.change), COLUMNS[4]!.width, 'right')}
+                  {cell(formatSigned(quote.change), COLUMNS[4]!.width, COLUMNS[4]!.align)}
                 </Text>
-                <Text color="gray">{cell(formatPrice(quote.open), COLUMNS[5]!.width, 'right')}</Text>
-                <Text color="gray">{cell(formatPrice(quote.prevClose), COLUMNS[6]!.width, 'right')}</Text>
-                <Text color="gray">{cell(formatPrice(quote.high), COLUMNS[7]!.width, 'right')}</Text>
-                <Text color="gray">{cell(formatPrice(quote.low), COLUMNS[8]!.width, 'right')}</Text>
+                <Text color="gray">{cell(formatPrice(quote.open), COLUMNS[5]!.width, COLUMNS[5]!.align)}</Text>
+                <Text color="gray">{cell(formatPrice(quote.prevClose), COLUMNS[6]!.width, COLUMNS[6]!.align)}</Text>
+                <Text color="gray">{cell(formatPrice(quote.high), COLUMNS[7]!.width, COLUMNS[7]!.align)}</Text>
+                <Text color="gray">{cell(formatPrice(quote.low), COLUMNS[8]!.width, COLUMNS[8]!.align)}</Text>
               </>
             )}
           </Text>
@@ -84,13 +78,13 @@ export default function Dashboard({ isActive }: Props) {
           <Text color="gray">
             {cell(entry.code, COLUMNS[0]!.width)}
             {cell(entry.name, COLUMNS[1]!.width)}
-            {cell('--', COLUMNS[2]!.width, 'right')}
-            {cell('无数据', COLUMNS[3]!.width, 'right')}
-            {cell('--', COLUMNS[4]!.width, 'right')}
-            {cell('--', COLUMNS[5]!.width, 'right')}
-            {cell('--', COLUMNS[6]!.width, 'right')}
-            {cell('--', COLUMNS[7]!.width, 'right')}
-            {cell('--', COLUMNS[8]!.width, 'right')}
+            {cell('--', COLUMNS[2]!.width, COLUMNS[2]!.align)}
+            {cell('无数据', COLUMNS[3]!.width, COLUMNS[3]!.align)}
+            {cell('--', COLUMNS[4]!.width, COLUMNS[4]!.align)}
+            {cell('--', COLUMNS[5]!.width, COLUMNS[5]!.align)}
+            {cell('--', COLUMNS[6]!.width, COLUMNS[6]!.align)}
+            {cell('--', COLUMNS[7]!.width, COLUMNS[7]!.align)}
+            {cell('--', COLUMNS[8]!.width, COLUMNS[8]!.align)}
           </Text>
         </Text>
       ))}

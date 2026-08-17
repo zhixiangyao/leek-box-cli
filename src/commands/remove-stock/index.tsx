@@ -1,16 +1,10 @@
-import { Text } from 'ink'
-
 import ActionResult from '../../components/ActionResult.tsx'
+import Text from '../../components/Text.tsx'
 import TextInput from '../../components/TextInput.tsx'
 import { useRemoveStockStore } from '../../stores/useRemoveStockStore.ts'
 import { useRemoveStockPage } from './hooks/useRemoveStock.ts'
 
-type Props = {
-  /** 菜单弹窗打开时禁用输入 */
-  isActive: boolean
-}
-
-export default function RemoveStock({ isActive }: Props) {
+export default function RemoveStock() {
   const step = useRemoveStockStore((state) => state.step)
   const indexInputError = useRemoveStockStore((state) => state.indexInputError)
   const indexInputKey = useRemoveStockStore((state) => state.indexInputKey)
@@ -37,7 +31,7 @@ export default function RemoveStock({ isActive }: Props) {
         {indexInputError && <Text color="red">{indexInputError}</Text>}
         <TextInput
           marginTop={1}
-          isActive={isActive}
+
           key={indexInputKey}
           prompt="请输入要删除的序号: "
           onSubmit={handleChoice}
@@ -54,30 +48,17 @@ export default function RemoveStock({ isActive }: Props) {
         </Text>
         {confirmInputError && <Text color="red">{confirmInputError}</Text>}
         {/* key 加字符串前缀: select 步输入框 key 是数字序列, 若相同 React 会复用实例继承旧值, 导致 y/n 无法输入 */}
-        <TextInput
-          isActive={isActive}
-          key={`yn-${confirmInputKey}`}
-          prompt="确认删除? (y/n): "
-          onSubmit={handleConfirm}
-        />
+        <TextInput key={`yn-${confirmInputKey}`} prompt="确认删除? (y/n): " onSubmit={handleConfirm} />
       </>
     )
   }
 
   if (step.type === 'done') {
-    return (
-      <ActionResult tone="success" isActive={isActive}>
-        {step.message}
-      </ActionResult>
-    )
+    return <ActionResult tone="success">{step.message}</ActionResult>
   }
 
   if (step.type === 'error') {
-    return (
-      <ActionResult tone="error" isActive={isActive}>
-        {step.message}
-      </ActionResult>
-    )
+    return <ActionResult tone="error">{step.message}</ActionResult>
   }
 
   return null

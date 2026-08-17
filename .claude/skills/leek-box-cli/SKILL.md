@@ -22,7 +22,7 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) /
 - **store 常驻进程级**: 页面挂载/卸载只调 store 动作 — dashboard 挂载 `start()` / 卸载 `stop()` (轮询循环); add-stock 挂载 `reset()` (防残留上次流程); remove-stock 挂载 `load()` (重新加载列表). 异步动作用模块级 `flowSeq` 代数守卫丢弃过期结果 (离开页面后旧响应不污染新流程).
 - 轮询循环的非响应式状态 (timer / inFlight / cancelled / interval) 是 store 文件内**模块级变量**, 不进 zustand state; state 只承载展示数据.
 - 输入校验状态 (inputError / inputKey) 也提升在 store 内; y/n 解析纯函数共用 `src/lib/yn.ts`. **stores 目录只放 zustand store**: 无状态纯函数放 `src/lib` (依赖方向 lib <- stores <- 组件). 组件内部瞬时 UI 状态 (TextInput 的 value / MenuDialog 的 highlight / StatusBar 的时钟) 留在组件内.
-- 页面组件 props 为 `{ isActive }` (返回看板由 `BackToDashboard` 自行订阅 router store, 不再钻透 onBack); 映射在 `app.tsx` 的 `screenComponentMap`.
+- 页面组件无 props (输入面自行订阅 router store 的 `menuOpen` 守卫, 返回看板由 `BackToDashboard` 自行订阅 router store, 不钻透 onBack); 映射在 `app.tsx` 的 `screenComponentMap`.
 - 新增子命令需同步注册**四处**: `lib/screens.ts` (Screen 联合类型 + SCREEN_META 一条), `cli.tsx` 的 `COMMANDS`, `app.tsx` 的 `screenComponentMap`, `MenuDialog.tsx` 的 `MENU_ITEMS`; 并新增对应 store.
 - 文件后缀显式导入 (`./xxx.ts` / `.tsx`), ESM 风格.
 
@@ -32,7 +32,6 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) /
 - `router store` 状态: `screen` (页面) + `menuOpen` (弹窗开关), 互相独立; `goTo(screen)` 切页并关弹窗.
 - **全局按键** (`app.tsx` 的 useInput): `esc` -> `toggleMenu()`; `q` -> 仅 `!menuOpen` 时 `useApp().exit()` (菜单开着时 q 不退出, 防止误触).
 - **MenuDialog**: 绝对定位居中覆盖 (`position="absolute"` + `top/left` 用 `useWindowSize` 计算), `↑/↓` 高亮 + `enter` 确认 + 数字键 `1-4` 快捷 (4 = 退出); 高亮项反色 (`backgroundColor="cyan"` + `color="black"`).
-- **isActive 传播链**: 菜单打开时当前页的输入必须禁用 — `app.tsx` 传 `isActive={!menuOpen}` 给页面, 页面把它传给自己的 `useInput` 和所有 `TextInput`/`BackToDashboard` 的 `isActive` prop. **新增页面/组件时不要漏掉这条链** (漏了会导致菜单打开时还能操作底层页面).
 - 页面内返回看板: `BackToDashboard` (Enter 返回); 任何页面按 `esc` 也能打开菜单切页.
 
 ## 数据源: 腾讯行情接口 (`src/lib/quote.ts`)
@@ -55,7 +54,7 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) /
 
 - 5s 轮询: **自调度 `setTimeout`** (fetch 完成后才排下一次) + 模块级 `inFlight` 守卫, 避免 8s 超时与 5s 间隔重叠; 页面卸载时 `stop()` 置 `cancelled` 标志 + `clearTimeout`, 进行中的 fetch 结果被丢弃 (fetch 完成后检查 `cancelled` 再 set).
 - 错误语义: 首次失败 (无旧数据) -> `error` 步 + BackToDashboard; 后续轮询失败 -> **保留旧表格 + 内联黄色 errorLine + 继续轮询自愈** (`setStep(prev => prev.type === 'table' ? {...prev, errorLine} : {type:'error', ...})`).
-- 手动刷新 `r` 键在 `hooks/useDashboard.ts` 的 `useInput` (带 `{ isActive }`) 里调 `handleRefreshNow()` (有 in-flight 则忽略).
+- 手动刷新 `r` 键在 `hooks/useDashboard.ts` 的 `useInput` 里调 `handleRefreshNow()` (有 in-flight 则忽略), 守卫 `{ isActive: !menuOpen }` (menuOpen 自行订阅 router store).
 
 ## 界面风格约定
 
@@ -67,6 +66,7 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) /
 - 页面级结果/警告消息用 `<Message tone="error|warning|success">`, 返回提示用 `<BackToDashboard/>` (文案 "按 Enter 返回看板...", 组件自行订阅 router store 的 goTo). **只用于 add-stock/remove-stock 页 (返回看板有意义); dashboard 自身 (empty/error 步) 不用 — 已经在看板上, 返回是无效操作且会误导 (曾有反馈 "按 Enter 无反应"), 用引导文案 + StatusBar 提示即可.**
 - **StatusBar** (`src/components/StatusBar.tsx`): 左侧 `hint` 按键提示 (`SCREEN_META[screen].hint`, 自行订阅 router store 的 screen), 右侧日期 `YYYY-MM-DD` — `Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', ... })` (en-CA 恰好输出该格式; 时区固定上海, 不要用本地时区).
 - 顶层 Box 统一 `borderStyle="classic"` 经典边框 + `padding={1}`, 尺寸撑满 `columns/rows` (useWindowSize).
+- **菜单遮罩层**: `menuOpen` 时背景层整体变暗, 形成遮罩 — Ink 没有 Box 级 dimColor (只有 Text 有), 也无法半透明叠加 (终端无 alpha, `<Transform>` 只支持纯文本子树, 包 Box 会丢布局), 所以实现是: 本地包装组件 `src/components/Text.tsx` (默认 `Text`, **自行订阅 router store 的 menuOpen**, 给 ink Text 注入 `dimColor`, 不用 React Context — 状态一律走 zustand); app.tsx 的带边框 Box 加 `borderDimColor={menuOpen}`, StatusBar 背景 blue->gray, MenuDialog 加不透明 `backgroundColor="black"` 且用 ink 的 Text 保持鲜艳 (不透明背景防止底层内容从 padding 透出). **背景层的文字必须 import 本地 `components/Text.tsx` 而非 ink 的 Text** (漏了该文字不参与变暗, 与漏订阅 menuOpen 同类遗漏; MenuDialog 是唯一例外, 直接用 ink Text).
 - **边框叠加层**: 页面标题 `| 标题 |` 在左上角 (`BorderTitle`, `SCREEN_META[screen].title`, magenta 两端竖线默认色), 行情更新时间在右上角 (`BorderUpdatedAt`, cyan, 仅 dashboard 表格步显示). 两者都无 props, 自行订阅 store (BorderUpdatedAt 守卫 `screen` + `step.type`); 都是 `position="absolute" top={0}` 的 Box, **必须是带边框 Box 的兄弟节点且排在其后** — Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符; 放在边框 Box 内部会被 yoga border 内缩 1 格, 盖不到边框线. 页面组件内部不要再渲染自己的标题行. store 常驻进程级, 离开页面不重置 — 依赖页面状态的叠加层要守卫当前 `screen`.
 
 ## 测试与验证
@@ -91,9 +91,10 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) /
 5. 新增子命令遗漏 `lib/screens.ts` / `cli.tsx` / `app.tsx` / `MenuDialog` 四处注册.
 6. 轮询重叠: 必须自调度 setTimeout + in-flight 守卫, 不要用固定 setInterval (8s 超时与 5s 间隔会叠).
 7. GBK 解码: 必须 `res.arrayBuffer()` 后用 `TextDecoder('gbk')`, 直接 `res.text()` 会乱码 (默认 utf-8).
-8. **菜单弹窗打开时漏传 `isActive={false}`** -> 底层页面的输入框/快捷键仍可操作 (esc 弹窗浮层必须通过 isActive 链禁用底层输入).
+8. **新加的输入面 (`useInput`) 忘记用 `menuOpen` 守卫** -> 菜单弹窗打开时底层页面的输入框/快捷键仍可操作. 输入面一律自行订阅 `useRouterStore` 的 `menuOpen` 并传 `{ isActive: !menuOpen }` (范例: TextInput / useDashboardPage; MenuDialog 自身是浮层, 无需守卫).
 9. **`q` 在菜单打开时仍退出** -> 应加 `!menuOpen` 守卫, 否则用户想关菜单误按 q 直接退出进程.
 10. 界面文案出现 emoji 或全角标点 (已移除 emoji, 半角是明确要求).
 11. 长轮询期间保持 `step.type` 渲染正确, 不要在渲染层跑副作用.
 12. **打包产物读不到 `process.env.XDG_CONFIG_HOME`** -> rolldown-vite 把未在 define 声明的 process.env.xxx 折叠成 `{}.xxx` (恒 undefined), dev (tsx) 正常但 build 后的产物静默失效. 已在 vite.config.ts 的 `define` 里自引用声明, 新增 env 读取时需同步注册.
 13. **用 `process.exit` 而非 `useApp().exit()` 退出** -> 直接杀进程会跳过 Ink 的 unmount 清理, 输出可能截断; 项目内所有退出 (app.tsx 的 q 键, MenuDialog 的"4) 退出程序") 一律走 `useApp()` 拿到的 `exit()`.
+14. **背景层文字 import 了 ink 的 Text 而非本地 `components/Text.tsx`** -> 菜单打开时该文字不参与遮罩变暗 (与漏订阅 menuOpen 同类遗漏); 新增页面/组件的文字时注意用本地 Text.

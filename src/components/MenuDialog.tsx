@@ -55,6 +55,8 @@ export default function MenuDialog() {
       width={MENU_WIDTH}
       height={MENU_HEIGHT}
       borderStyle="classic"
+      // 不透明背景遮住底下变暗的页面, 否则内容会从菜单 padding 区域透出
+      backgroundColor="black"
       flexDirection="column"
       paddingX={1}
       paddingY={1}

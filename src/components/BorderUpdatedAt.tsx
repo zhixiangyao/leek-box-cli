@@ -1,7 +1,8 @@
-import { Box, Text } from 'ink'
+import { Box } from 'ink'
 
 import { useDashboardStore } from '../stores/useDashboardStore.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
+import Text from './Text.tsx'
 
 export default function BorderUpdatedAt() {
   const screen = useRouterStore((state) => state.screen)

@@ -11,9 +11,7 @@ import StatusBar from './components/StatusBar.tsx'
 import type { Screen } from './lib/screens.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
 
-type CommandScreen = Screen
-
-const screenComponentMap = new Map<CommandScreen, ComponentType<{ isActive: boolean }>>([
+const screenComponentMap = new Map<Screen, ComponentType<{}>>([
   ['dashboard', Dashboard],
   ['add-stock', AddStock],
   ['remove-stock', RemoveStock],
@@ -38,9 +36,11 @@ export default function App() {
 
   return (
     <Box height={rows} width="100%">
-      <Box flexDirection="column" height={rows} width="100%" borderStyle="classic">
+      {/* 菜单打开时 borderDimColor 变暗边框, 背景层文字由本地 Text (src/components/Text.tsx)
+          自行订阅 menuOpen 变暗, 形成遮罩效果; MenuDialog 用 ink 的 Text, 保持鲜艳 */}
+      <Box flexDirection="column" height={rows} width="100%" borderStyle="classic" borderDimColor={menuOpen}>
         <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
-          {Component && <Component isActive={!menuOpen} />}
+          {Component && <Component />}
         </Box>
 
         {menuOpen && <MenuDialog />}

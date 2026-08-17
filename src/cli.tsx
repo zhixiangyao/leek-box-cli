@@ -2,10 +2,8 @@ import { render } from 'ink'
 import meow from 'meow'
 
 import App from './app.tsx'
-import type { Screen } from './lib/screens.ts'
+import { SCREEN_LIST, toScreen } from './lib/screens.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
-
-const COMMANDS = ['dashboard', 'add-stock', 'remove-stock'] as const satisfies readonly Screen[]
 
 const helpMessage = `
 用法
@@ -23,19 +21,14 @@ const helpMessage = `
 
 const cli = meow(helpMessage, {
   importMeta: import.meta,
-  commands: COMMANDS,
+  commands: SCREEN_LIST,
   flags: {
     help: { type: 'boolean', shortFlag: 'h' },
     version: { type: 'boolean', shortFlag: 'v' },
   },
 })
 
-const screenFromCommand = (command: string | undefined): Screen =>
-  command && COMMANDS.includes(command as (typeof COMMANDS)[number])
-    ? (command as (typeof COMMANDS)[number])
-    : 'dashboard'
-
 // store 是路由状态唯一来源, render 前写入初始页
-useRouterStore.setState({ screen: screenFromCommand(cli.command) })
+useRouterStore.setState({ screen: toScreen(cli.command) })
 
 render(<App />, { alternateScreen: true, concurrent: true })
