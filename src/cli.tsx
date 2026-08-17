@@ -2,16 +2,17 @@ import { render } from 'ink'
 import meow from 'meow'
 
 import App from './app.tsx'
-import { useRouterStore, type Screen } from './stores/useRouterStore.ts'
+import type { Screen } from './lib/screens.ts'
+import { useRouterStore } from './stores/useRouterStore.ts'
 
-const COMMANDS = ['dashboard', 'add-stock', 'remove-stock'] as const satisfies readonly Exclude<Screen, 'menu'>[]
+const COMMANDS = ['dashboard', 'add-stock', 'remove-stock'] as const satisfies readonly Screen[]
 
 const helpMessage = `
 用法
   $ leek-box-cli [command]
 
 命令
-  dashboard     股票涨跌看板 (默认, 自动刷新)
+  dashboard     股票自选股看板 (默认, 自动刷新)
   add-stock     添加自选股
   remove-stock  删除自选股
 

@@ -1,4 +1,4 @@
-import { Box, Text } from 'ink'
+import { Text } from 'ink'
 
 import ActionResult from '../../components/ActionResult.tsx'
 import TextInput from '../../components/TextInput.tsx'
@@ -6,12 +6,11 @@ import { useAddStockStore } from '../../stores/useAddStockStore.ts'
 import { useAddStockPage } from './hooks/useAddStock.ts'
 
 type Props = {
-  onBack: () => void
   /** 菜单弹窗打开时禁用输入 */
   isActive: boolean
 }
 
-export default function AddStock({ onBack, isActive }: Props) {
+export default function AddStock({ isActive }: Props) {
   const step = useAddStockStore((state) => state.step)
   const codeInputError = useAddStockStore((state) => state.codeInputError)
   const codeInputKey = useAddStockStore((state) => state.codeInputKey)
@@ -25,9 +24,6 @@ export default function AddStock({ onBack, isActive }: Props) {
   if (step.type === 'input-code') {
     return (
       <>
-        <Box marginBottom={1}>
-          <Text color="cyan">添加自选股</Text>
-        </Box>
         {codeInputError && <Text color="red">{codeInputError}</Text>}
         <TextInput
           isActive={isActive}
@@ -63,7 +59,7 @@ export default function AddStock({ onBack, isActive }: Props) {
 
   if (step.type === 'already-exists') {
     return (
-      <ActionResult tone="warning" onBack={onBack} isActive={isActive}>
+      <ActionResult tone="warning" isActive={isActive}>
         {step.name} ({step.code}) 已在自选股中.
       </ActionResult>
     )
@@ -71,7 +67,7 @@ export default function AddStock({ onBack, isActive }: Props) {
 
   if (step.type === 'done') {
     return (
-      <ActionResult tone="success" onBack={onBack} isActive={isActive}>
+      <ActionResult tone="success" isActive={isActive}>
         {step.message}
       </ActionResult>
     )
@@ -79,7 +75,7 @@ export default function AddStock({ onBack, isActive }: Props) {
 
   if (step.type === 'error') {
     return (
-      <ActionResult tone="error" onBack={onBack} isActive={isActive}>
+      <ActionResult tone="error" isActive={isActive}>
         {step.message}
       </ActionResult>
     )

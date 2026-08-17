@@ -1,4 +1,4 @@
-import { Box, Text } from 'ink'
+import { Text } from 'ink'
 
 import ActionResult from '../../components/ActionResult.tsx'
 import TextInput from '../../components/TextInput.tsx'
@@ -6,12 +6,11 @@ import { useRemoveStockStore } from '../../stores/useRemoveStockStore.ts'
 import { useRemoveStockPage } from './hooks/useRemoveStock.ts'
 
 type Props = {
-  onBack: () => void
   /** 菜单弹窗打开时禁用输入 */
   isActive: boolean
 }
 
-export default function RemoveStock({ onBack, isActive }: Props) {
+export default function RemoveStock({ isActive }: Props) {
   const step = useRemoveStockStore((state) => state.step)
   const indexInputError = useRemoveStockStore((state) => state.indexInputError)
   const indexInputKey = useRemoveStockStore((state) => state.indexInputKey)
@@ -29,9 +28,6 @@ export default function RemoveStock({ onBack, isActive }: Props) {
   if (step.type === 'select') {
     return (
       <>
-        <Box marginBottom={1}>
-          <Text color="cyan">删除自选股</Text>
-        </Box>
         <Text color="gray">自选股列表:</Text>
         {step.entries.map((entry, index) => (
           <Text key={entry.code}>
@@ -70,7 +66,7 @@ export default function RemoveStock({ onBack, isActive }: Props) {
 
   if (step.type === 'done') {
     return (
-      <ActionResult tone="success" onBack={onBack} isActive={isActive}>
+      <ActionResult tone="success" isActive={isActive}>
         {step.message}
       </ActionResult>
     )
@@ -78,7 +74,7 @@ export default function RemoveStock({ onBack, isActive }: Props) {
 
   if (step.type === 'error') {
     return (
-      <ActionResult tone="error" onBack={onBack} isActive={isActive}>
+      <ActionResult tone="error" isActive={isActive}>
         {step.message}
       </ActionResult>
     )

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type Screen = 'dashboard' | 'add-stock' | 'remove-stock'
+import type { Screen } from '../lib/screens.ts'
 
 type RouterState = {
   screen: Screen

@@ -1,14 +1,11 @@
 import { Box, Text, useApp, useInput, useWindowSize } from 'ink'
 import { useState } from 'react'
 
-import type { Screen } from '../stores/useRouterStore.ts'
-
-type Props = {
-  onSelect: (screen: Screen) => void
-}
+import type { Screen } from '../lib/screens.ts'
+import { useRouterStore } from '../stores/useRouterStore.ts'
 
 const MENU_ITEMS: { label: string; screen: Screen | null }[] = [
-  { label: '1) 股票涨跌看板', screen: 'dashboard' },
+  { label: '1) 股票自选股看板', screen: 'dashboard' },
   { label: '2) 添加自选股', screen: 'add-stock' },
   { label: '3) 删除自选股', screen: 'remove-stock' },
   { label: '4) 退出程序', screen: null },
@@ -19,11 +16,8 @@ const MENU_WIDTH = 30
 // 4 项 = 4 行内容, 再加 paddingY 2 + 边框 2
 const MENU_HEIGHT = MENU_ITEMS.length + 4
 
-/**
- * 菜单浮层弹窗: 绝对定位居中覆盖在当前页之上,
- * 上下方向键移动高亮 + enter 确认, 数字键快捷选择, esc 由 App 层负责开关.
- */
-export default function MenuDialog({ onSelect }: Props) {
+export default function MenuDialog() {
+  const goTo = useRouterStore((state) => state.goTo)
   const [highlight, setHighlight] = useState(0)
   const { rows, columns } = useWindowSize()
   const { exit } = useApp()
@@ -44,7 +38,7 @@ export default function MenuDialog({ onSelect }: Props) {
 
   const choose = (item: (typeof MENU_ITEMS)[number]) => {
     if (item.screen) {
-      onSelect(item.screen)
+      goTo(item.screen)
     } else {
       exit()
     }

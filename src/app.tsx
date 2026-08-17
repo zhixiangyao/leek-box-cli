@@ -4,29 +4,25 @@ import type { ComponentType } from 'react'
 import AddStock from './commands/add-stock/index.tsx'
 import Dashboard from './commands/dashboard/index.tsx'
 import RemoveStock from './commands/remove-stock/index.tsx'
+import BorderTitle from './components/BorderTitle.tsx'
+import BorderUpdatedAt from './components/BorderUpdatedAt.tsx'
 import MenuDialog from './components/MenuDialog.tsx'
 import StatusBar from './components/StatusBar.tsx'
-import { useRouterStore, type Screen } from './stores/useRouterStore.ts'
+import type { Screen } from './lib/screens.ts'
+import { useRouterStore } from './stores/useRouterStore.ts'
 
 type CommandScreen = Screen
 
-const screenComponentMap = new Map<CommandScreen, ComponentType<{ onBack: () => void; isActive: boolean }>>([
+const screenComponentMap = new Map<CommandScreen, ComponentType<{ isActive: boolean }>>([
   ['dashboard', Dashboard],
   ['add-stock', AddStock],
   ['remove-stock', RemoveStock],
 ])
 
-const SCREEN_HINTS: Record<Screen, string> = {
-  ['dashboard']: '菜单(esc)   刷新(r)   间隔(-/+)   退出(q)',
-  ['add-stock']: '菜单(esc)   退出(q)',
-  ['remove-stock']: '菜单(esc)   退出(q)',
-}
-
 export default function App() {
   const screen = useRouterStore((state) => state.screen)
   const menuOpen = useRouterStore((state) => state.menuOpen)
   const toggleMenu = useRouterStore((state) => state.toggleMenu)
-  const goTo = useRouterStore((state) => state.goTo)
   const { rows } = useWindowSize()
   const { exit } = useApp()
 
@@ -39,17 +35,22 @@ export default function App() {
   })
 
   const Component = screenComponentMap.get(screen)
-  const backToDashboard = () => goTo('dashboard')
 
   return (
-    <Box flexDirection="column" height={rows} width="100%" borderStyle="classic">
-      <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
-        {Component && <Component isActive={!menuOpen} onBack={backToDashboard} />}
+    <Box height={rows} width="100%">
+      <Box flexDirection="column" height={rows} width="100%" borderStyle="classic">
+        <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
+          {Component && <Component isActive={!menuOpen} />}
+        </Box>
+
+        {menuOpen && <MenuDialog />}
+
+        <StatusBar />
       </Box>
 
-      {menuOpen && <MenuDialog onSelect={goTo} />}
-
-      <StatusBar hint={SCREEN_HINTS[screen]} />
+      {/* 边框叠加层必须是带边框 Box 的兄弟节点且排在其后: Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符 */}
+      <BorderTitle />
+      <BorderUpdatedAt />
     </Box>
   )
 }

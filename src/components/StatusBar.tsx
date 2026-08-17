@@ -1,13 +1,12 @@
 import { Box, Text } from 'ink'
 import { useEffect, useState } from 'react'
 
-type Props = {
-  /** 左侧提示信息 (如按键提示) */
-  hint: string
-}
+import { SCREEN_META } from '../lib/screens.ts'
+import { useRouterStore } from '../stores/useRouterStore.ts'
 
-/** 底部状态栏: 左侧提示信息, 右侧 YYYY-MM-DD (时区固定 Asia/Shanghai) */
-export default function StatusBar({ hint }: Props) {
+export default function StatusBar() {
+  const screen = useRouterStore((state) => state.screen)
+  const hint = SCREEN_META[screen].hint
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {

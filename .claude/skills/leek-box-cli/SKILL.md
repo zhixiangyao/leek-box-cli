@@ -15,15 +15,15 @@ src/app.tsx          顶层: 页面路由 + 全局 esc/q 键 + 条件渲染 Menu
 src/components/       通用组件 (MenuDialog / TextInput / Message / StatusBar / BackToDashboard / ProgressBar)
 src/stores/          zustand store, 全部应用状态的唯一来源, 文件名统一 `useXxxStore.ts` (useRouterStore / useDashboardStore / useAddStockStore / useRemoveStockStore)
 src/commands/<cmd>/   每个命令一个目录: index.tsx (纯渲染, 订阅 store 选择器, 不持有状态) + hooks/ (页面副作用: 生命周期/快捷键) + lib/ (页面级纯函数, 如 dashboard 的 table.ts)
-src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) — 与界面无关的逻辑
+src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) / screens.ts (Screen 类型 + 页面 title/hint 元数据) — 与界面无关的逻辑
 ```
 
 - 每个命令页面是 **step 状态机**: store 持有 step 与动作, `index.tsx` 用 `useXxxStore((s) => s.xxx)` 选择器订阅, 按 `step.type` 分支渲染纯展示, 不跑副作用. **非视图逻辑放 `hooks/`**: 生命周期/快捷键封装为 `useXxxPage()` hook (dashboard 的 useDashboardPage / add-stock 的 useAddStockPage / remove-stock 的 useRemoveStockPage), 纯函数放命令目录的 `lib/` (dashboard 的 `lib/table.ts`).
 - **store 常驻进程级**: 页面挂载/卸载只调 store 动作 — dashboard 挂载 `start()` / 卸载 `stop()` (轮询循环); add-stock 挂载 `reset()` (防残留上次流程); remove-stock 挂载 `load()` (重新加载列表). 异步动作用模块级 `flowSeq` 代数守卫丢弃过期结果 (离开页面后旧响应不污染新流程).
 - 轮询循环的非响应式状态 (timer / inFlight / cancelled / interval) 是 store 文件内**模块级变量**, 不进 zustand state; state 只承载展示数据.
 - 输入校验状态 (inputError / inputKey) 也提升在 store 内; y/n 解析纯函数共用 `src/lib/yn.ts`. **stores 目录只放 zustand store**: 无状态纯函数放 `src/lib` (依赖方向 lib <- stores <- 组件). 组件内部瞬时 UI 状态 (TextInput 的 value / MenuDialog 的 highlight / StatusBar 的时钟) 留在组件内.
-- 页面组件 props 为 `{ onBack, isActive }`; 映射在 `app.tsx` 的 `screenComponentMap`.
-- 新增子命令需同步注册**三处**: `cli.tsx` 的 `COMMANDS`, `app.tsx` 的 `screenComponentMap`, `MenuDialog.tsx` 的 `MENU_ITEMS`; 并新增对应 store.
+- 页面组件 props 为 `{ isActive }` (返回看板由 `BackToDashboard` 自行订阅 router store, 不再钻透 onBack); 映射在 `app.tsx` 的 `screenComponentMap`.
+- 新增子命令需同步注册**四处**: `lib/screens.ts` (Screen 联合类型 + SCREEN_META 一条), `cli.tsx` 的 `COMMANDS`, `app.tsx` 的 `screenComponentMap`, `MenuDialog.tsx` 的 `MENU_ITEMS`; 并新增对应 store.
 - 文件后缀显式导入 (`./xxx.ts` / `.tsx`), ESM 风格.
 
 ## 交互架构
@@ -64,9 +64,10 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) �
 - 颜色语义: `magenta` 标题, `cyan` 信息/引导, `yellow` 警告, `red` 错误, `green` 成功, `gray` 占位/光标.
 - **A股配色: 涨红跌绿平灰** (`trendColor(value)`: >0 red, <0 green, =0 gray), 涨跌幅/涨跌额带显式 `+`/`-` 前缀.
 - 表格对齐用本地 `displayWidth`/`cell` 辅助 (`src/commands/dashboard/lib/table.ts`): CJK 字符按宽度 2 计算, **不要引入 string-width 依赖, 不要硬编码宽度**.
-- 页面级结果/警告消息用 `<Message tone="error|warning|success">`, 返回提示用 `<BackToDashboard onBack=.../>` (文案 "按 Enter 返回看板..."). **只用于 add-stock/remove-stock 页 (返回看板有意义); dashboard 自身 (empty/error 步) 不用 — 已经在看板上, 返回是无效操作且会误导 (曾有反馈 "按 Enter 无反应"), 用引导文案 + StatusBar 提示即可.**
-- **StatusBar** (`src/components/StatusBar.tsx`): 左侧 `hint` 按键提示 (app.tsx 按页面传), 右侧日期 `YYYY-MM-DD` — `Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', ... })` (en-CA 恰好输出该格式; 时区固定上海, 不要用本地时区).
+- 页面级结果/警告消息用 `<Message tone="error|warning|success">`, 返回提示用 `<BackToDashboard/>` (文案 "按 Enter 返回看板...", 组件自行订阅 router store 的 goTo). **只用于 add-stock/remove-stock 页 (返回看板有意义); dashboard 自身 (empty/error 步) 不用 — 已经在看板上, 返回是无效操作且会误导 (曾有反馈 "按 Enter 无反应"), 用引导文案 + StatusBar 提示即可.**
+- **StatusBar** (`src/components/StatusBar.tsx`): 左侧 `hint` 按键提示 (`SCREEN_META[screen].hint`, 自行订阅 router store 的 screen), 右侧日期 `YYYY-MM-DD` — `Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', ... })` (en-CA 恰好输出该格式; 时区固定上海, 不要用本地时区).
 - 顶层 Box 统一 `borderStyle="classic"` 经典边框 + `padding={1}`, 尺寸撑满 `columns/rows` (useWindowSize).
+- **边框叠加层**: 页面标题 `| 标题 |` 在左上角 (`BorderTitle`, `SCREEN_META[screen].title`, magenta 两端竖线默认色), 行情更新时间在右上角 (`BorderUpdatedAt`, cyan, 仅 dashboard 表格步显示). 两者都无 props, 自行订阅 store (BorderUpdatedAt 守卫 `screen` + `step.type`); 都是 `position="absolute" top={0}` 的 Box, **必须是带边框 Box 的兄弟节点且排在其后** — Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符; 放在边框 Box 内部会被 yoga border 内缩 1 格, 盖不到边框线. 页面组件内部不要再渲染自己的标题行. store 常驻进程级, 离开页面不重置 — 依赖页面状态的叠加层要守卫当前 `screen`.
 
 ## 测试与验证
 
@@ -87,7 +88,7 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) �
 2. 用 `process.stdout.write` 而非 `useStdout().write` 写界面 -> 与 Ink 输出冲突错乱.
 3. 中文/emoji 字符宽度: 布局用 `useWindowSize`, 表格列宽用 padCJK, 不要硬编码.
 4. `useEffect` 里更新状态导致无限重渲染 - Ink 每帧重绘, 状态更新要谨慎.
-5. 新增子命令遗漏 `cli.tsx` / `app.tsx` / `MenuDialog` 三处注册.
+5. 新增子命令遗漏 `lib/screens.ts` / `cli.tsx` / `app.tsx` / `MenuDialog` 四处注册.
 6. 轮询重叠: 必须自调度 setTimeout + in-flight 守卫, 不要用固定 setInterval (8s 超时与 5s 间隔会叠).
 7. GBK 解码: 必须 `res.arrayBuffer()` 后用 `TextDecoder('gbk')`, 直接 `res.text()` 会乱码 (默认 utf-8).
 8. **菜单弹窗打开时漏传 `isActive={false}`** -> 底层页面的输入框/快捷键仍可操作 (esc 弹窗浮层必须通过 isActive 链禁用底层输入).

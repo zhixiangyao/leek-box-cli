@@ -1,4 +1,4 @@
-import { Box, Text } from 'ink'
+import { Text } from 'ink'
 
 import { useDashboardStore } from '../../stores/useDashboardStore.ts'
 import { useDashboardPage } from './hooks/useDashboard.ts'
@@ -11,7 +11,6 @@ type Props = {
 
 export default function Dashboard({ isActive }: Props) {
   const step = useDashboardStore((state) => state.step)
-  const pollIntervalMs = useDashboardStore((state) => state.pollIntervalMs)
 
   useDashboardPage(isActive)
 
@@ -35,13 +34,6 @@ export default function Dashboard({ isActive }: Props) {
 
   return (
     <>
-      <Box width="100%" justifyContent="space-between" marginBottom={1}>
-        <Text color="cyan">股票自选股看板</Text>
-        <Text color="cyan">
-          {step.updatedAt} ({pollIntervalMs}ms)
-        </Text>
-      </Box>
-
       <Text color="gray">{COLUMNS.map((col) => cell(col.title, col.width, col.align)).join('')}</Text>
 
       {step.quotes.map((quote) => {
