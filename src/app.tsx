@@ -22,7 +22,7 @@ const screenComponentMap = new Map<Screen, ComponentType<{}>>([
 export default function App() {
   const routerStore = useRouterStore()
   const menuStore = useMenuStore()
-  const { rows } = useWindowSize()
+  const { columns, rows } = useWindowSize()
   const { exit } = useApp()
 
   useInput((input, key) => {
@@ -37,21 +37,19 @@ export default function App() {
 
   return (
     <WindowSizeGuard>
-      <Box height={rows} width="100%">
-        <Box flexDirection="column" height={rows} width="100%" borderStyle="classic" borderDimColor={menuStore.open}>
-          <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
-            {Component && <Component />}
-          </Box>
-
-          {menuStore.open && <MenuDialog />}
-
-          <StatusBar />
+      <Box flexDirection="column" height={rows} width={columns} borderStyle="classic" borderDimColor={menuStore.open}>
+        <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
+          {Component && <Component />}
         </Box>
 
-        {/* 边框叠加层必须是带边框 Box 的兄弟节点且排在其后: Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符 */}
-        <BorderTitle />
-        <BorderUpdatedAt />
+        {menuStore.open && <MenuDialog />}
+
+        <StatusBar />
       </Box>
+
+      {/* 边框叠加层必须是带边框 Box 的兄弟节点且排在其后: Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符 */}
+      <BorderTitle />
+      <BorderUpdatedAt />
     </WindowSizeGuard>
   )
 }
