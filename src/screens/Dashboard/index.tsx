@@ -1,11 +1,27 @@
+import { useWindowSize } from 'ink'
+
 import Text from '../../components/Text.tsx'
-import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
 import { useDashboardStore } from '../../stores/useDashboardStore.ts'
 import { useDashboardPage } from './hooks/useDashboard.ts'
-import { cell, COLUMNS } from './lib/table.ts'
+import { headerRow, missingRow, quoteRow, tableSlices, type Row } from './lib/table.ts'
+
+function StockRow(props: { segments: Row; selected: boolean }) {
+  const { segments, selected } = props
+
+  return (
+    <Text inverse={selected}>
+      {segments.map((segment, index) => (
+        <Text key={index} color={segment.color}>
+          {segment.text}
+        </Text>
+      ))}
+    </Text>
+  )
+}
 
 export default function Dashboard() {
   const dashboardStore = useDashboardStore()
+  const { rows } = useWindowSize()
 
   useDashboardPage()
 
@@ -26,68 +42,37 @@ export default function Dashboard() {
     )
   }
 
+  const { quotes, missing, errorLine } = dashboardStore.step
+  const { selectedIndex } = dashboardStore
+  const { quoteStart, quoteEnd, missingStart, missingEnd } = tableSlices(
+    rows,
+    errorLine,
+    quotes.length,
+    missing.length,
+    selectedIndex,
+  )
+
   return (
     <>
-      <Text color="gray">{COLUMNS.map((col) => cell(col.title, col)).join('')}</Text>
+      {/* 表头固定在顶部, 不参与滚动 */}
+      <Text color="gray">
+        {headerRow()
+          .map(({ text }) => text)
+          .join('')}
+      </Text>
 
-      {dashboardStore.step.quotes.map((quote) => {
-        const suspended = quote.current <= 0
-        return (
-          <Text key={quote.code}>
-            <Text color="gray">
-              {cell(quote.code, COLUMNS[0])}
-              {cell(quote.name, COLUMNS[1])}
-            </Text>
-            {suspended ? (
-              <>
-                <Text color="gray">
-                  {cell('--', COLUMNS[2])}
-                  {cell('停牌', COLUMNS[3])}
-                </Text>
-                <Text color="gray">
-                  {cell('--', COLUMNS[4])}
-                  {cell('--', COLUMNS[5])}
-                  {cell('--', COLUMNS[6])}
-                  {cell('--', COLUMNS[7])}
-                  {cell('--', COLUMNS[8])}
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text color={trendColor(quote.change)}>{cell(formatPrice(quote.current), COLUMNS[2])}</Text>
-                <Text color={trendColor(quote.changePercent)}>
-                  {cell(formatPercent(quote.changePercent), COLUMNS[3])}
-                </Text>
-                <Text color={trendColor(quote.change)}>{cell(formatSigned(quote.change), COLUMNS[4])}</Text>
-                <Text color="gray">{cell(formatPrice(quote.open), COLUMNS[5])}</Text>
-                <Text color="gray">{cell(formatPrice(quote.prevClose), COLUMNS[6])}</Text>
-                <Text color="gray">{cell(formatPrice(quote.high), COLUMNS[7])}</Text>
-                <Text color="gray">{cell(formatPrice(quote.low), COLUMNS[8])}</Text>
-              </>
-            )}
-          </Text>
-        )
-      })}
-
-      {dashboardStore.step.missing.map((entry) => (
-        <Text key={entry.code}>
-          <Text color="gray">
-            {cell(entry.code, COLUMNS[0])}
-            {cell(entry.name, COLUMNS[1])}
-            {cell('--', COLUMNS[2])}
-            {cell('无数据', COLUMNS[3])}
-            {cell('--', COLUMNS[4])}
-            {cell('--', COLUMNS[5])}
-            {cell('--', COLUMNS[6])}
-            {cell('--', COLUMNS[7])}
-            {cell('--', COLUMNS[8])}
-          </Text>
-        </Text>
+      {quotes.slice(quoteStart, quoteEnd).map((quote, index) => (
+        <StockRow key={quote.code} segments={quoteRow(quote)} selected={quoteStart + index === selectedIndex} />
+      ))}
+      {missing.slice(missingStart, missingEnd).map((entry, index) => (
+        <StockRow
+          key={entry.code}
+          segments={missingRow(entry.code, entry.name)}
+          selected={quotes.length + missingStart + index === selectedIndex}
+        />
       ))}
 
-      {dashboardStore.step.errorLine ? (
-        <Text color="yellow">刷新失败: {dashboardStore.step.errorLine}, 稍后自动重试</Text>
-      ) : null}
+      {errorLine ? <Text color="yellow">刷新失败: {errorLine}, 稍后自动重试</Text> : null}
     </>
   )
 }

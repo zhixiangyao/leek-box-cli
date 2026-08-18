@@ -10,4 +10,17 @@ export type Quote = {
   change: number // 涨跌额
   changePercent: number // 涨跌幅 (%)
   timestamp: string // yyyyMMddHHmmss
+  volume: number // 成交量 (手)
+  turnover: number // 成交额 (万元)
+  turnoverRate: number // 换手率 (%)
+  amplitude: number // 振幅 (%)
+  marketCap: number // 总市值 (亿)
+  volumeRatio: number // 量比
+}
+
+/** 腾讯分时图单分钟点 (web.ifzq.gtimg.cn/appstock/app/minute/query) */
+export type IntradayPoint = {
+  time: string // HHMM, 如 '0930'
+  price: number
+  volume: number // 累计成交量 (手)
 }

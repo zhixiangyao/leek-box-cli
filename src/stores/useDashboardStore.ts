@@ -25,6 +25,8 @@ export type DashboardStep =
 type DashboardState = {
   step: DashboardStep
   pollIntervalMs: number
+  /** 选中行索引 (quotes + missing 拼接的显示行序列) */
+  selectedIndex: number
   /** 进入看板页时启动轮询: 重置 step + 立即拉取 + 排下一次 */
   start: () => void
   /** 离开看板页时停止轮询并丢弃进行中的结果 */
@@ -33,6 +35,8 @@ type DashboardState = {
   refreshNow: () => void
   /** 调整轮询间隔 (1s 步进, 夹在 [1s, 60s]); 重置等待期让新间隔立即生效 */
   adjustInterval: (deltaMs: number) => void
+  /** 上下移动选中行 (越界钳制) */
+  moveSelection: (delta: 1 | -1) => void
 }
 
 // 轮询循环的非响应式状态: 排程/守卫用模块级变量, store 只承载展示数据
@@ -45,7 +49,7 @@ const formatClock = (timestamp: string) =>
   `${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}:${timestamp.slice(12, 14)}`
 
 /** 股票涨跌看板 store: 轮询腾讯行情 (默认 5s, -/+ 可调), 自调度 setTimeout + in-flight 守卫避免重叠 */
-export const useDashboardStore = create<DashboardState>()((set) => {
+export const useDashboardStore = create<DashboardState>()((set, get) => {
   const fetchOnce = async () => {
     if (inFlight) return
     inFlight = true
@@ -94,6 +98,14 @@ export const useDashboardStore = create<DashboardState>()((set) => {
   return {
     step: { type: 'loading' },
     pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
+    selectedIndex: 0,
+    moveSelection: (delta: 1 | -1) => {
+      const { step, selectedIndex } = get()
+      if (step.type !== 'table') return
+      const rowCount = step.quotes.length + step.missing.length
+      if (rowCount === 0) return
+      set({ selectedIndex: Math.min(Math.max(selectedIndex + delta, 0), rowCount - 1) })
+    },
     start: () => {
       cancelled = false
       set({ step: { type: 'loading' } })

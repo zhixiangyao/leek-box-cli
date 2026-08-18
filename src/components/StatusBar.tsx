@@ -1,14 +1,14 @@
 import { Box } from 'ink'
 import { useEffect, useState } from 'react'
 
+import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
 import { SCREEN_META } from '../lib/screens.ts'
-import { useMenuStore } from '../stores/useMenuStore.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
 import Text from './Text.tsx'
 
 export default function StatusBar() {
   const routerStore = useRouterStore()
-  const menuStore = useMenuStore()
+  const overlayOpen = useOverlayOpen()
   const hint = SCREEN_META[routerStore.screen].hint
   const [now, setNow] = useState(() => new Date())
 
@@ -31,8 +31,8 @@ export default function StatusBar() {
       height={1}
       justifyContent="space-between"
       paddingX={1}
-      // 菜单打开时背景变灰, 配合本地 Text 的 open 订阅形成整体遮罩
-      backgroundColor={menuStore.open ? 'gray' : 'blue'}
+      // 任一浮层弹窗打开时背景变灰, 配合本地 Text 的 overlayOpen 订阅形成整体遮罩
+      backgroundColor={overlayOpen ? 'gray' : 'blue'}
     >
       <Text color="white" wrap="truncate-start">
         {hint}

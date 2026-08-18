@@ -1,9 +1,10 @@
-import { Box, Text, useApp, useInput, useWindowSize } from 'ink'
+import { Text, useApp, useInput } from 'ink'
 import { useState } from 'react'
 
 import type { Screen } from '../lib/screens.ts'
 import { useMenuStore } from '../stores/useMenuStore.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
+import Dialog from './Dialog.tsx'
 
 const MENU_ITEMS: { label: string; screen: Screen | null }[] = [
   { label: '1) 股票自选股看板', screen: 'dashboard' },
@@ -21,10 +22,7 @@ export default function MenuDialog() {
   const routerStore = useRouterStore()
   const menuStore = useMenuStore()
   const { exit } = useApp()
-  const { rows, columns } = useWindowSize()
   const [highlight, setHighlight] = useState(0)
-  const top = Math.max(0, Math.floor((rows - MENU_HEIGHT) / 2))
-  const left = Math.max(0, Math.floor((columns - MENU_WIDTH) / 2))
 
   const choose = (item: (typeof MENU_ITEMS)[number]) => {
     if (item.screen) {
@@ -50,19 +48,7 @@ export default function MenuDialog() {
   })
 
   return (
-    <Box
-      position="absolute"
-      top={top}
-      left={left}
-      width={MENU_WIDTH}
-      height={MENU_HEIGHT}
-      borderStyle="classic"
-      // 不透明背景遮住底下变暗的页面, 否则内容会从菜单 padding 区域透出
-      backgroundColor="black"
-      flexDirection="column"
-      paddingX={1}
-      paddingY={1}
-    >
+    <Dialog width={MENU_WIDTH} height={MENU_HEIGHT}>
       {MENU_ITEMS.map((item, index) => (
         <Text
           key={item.label}
@@ -73,6 +59,6 @@ export default function MenuDialog() {
           {item.label}
         </Text>
       ))}
-    </Box>
+    </Dialog>
   )
 }
