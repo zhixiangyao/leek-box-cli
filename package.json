@@ -27,6 +27,7 @@
     "bundle": "pnpm build && pnpm sea",
     "sea": "node --build-sea=sea-config.json",
     "dev": "tsx src/cli.tsx",
+    "mock": "tsx scripts/mock.ts",
     "preview": "node dist/cli.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fmt": "oxfmt",
