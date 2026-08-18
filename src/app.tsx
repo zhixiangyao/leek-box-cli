@@ -5,6 +5,7 @@ import BorderTitle from './components/BorderTitle.tsx'
 import BorderUpdatedAt from './components/BorderUpdatedAt.tsx'
 import MenuDialog from './components/MenuDialog.tsx'
 import StatusBar from './components/StatusBar.tsx'
+import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import type { Screen } from './lib/screens.ts'
 import AddStock from './screens/add-stock/index.tsx'
 import Dashboard from './screens/dashboard/index.tsx'
@@ -35,20 +36,22 @@ export default function App() {
   const Component = screenComponentMap.get(routerStore.screen)
 
   return (
-    <Box height={rows} width="100%">
-      <Box flexDirection="column" height={rows} width="100%" borderStyle="classic" borderDimColor={menuStore.open}>
-        <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
-          {Component && <Component />}
+    <WindowSizeGuard>
+      <Box height={rows} width="100%">
+        <Box flexDirection="column" height={rows} width="100%" borderStyle="classic" borderDimColor={menuStore.open}>
+          <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
+            {Component && <Component />}
+          </Box>
+
+          {menuStore.open && <MenuDialog />}
+
+          <StatusBar />
         </Box>
 
-        {menuStore.open && <MenuDialog />}
-
-        <StatusBar />
+        {/* 边框叠加层必须是带边框 Box 的兄弟节点且排在其后: Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符 */}
+        <BorderTitle />
+        <BorderUpdatedAt />
       </Box>
-
-      {/* 边框叠加层必须是带边框 Box 的兄弟节点且排在其后: Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符 */}
-      <BorderTitle />
-      <BorderUpdatedAt />
-    </Box>
+    </WindowSizeGuard>
   )
 }
