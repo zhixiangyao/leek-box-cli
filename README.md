@@ -56,7 +56,7 @@ pnpm bundle
 
 ```bash
 pnpm bundle        # 构建 + 打包
-pnpm bundle:sea    # 仅重新打包(dist/cli.mjs 需已存在)
+pnpm sea    # 仅重新打包(dist/cli.mjs 需已存在)
 ./dist/leek-box-cli   # 直接运行
 ```
 
@@ -98,7 +98,7 @@ leek-box-cli -h            # 查看帮助
 | `pnpm dev`        | 开发模式运行             |
 | `pnpm build`      | TypeScript 编译          |
 | `pnpm bundle`     | 构建并打包为单文件二进制 |
-| `pnpm bundle:sea` | 仅打包(需先 build)       |
+| `pnpm sea`        | 仅打包(需先 build)       |
 | `pnpm typecheck`  | 类型检查                 |
 | `pnpm lint`       | Lint 检查并自动修复      |
 | `pnpm lint:check` | 仅 Lint 检查             |

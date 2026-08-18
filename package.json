@@ -24,8 +24,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "bundle": "pnpm build && node --build-sea=sea-config.json",
-    "bundle:sea": "node --build-sea=sea-config.json",
+    "bundle": "pnpm build && pnpm sea",
+    "sea": "node --build-sea=sea-config.json",
     "dev": "tsx src/cli.tsx",
     "preview": "node dist/cli.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
