@@ -11,6 +11,5 @@ import { useMenuStore } from '../stores/useMenuStore.ts'
 export default function Text(props: ComponentProps<typeof InkText>) {
   const menuStore = useMenuStore()
 
-  // 显式传入的 dimColor 优先, 便于个别文字选择不变暗
   return <InkText {...props} dimColor={props.dimColor ?? menuStore.open} />
 }

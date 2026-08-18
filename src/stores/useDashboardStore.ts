@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
+import { fetchQuotes, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
-import { fetchQuotes, type Quote } from '../lib/quote.ts'
 import { loadWatchlist } from '../lib/watchlist.ts'
 
 /** 默认轮询间隔 5s; 可调范围 [1s, 60s], 步进 1s (看板 -/+ 键) */

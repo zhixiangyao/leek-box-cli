@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
+import { fetchQuotes, normalizeCode } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
-import { fetchQuotes, normalizeCode } from '../lib/quote.ts'
 import { addStock, loadWatchlist } from '../lib/watchlist.ts'
 import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
 

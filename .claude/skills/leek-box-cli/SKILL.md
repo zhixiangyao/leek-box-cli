@@ -14,11 +14,12 @@ src/cli.tsx          meow 解析子命令 -> render 前 setState 写入 router s
 src/app.tsx          顶层: 页面路由 + 全局 esc/q 键 + 条件渲染 MenuDialog 浮层 + StatusBar (按页面动态 hint)
 src/components/       通用组件 (MenuDialog / TextInput / Message / StatusBar / BackToDashboard / ProgressBar)
 src/stores/          zustand store, 全部应用状态的唯一来源, 文件名统一 `useXxxStore.ts` (useRouterStore / useMenuStore / useDashboardStore / useAddStockStore / useRemoveStockStore)
-src/screens/<cmd>/   每个命令一个目录: index.tsx (纯渲染, 订阅 store 选择器, 不持有状态) + hooks/ (页面副作用: 生命周期/快捷键) + lib/ (页面级纯函数, 如 dashboard 的 table.ts)
-src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) / screens.ts (Screen 类型 + 页面 title/hint 元数据) — 与界面无关的逻辑
+src/screens/<cmd>/   每个命令一个目录: index.tsx (纯渲染, 订阅 store 选择器, 不持有状态) + hooks/ (页面副作用: 生命周期/快捷键) + lib/ (页面级纯函数, 如 Dashboard 的 table.ts)
+src/api/             接口处理统一入口: index.ts (腾讯行情 fetchQuotes / normalizeCode) + types.ts (接口类型 Quote); 接口类型一律放 types.ts
+src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型 + 页面 title/hint 元数据) / format.ts (行情数字格式化 + A股涨跌色 trendColor) — 与界面无关的纯逻辑
 ```
 
-- 每个命令页面是 **step 状态机**: store 持有 step 与动作, `index.tsx` 用 `useXxxStore()` 整店订阅, 按 `step.type` 分支渲染纯展示, 不跑副作用. **非视图逻辑放 `hooks/`**: 生命周期/快捷键封装为 `useXxxPage()` hook (dashboard 的 useDashboardPage / add-stock 的 useAddStockPage / remove-stock 的 useRemoveStockPage), 纯函数放命令目录的 `lib/` (dashboard 的 `lib/table.ts`).
+- 每个命令页面是 **step 状态机**: store 持有 step 与动作, `index.tsx` 用 `useXxxStore()` 整店订阅, 按 `step.type` 分支渲染纯展示, 不跑副作用. **非视图逻辑放 `hooks/`**: 生命周期/快捷键封装为 `useXxxPage()` hook (Dashboard 的 useDashboardPage / AddStock 的 useAddStockPage / RemoveStock 的 useRemoveStockPage), 纯函数放命令目录的 `lib/` (Dashboard 的 `lib/table.ts`).
 - **store 常驻进程级**: 页面挂载/卸载只调 store 动作 — dashboard 挂载 `start()` / 卸载 `stop()` (轮询循环); add-stock 挂载 `reset()` (防残留上次流程); remove-stock 挂载 `load()` (重新加载列表). 异步动作用模块级 `flowSeq` 代数守卫丢弃过期结果 (离开页面后旧响应不污染新流程).
 - 轮询循环的非响应式状态 (timer / inFlight / cancelled / interval) 是 store 文件内**模块级变量**, 不进 zustand state; state 只承载展示数据.
 - 输入校验状态 (inputError / inputKey) 也提升在 store 内; y/n 解析纯函数共用 `src/lib/yn.ts`. **stores 目录只放 zustand store**: 无状态纯函数放 `src/lib` (依赖方向 lib <- stores <- 组件). 组件内部瞬时 UI 状态 (TextInput 的 value / MenuDialog 的 highlight / StatusBar 的时钟) 留在组件内.
@@ -34,7 +35,7 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) /
 - **MenuDialog**: 绝对定位居中覆盖 (`position="absolute"` + `top/left` 用 `useWindowSize` 计算), `↑/↓` 高亮 + `enter` 确认 + 数字键 `1-4` 快捷 (4 = 退出); 高亮项反色 (`backgroundColor="cyan"` + `color="black"`).
 - 页面内返回看板: `BackToDashboard` (Enter 返回); 任何页面按 `esc` 也能打开菜单切页.
 
-## 数据源: 腾讯行情接口 (`src/lib/quote.ts`)
+## 数据源: 腾讯行情接口 (`src/api/index.ts`)
 
 - 端点: `GET https://qt.gtimg.cn/q=sh600000,sz000001` — **免费无需鉴权** (对比: 雪球 quotec 对匿名请求返回空 body, 需要登录 cookie).
 - 响应为 **GBK 编码** 文本, 必须 `await res.arrayBuffer()` 后 `new TextDecoder('gbk').decode(buf)` (Node full-ICU; 不要用 `res.text()`, 会乱码).
@@ -61,8 +62,8 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) /
 - 界面文案为**中文**, 所有标点用**半角**.
 - **界面文案不含任何 emoji** (2026-08 重构移除全部 emoji, 新增文案不要加).
 - 颜色语义: `magenta` 标题, `cyan` 信息/引导, `yellow` 警告, `red` 错误, `green` 成功, `gray` 占位/光标.
-- **A股配色: 涨红跌绿平灰** (`trendColor(value)`: >0 red, <0 green, =0 gray), 涨跌幅/涨跌额带显式 `+`/`-` 前缀.
-- 表格对齐用本地 `displayWidth`/`cell` 辅助 (`src/screens/dashboard/lib/table.ts`): CJK 字符按宽度 2 计算, **不要引入 string-width 依赖, 不要硬编码宽度**.
+- **A股配色: 涨红跌绿平灰** (`src/lib/format.ts` 的 `trendColor(value)`: >0 red, <0 green, =0 gray), 涨跌幅/涨跌额带显式 `+`/`-` 前缀 (`formatSigned`/`formatPercent`).
+- 表格对齐用本地 `displayWidth`/`cell` 辅助 (`src/screens/Dashboard/lib/table.ts`): CJK 字符按宽度 2 计算, **不要引入 string-width 依赖, 不要硬编码宽度**.
 - 页面级结果/警告消息用 `<Message tone="error|warning|success">`, 返回提示用 `<BackToDashboard/>` (文案 "按 Enter 返回看板...", 组件自行订阅 router store 的 goTo). **只用于 add-stock/remove-stock 页 (返回看板有意义); dashboard 自身 (empty/error 步) 不用 — 已经在看板上, 返回是无效操作且会误导 (曾有反馈 "按 Enter 无反应"), 用引导文案 + StatusBar 提示即可.**
 - **StatusBar** (`src/components/StatusBar.tsx`): 左侧 `hint` 按键提示 (`SCREEN_META[screen].hint`, 自行订阅 router store 的 screen), 右侧日期 `YYYY-MM-DD` — `Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', ... })` (en-CA 恰好输出该格式; 时区固定上海, 不要用本地时区).
 - 顶层 Box 统一 `borderStyle="classic"` 经典边框 + `padding={1}`, 尺寸撑满 `columns/rows` (useWindowSize).
@@ -86,7 +87,7 @@ src/lib/              quote.ts (腾讯行情) / watchlist.ts (自选股存储) /
 
 1. 忘记给下一步输入框递增 `key` -> 输入框"卡死"无法继续输入 (输入校验的 key 递增逻辑在 store 的 reject/accept 动作里); 连续两步都有输入框且 key 同值时会 React 复用实例继承旧值 (remove-stock 的 select->confirm, 修复为 `key={'yn-' + confirmInputKey}` 字符串前缀).
 2. 用 `process.stdout.write` 而非 `useStdout().write` 写界面 -> 与 Ink 输出冲突错乱.
-3. 中文/emoji 字符宽度: 布局用 `useWindowSize`, 表格列宽用 padCJK, 不要硬编码.
+3. 中文/emoji 字符宽度: 布局用 `useWindowSize`, 表格列宽用 `displayWidth`/`cell` (Dashboard/lib/table.ts), 不要硬编码.
 4. `useEffect` 里更新状态导致无限重渲染 - Ink 每帧重绘, 状态更新要谨慎.
 5. 新增子命令遗漏 `lib/screens.ts` / `cli.tsx` / `app.tsx` / `MenuDialog` 四处注册.
 6. 轮询重叠: 必须自调度 setTimeout + in-flight 守卫, 不要用固定 setInterval (8s 超时与 5s 间隔会叠).

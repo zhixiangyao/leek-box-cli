@@ -1,6 +1,7 @@
 import ActionResult from '../../components/ActionResult.tsx'
 import Text from '../../components/Text.tsx'
 import TextInput from '../../components/TextInput.tsx'
+import { formatPrice } from '../../lib/format.ts'
 import { useAddStockStore } from '../../stores/useAddStockStore.ts'
 import { useAddStockPage } from './hooks/useAddStock.ts'
 
@@ -31,8 +32,7 @@ export default function AddStock() {
     return (
       <>
         <Text color="cyan">
-          找到: {addStockStore.step.name} ({addStockStore.step.code}), 现价{' '}
-          {addStockStore.step.current > 0 ? addStockStore.step.current.toFixed(2) : '--'}
+          找到: {addStockStore.step.name} ({addStockStore.step.code}), 现价 {formatPrice(addStockStore.step.current)}
         </Text>
         {addStockStore.confirmInputError && <Text color="red">{addStockStore.confirmInputError}</Text>}
         <TextInput

@@ -5,20 +5,12 @@
  *   30=时间(yyyyMMddHHmmss) 31=涨跌额 32=涨跌幅(%) 33=最高 34=最低
  * - 无效代码会被接口静默丢弃; 全部无效时返回 v_pv_none_match="1";
  * - 停牌/退市股返回现价 0 的记录, 由调用方判定
+ * - 接口类型定义见 types.ts
  */
 
-export type Quote = {
-  code: string // 规范化代码, 如 'sh600000'
-  name: string
-  current: number // 现价
-  prevClose: number // 昨收
-  open: number // 今开
-  high: number // 最高
-  low: number // 最低
-  change: number // 涨跌额
-  changePercent: number // 涨跌幅 (%)
-  timestamp: string // yyyyMMddHHmmss
-}
+import type { Quote } from './types.ts'
+
+export type { Quote } from './types.ts'
 
 const FETCH_TIMEOUT_MS = 8000
 
