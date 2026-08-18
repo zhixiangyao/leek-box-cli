@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import process from 'node:process'
 
 /**
  * 自选股存储: ~/.config/leek-box-cli/watchlist.json (遵循 XDG_CONFIG_HOME)

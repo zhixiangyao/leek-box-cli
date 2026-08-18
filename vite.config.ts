@@ -8,12 +8,6 @@ const outDir = 'dist'
 const outFileName = 'cli.mjs'
 
 export default defineConfig({
-  /**
-   * 阻止 Vite 将 process.env 替换为 {}
-   */
-  define: {
-    'process.env': 'process.env',
-  },
   resolve: {
     /**
      * vite 默认 conditions 为 ['module', 'browser', 'development|production'].

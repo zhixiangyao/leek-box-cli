@@ -96,6 +96,6 @@ src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型
 9. **`q` 在菜单打开时仍退出** -> 应加 `!open` 守卫, 否则用户想关菜单误按 q 直接退出进程.
 10. 界面文案出现 emoji 或全角标点 (已移除 emoji, 半角是明确要求).
 11. 长轮询期间保持 `step.type` 渲染正确, 不要在渲染层跑副作用.
-12. **打包产物读不到 `process.env.XDG_CONFIG_HOME`** -> rolldown-vite 把未在 define 声明的 process.env.xxx 折叠成 `{}.xxx` (恒 undefined), dev (tsx) 正常但 build 后的产物静默失效. 已在 vite.config.ts 的 `define` 里自引用声明, 新增 env 读取时需同步注册.
+12. **build 产物读不到 `process.env.XDG_CONFIG_HOME`** -> rolldown-vite 会把裸 `process.env.xxx` 折叠成 `{}.xxx` (恒 undefined), dev (tsx) 正常但 build 后静默失效 (曾用 vite `define` 自引用规避, 已移除). 读环境变量的文件必须显式 `import process from 'node:process'` (当前唯一在读的是 src/lib/watchlist.ts), 新增 env 读取时不要依赖全局 process.
 13. **用 `process.exit` 而非 `useApp().exit()` 退出** -> 直接杀进程会跳过 Ink 的 unmount 清理, 输出可能截断; 项目内所有退出 (app.tsx 的 q 键, MenuDialog 的"4) 退出程序") 一律走 `useApp()` 拿到的 `exit()`.
 14. **背景层文字 import 了 ink 的 Text 而非本地 `components/Text.tsx`** -> 菜单打开时该文字不参与遮罩变暗 (与漏订阅 open 同类遗漏); 新增页面/组件的文字时注意用本地 Text.
