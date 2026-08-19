@@ -16,13 +16,12 @@ import Dialog from './Dialog.tsx'
 import IntradayChart from './IntradayChart/index.tsx'
 
 const DIALOG_WIDTH = 72
-/** 边框 2 + paddingY 2 + 信息 2 + 图表 14 (9 折线 + 4 量柱 + 1 时间轴) */
-const DIALOG_HEIGHT = 20
+/** 边框 2 + paddingY 2 + 信息 3 + 图表 14 (9 折线 + 4 量柱 + 1 时间轴) */
+const DIALOG_HEIGHT = 21
 const CONTENT_WIDTH = DIALOG_WIDTH - 4
 
 export default function StockDetailDialog() {
   const detailStore = useStockDetailStore()
-  // 现价/涨跌幅等实时数据来自看板 5s 轮询 (打开详情必在看板页, 轮询必活跃, 零重复拉取)
   const quote = useDashboardStore((state) =>
     state.step.type === 'table' ? state.step.quotes.find((q) => q.code === detailStore.code) : undefined,
   )
@@ -44,17 +43,67 @@ export default function StockDetailDialog() {
       width={DIALOG_WIDTH}
       height={DIALOG_HEIGHT}
     >
-      <Box>
-        <Text color="gray">今开 {formatPrice(quote?.open ?? 0)}</Text>
-        <Text color="gray">昨收 {formatPrice(quote?.prevClose ?? 0)}</Text>
-        <Text color="gray">最高 {formatPrice(quote?.high ?? 0)}</Text>
-        <Text color="gray">最低 {formatPrice(quote?.low ?? 0)}</Text>
-        <Text color="gray">成交量 {formatVolume(quote?.volume ?? 0)}</Text>
-        <Text color="gray">成交额 {formatTurnover(quote?.turnover ?? 0)}</Text>
-        <Text color="gray">换手率 {formatRate(quote?.turnoverRate ?? 0)}</Text>
-        <Text color="gray">振幅 {formatRate(quote?.amplitude ?? 0)}</Text>
-        <Text color="gray">量比 {formatRatio(quote?.volumeRatio ?? 0)}</Text>
-        <Text color="gray">总市值 {formatMarketCap(quote?.marketCap ?? 0)}</Text>
+      <Box marginBottom={1}>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            今开
+          </Text>
+          <Text color="gray">{formatPrice(quote?.open ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            昨收
+          </Text>
+          <Text color="gray">{formatPrice(quote?.prevClose ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            最高
+          </Text>
+          <Text color="gray">{formatPrice(quote?.high ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            最低
+          </Text>
+          <Text color="gray">{formatPrice(quote?.low ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            成交量
+          </Text>
+          <Text color="gray">{formatVolume(quote?.volume ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            成交额
+          </Text>
+          <Text color="gray">{formatTurnover(quote?.turnover ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            换手率
+          </Text>
+          <Text color="gray">{formatRate(quote?.turnoverRate ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            振幅
+          </Text>
+          <Text color="gray">{formatRate(quote?.amplitude ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column" marginRight={1}>
+          <Text color="gray" backgroundColor="magenta">
+            量比
+          </Text>
+          <Text color="gray">{formatRatio(quote?.volumeRatio ?? 0)}</Text>
+        </Box>
+        <Box flexDirection="column">
+          <Text color="gray" backgroundColor="magenta">
+            总市值
+          </Text>
+          <Text color="gray">{formatMarketCap(quote?.marketCap ?? 0)}</Text>
+        </Box>
       </Box>
 
       {detailStore.status === 'loading' ? (
