@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { POLL_INTERVAL_STEP_MS, useDashboardStore } from '../../../stores/useDashboardStore.ts'
 import { useStockDetailStore } from '../../../stores/useStockDetailStore.ts'
-import { tableSlices, type TableSliceRange } from '../lib/table.ts'
+import { tableSlices, type TableSliceRange } from '../lib.ts'
 
 export function useDashboardPage() {
   const rowsRef = useRef<DOMElement>(null)

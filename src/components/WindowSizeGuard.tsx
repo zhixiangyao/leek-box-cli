@@ -1,12 +1,12 @@
 import { Box, useWindowSize } from 'ink'
 import type { ReactNode } from 'react'
 
-import { tableWidth } from '../screens/Dashboard/lib/table.ts'
+import { tableWidth } from '../screens/Dashboard/lib.ts'
 import Text from './Text.tsx'
 
 /** 看板表格占宽: 内容 (COLUMNS 推导) + 边框 2 + padding 2 */
 const MIN_COLUMNS = tableWidth() + 4
-const MIN_ROWS = 24
+const MIN_ROWS = 26
 
 type Props = {
   children: ReactNode

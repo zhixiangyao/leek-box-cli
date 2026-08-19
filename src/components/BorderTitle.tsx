@@ -12,12 +12,12 @@ type Props = {
 
 /** 边框叠加层必须是带边框 Box 的兄弟节点且排在其后: Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符 */
 export default function BorderTitle({ title, bright = false, top, left }: Props) {
-  const Bar = bright ? InkText : Text
+  const TextComponent = bright ? InkText : Text
   return (
     <Box position="absolute" top={top} left={left}>
-      <Bar>|</Bar>
+      <TextComponent>|</TextComponent>
       {title}
-      <Bar>|</Bar>
+      <TextComponent>|</TextComponent>
     </Box>
   )
 }

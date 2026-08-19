@@ -1,23 +1,11 @@
 import { Box } from 'ink'
 
+import QuoteRow from '../../components/QuoteRow.tsx'
 import Text from '../../components/Text.tsx'
+import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { useDashboardStore } from '../../stores/useDashboardStore.ts'
 import { useDashboardPage } from './hooks/useDashboard.ts'
-import { headerRow, missingRow, quoteRow, type Row } from './lib/table.ts'
-
-function StockRow(props: { segments: Row; selected: boolean }) {
-  const { segments, selected } = props
-
-  return (
-    <Text inverse={selected}>
-      {segments.map((segment, index) => (
-        <Text key={index} color={segment.color}>
-          {segment.text}
-        </Text>
-      ))}
-    </Text>
-  )
-}
+import { DASHBOARD_COLUMNS } from './lib.ts'
 
 export default function Dashboard() {
   const dashboardStore = useDashboardStore()
@@ -46,24 +34,20 @@ export default function Dashboard() {
   return (
     <>
       {/* 表头固定在顶部, 不参与滚动 */}
-      <Text color="gray">
-        {headerRow()
-          .map(({ text }) => text)
-          .join('')}
-      </Text>
+      <QuoteRow segments={headerRow(DASHBOARD_COLUMNS)} />
 
       <Box ref={rowsRef} flexDirection="column" flexGrow={1} overflow="hidden">
         {quotes.slice(slices.quoteStart, slices.quoteEnd).map((quote, index) => (
-          <StockRow
+          <QuoteRow
             key={quote.code}
-            segments={quoteRow(quote)}
+            segments={quoteRow(DASHBOARD_COLUMNS, quote)}
             selected={slices.quoteStart + index === selectedIndex}
           />
         ))}
         {missing.slice(slices.missingStart, slices.missingEnd).map((entry, index) => (
-          <StockRow
+          <QuoteRow
             key={entry.code}
-            segments={missingRow(entry.code, entry.name)}
+            segments={missingRow(DASHBOARD_COLUMNS, entry.code, entry.name)}
             selected={quotes.length + slices.missingStart + index === selectedIndex}
           />
         ))}
