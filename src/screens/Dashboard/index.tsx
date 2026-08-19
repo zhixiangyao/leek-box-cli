@@ -1,9 +1,7 @@
-import { useWindowSize } from 'ink'
-
 import Text from '../../components/Text.tsx'
 import { useDashboardStore } from '../../stores/useDashboardStore.ts'
 import { useDashboardPage } from './hooks/useDashboard.ts'
-import { headerRow, missingRow, quoteRow, tableSlices, type Row } from './lib/table.ts'
+import { headerRow, missingRow, quoteRow, type Row } from './lib/table.ts'
 
 function StockRow(props: { segments: Row; selected: boolean }) {
   const { segments, selected } = props
@@ -21,9 +19,7 @@ function StockRow(props: { segments: Row; selected: boolean }) {
 
 export default function Dashboard() {
   const dashboardStore = useDashboardStore()
-  const { rows } = useWindowSize()
-
-  useDashboardPage()
+  const { slices } = useDashboardPage()
 
   if (dashboardStore.step.type === 'loading') {
     return <Text color="cyan">正在获取行情数据...</Text>
@@ -44,13 +40,6 @@ export default function Dashboard() {
 
   const { quotes, missing, errorLine } = dashboardStore.step
   const { selectedIndex } = dashboardStore
-  const { quoteStart, quoteEnd, missingStart, missingEnd } = tableSlices(
-    rows,
-    errorLine,
-    quotes.length,
-    missing.length,
-    selectedIndex,
-  )
 
   return (
     <>
@@ -61,14 +50,14 @@ export default function Dashboard() {
           .join('')}
       </Text>
 
-      {quotes.slice(quoteStart, quoteEnd).map((quote, index) => (
-        <StockRow key={quote.code} segments={quoteRow(quote)} selected={quoteStart + index === selectedIndex} />
+      {quotes.slice(slices.quoteStart, slices.quoteEnd).map((quote, index) => (
+        <StockRow key={quote.code} segments={quoteRow(quote)} selected={slices.quoteStart + index === selectedIndex} />
       ))}
-      {missing.slice(missingStart, missingEnd).map((entry, index) => (
+      {missing.slice(slices.missingStart, slices.missingEnd).map((entry, index) => (
         <StockRow
           key={entry.code}
           segments={missingRow(entry.code, entry.name)}
-          selected={quotes.length + missingStart + index === selectedIndex}
+          selected={quotes.length + slices.missingStart + index === selectedIndex}
         />
       ))}
 

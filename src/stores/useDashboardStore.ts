@@ -26,6 +26,8 @@ type DashboardState = {
   pollIntervalMs: number
   /** 选中行索引 (quotes + missing 拼接的显示行序列) */
   selectedIndex: number
+  /** 滚动窗口起点 (拼接行序列): 窗口不跟随选中行, 选中行触到窗口边缘才滚动 */
+  viewStart: number
   /** 进入看板页时启动轮询: 重置 step + 立即拉取 + 排下一次 */
   start: () => void
   /** 离开看板页时停止轮询并丢弃进行中的结果 */
@@ -34,8 +36,8 @@ type DashboardState = {
   refreshNow: () => void
   /** 调整轮询间隔 (1s 步进, 夹在 [1s, 60s]); 重置等待期让新间隔立即生效 */
   adjustInterval: (deltaMs: number) => void
-  /** 上下移动选中行 (越界钳制) */
-  moveSelection: (delta: 1 | -1) => void
+  /** 上下移动选中行 (越界钳制); visible 为可视行数, 选中行触到移动方向的窗口边缘才滚动窗口 */
+  moveSelection: (delta: 1 | -1, visible: number) => void
 }
 
 // 轮询循环的非响应式状态: 排程/守卫用模块级变量, store 只承载展示数据
@@ -98,12 +100,19 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
     step: { type: 'loading' },
     pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
     selectedIndex: 0,
-    moveSelection: (delta: 1 | -1) => {
-      const { step, selectedIndex } = get()
+    viewStart: 0,
+    moveSelection: (delta: 1 | -1, visible: number) => {
+      const { step, selectedIndex, viewStart } = get()
       if (step.type !== 'table') return
       const rowCount = step.quotes.length + step.missing.length
       if (rowCount === 0) return
-      set({ selectedIndex: Math.min(Math.max(selectedIndex + delta, 0), rowCount - 1) })
+      const next = Math.min(Math.max(selectedIndex + delta, 0), rowCount - 1)
+      // 窗口只在选中行触到移动方向的窗口边缘时才滚动; 否则保持原位 (从末尾往上选时视图不变)
+      let nextStart = viewStart
+      if (delta === 1 && next >= viewStart + visible) nextStart = next - visible + 1
+      else if (delta === -1 && next < viewStart) nextStart = next
+      const maxStart = Math.max(0, rowCount - visible)
+      set({ selectedIndex: next, viewStart: Math.min(Math.max(nextStart, 0), maxStart) })
     },
     start: () => {
       cancelled = false
