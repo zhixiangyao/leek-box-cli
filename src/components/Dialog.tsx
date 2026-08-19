@@ -12,8 +12,8 @@ type Props = {
 
 export default function Dialog({ title, width, height, children }: Props) {
   const { rows, columns } = useWindowSize()
-  const top = Math.max(0, Math.floor((rows - height) / 2))
-  const left = Math.max(0, Math.floor((columns - width) / 2))
+  const top = Math.max(0, Math.floor((rows - height) / 2) - 1)
+  const left = Math.max(0, Math.floor((columns - width) / 2) - 1)
 
   return (
     <>
@@ -23,7 +23,7 @@ export default function Dialog({ title, width, height, children }: Props) {
         left={left}
         width={width}
         height={height}
-        borderStyle="classic"
+        borderStyle="round"
         backgroundColor="black"
         flexDirection="column"
         paddingX={1}
