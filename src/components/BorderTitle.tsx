@@ -1,10 +1,10 @@
 import { Box, Text as InkText, type BoxProps } from 'ink'
-import type { JSX } from 'react'
+import type { ReactNode } from 'react'
 
 import Text from './Text.tsx'
 
 type Props = {
-  title: JSX.Element | JSX.Element[]
+  title: ReactNode
   bright?: boolean
   top: BoxProps['top']
   left: BoxProps['left']

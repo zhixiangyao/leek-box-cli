@@ -120,9 +120,7 @@ const withSeparators = (segments: Row): Row =>
 
 /**
  * 滚动窗口 [start, end): 窗口起点由 viewStart 决定 (越界钳制), 不与选中行绑定.
- * 滚动跟随逻辑在 store 的 moveSelection: 选中行触到移动方向的窗口边缘才滚动,
  * 否则窗口保持原位 (从末尾往上选时视图不变, 选中行先走完整个窗口).
- * 表头固定在外层, 滚动只作用于股票行序列.
  */
 export const visibleWindow = (total: number, viewStart: number, visible: number): { start: number; end: number } => {
   if (total <= visible) return { start: 0, end: total }
@@ -139,23 +137,14 @@ export type TableSliceRange = {
   missingEnd: number
 }
 
-/** 可视股票行数: 终端行数 - 边框 2 - padding 2 - StatusBar 1 - 表头 1 - errorLine 1 */
-export const visibleRowCount = (rows: number, errorLine: string | undefined) =>
-  Math.max(1, rows - 5 - 1 - (errorLine ? 1 : 0))
-
-/**
- * 在 quotes + missing 拼接序列上切窗并拆回两侧切片.
- * 窗口起点由 viewStart 决定 (滚动锚定逻辑在 store 的 moveSelection).
- */
+/** 在 quotes + missing 拼接序列上切窗并拆回两侧切片. */
 export const tableSlices = (
-  rows: number,
-  errorLine: string | undefined,
+  visible: number,
   quotesLength: number,
   missingLength: number,
   viewStart: number,
 ): TableSliceRange => {
-  const visibleRows = visibleRowCount(rows, errorLine)
-  const { start, end } = visibleWindow(quotesLength + missingLength, viewStart, visibleRows)
+  const { start, end } = visibleWindow(quotesLength + missingLength, viewStart, visible)
   return {
     quoteStart: Math.min(start, quotesLength),
     quoteEnd: Math.min(end, quotesLength),

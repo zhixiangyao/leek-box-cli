@@ -1,15 +1,15 @@
 import { Box, useWindowSize } from 'ink'
-import type { JSX } from 'react'
+import type { ReactNode } from 'react'
 
 import { tableWidth } from '../screens/Dashboard/lib/table.ts'
 import Text from './Text.tsx'
 
-/** 看板表格占宽: 内容 (COLUMNS 推导) + 边框 2 + padding 2; 详情弹窗宽 72, 高 22 在 24 行内 */
+/** 看板表格占宽: 内容 (COLUMNS 推导) + 边框 2 + padding 2 */
 const MIN_COLUMNS = tableWidth() + 4
 const MIN_ROWS = 24
 
 type Props = {
-  children: JSX.Element | JSX.Element[]
+  children: ReactNode
 }
 
 export default function WindowSizeGuard({ children }: Props) {

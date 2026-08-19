@@ -11,11 +11,11 @@ description: leek-box-cli 项目规范与开发经验. 当任务涉及修改/扩
 
 ```
 src/cli.tsx          meow 解析子命令 -> render 前 setState 写入 router store 初始页 -> render(<App/>, {alternateScreen, concurrent}); 无命令时默认进 dashboard
-src/app.tsx          顶层: 页面路由 + 全局 esc/q 键 + 条件渲染 MenuDialog 浮层 + StatusBar (按页面动态 hint)
-src/components/       通用组件 (Dialog 浮层外壳 (支持 title 边框标题) / MenuDialog / StockDetailDialog / TextInput / Message / StatusBar / BorderTitle / BackToDashboard / ProgressBar / IntradayChart)
+src/app.tsx          顶层: 页面路由 + 全局 esc/q 键 + 条件渲染 MenuDialog/StockDetailDialog 浮层 + 边框叠加层 (BorderTitle/BorderUpdatedAt) + StatusBar (按页面动态 hint)
+src/components/       通用组件 (Dialog 浮层外壳 (flexbox 居中 + title 边框标题 + 导出 DIALOG_CHROME) / MenuDialog / StockDetailDialog / TextInput / Message / StatusBar / BorderTitle / BorderUpdatedAt / BackToDashboard / WindowSizeGuard / IntradayChart)
 src/hooks/            应用级跨组件 hooks (useOverlayOpen: 菜单/详情任一浮层打开 -> 背景遮罩变暗 + 输入面统一守卫)
 src/stores/          zustand store, 全部应用状态的唯一来源, 文件名统一 `useXxxStore.ts` (useRouterStore / useMenuStore / useDashboardStore / useAddStockStore / useRemoveStockStore / useStockDetailStore)
-src/screens/<cmd>/   每个命令一个目录: index.tsx (纯渲染, 订阅 store 选择器, 不持有状态) + hooks/ (页面副作用: 生命周期/快捷键) + lib/ (页面级纯函数, 如 Dashboard 的 table.ts)
+src/screens/<cmd>/   每个命令一个目录: index.tsx (纯渲染, 整店订阅 store, 不持有状态) + hooks/ (页面副作用: 生命周期/快捷键/可视行测量) + lib/ (页面级纯函数, 如 Dashboard 的 table.ts)
 src/api/             接口处理统一入口: index.ts (腾讯行情 fetchQuotes / fetchIntraday / normalizeCode) + types.ts (接口类型 Quote / IntradayPoint); 接口类型一律放 types.ts
 src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型 + 页面 title/hint 元数据) / format.ts (行情数字格式化 + A股涨跌色 trendColor) — 与界面无关的纯逻辑
 ```
@@ -25,7 +25,7 @@ src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型
 - 轮询循环的非响应式状态 (timer / inFlight / cancelled / interval) 是 store 文件内**模块级变量**, 不进 zustand state; state 只承载展示数据.
 - 输入校验状态 (inputError / inputKey) 也提升在 store 内; y/n 解析纯函数共用 `src/lib/yn.ts`. **stores 目录只放 zustand store**: 无状态纯函数放 `src/lib` (依赖方向 lib <- stores <- 组件). 组件内部瞬时 UI 状态 (TextInput 的 value / MenuDialog 的 highlight / StatusBar 的时钟) 留在组件内.
 - 页面组件无 props (输入面统一用 `useOverlayOpen()` 守卫 — 菜单/详情任一浮层打开即失活, 返回看板由 `BackToDashboard` 自行订阅 router store, 不钻透 onBack); 映射在 `app.tsx` 的 `screenComponentMap`.
-- 新增子命令需同步注册**四处**: `lib/screens.ts` (Screen 联合类型 + SCREEN_META 一条), `cli.tsx` 的 `COMMANDS`, `app.tsx` 的 `screenComponentMap`, `MenuDialog.tsx` 的 `MENU_ITEMS`; 并新增对应 store.
+- 新增子命令需同步注册**四处**: `lib/screens.ts` (Screen 联合类型 + SCREEN_META 一条 + SCREEN_LIST), `cli.tsx` (meow 的 `commands: SCREEN_LIST` + helpMessage), `app.tsx` 的 `screenComponentMap`, `MenuDialog.tsx` 的 `MENU_ITEMS`; 并新增对应 store.
 - 文件后缀显式导入 (`./xxx.ts` / `.tsx`), ESM 风格.
 
 ## 交互架构
@@ -33,9 +33,9 @@ src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型
 - **启动直接进 dashboard** (无独立 menu 屏); 菜单是 `esc` 调起的**浮层弹窗** (`MenuDialog`).
 - `router store` 状态: `screen` (页面) + `goTo(screen)` 切页; 菜单弹窗开关独立在 `useMenuStore` 的 `open` (两者互不影响), `goTo` 不关弹窗 — 关弹窗由调用方显式处理 (MenuDialog 选择后先 `close()` 再 `goTo`).
 - **全局按键** (`app.tsx` 的 useInput): `esc` -> **优先级 详情弹窗 > 菜单** (详情开着先关详情, 不会误开菜单; 详情状态在 `useStockDetailStore.code`); `q` -> 仅 `!overlayOpen` 时 `useApp().exit()` (菜单/详情任一开着时 q 不退出, 防止误触).
-- **MenuDialog**: 基于共享外壳 `components/Dialog.tsx` (绝对定位 + `useWindowSize` 居中 + classic 边框 + 不透明黑底 + column 布局 + padding; 标题 `菜单` 经 `title` 参数由 BorderTitle 画在弹窗边框上), `↑/↓` 高亮 + `enter` 确认 + 数字键 `1-4` 快捷 (4 = 退出); 高亮项反色 (`backgroundColor="cyan"` + `color="black"`).
+- **MenuDialog**: 基于共享外壳 `components/Dialog.tsx` (全屏 `position="absolute"` Box + flexbox `alignItems/justifyContent="center"` 水平垂直居中, round 边框, 内容区不透明黑底 + padding; **只收 `width` 参数, 高度自适应, 不再传 height**; 导出 `DIALOG_CHROME = 4` (边框 2 + paddingX 2) 供调用方推导内容宽度, 如 StockDetailDialog 的 `CONTENT_WIDTH = width - DIALOG_CHROME`; 标题 `菜单` 经 `title` 参数由 BorderTitle 画在弹窗边框线上, 相对带边框 Box `top={-1} left={1}`), `↑/↓` 高亮 + `enter` 确认 + 数字键 `1-4` 快捷 (4 = 退出); 高亮项反色 (`backgroundColor="cyan"` + `color="black"`).
 - **看板行选择**: `↑/↓` 移动 `useDashboardStore.selectedIndex` (quotes + missing 拼接的行序列, 越界钳制), 选中行外层 Text 加 `inverse` 反色 (保留涨跌色语义, 涨红底/跌绿底/平灰底); `enter` 按选中行打开详情弹窗 (hook 里用两个 store 的 `getState()` 接线, store 间不互相 import). 菜单/详情任一打开时看板全部快捷键静默 (`isActive: !overlayOpen`).
-- **StockDetailDialog 浮层**: 共用 `components/Dialog.tsx` 外壳 (原生 ink Text 不参与变暗), 标题行 (名称/代码/现价/涨跌幅, 随趋势着涨跌色) 经 `title` 参数画在边框上, 内容区不含标题行 (DIALOG_HEIGHT = 20); 打开时背景同样经 `useOverlayOpen` 变暗遮罩; 不注册 useInput (esc/q 由 app.tsx 全局守卫). 现价/基础信息从看板 5s 轮询的 store 读 (打开详情必在看板页, 轮询必活跃, 零重复拉取), 分时数据由 `useStockDetailStore` 30s 自轮询.
+- **StockDetailDialog 浮层**: 共用 `components/Dialog.tsx` 外壳 (原生 ink Text 不参与变暗), 标题行 (名称/代码/现价/涨跌幅, 随趋势着涨跌色) 经 `title` 参数画在边框上, 内容区不含标题行; 宽度 72, 高度自适应 (旧版 DIALOG_HEIGHT 已删); 打开时背景同样经 `useOverlayOpen` 变暗遮罩; 不注册 useInput (esc/q 由 app.tsx 全局守卫). 现价/基础信息从看板 5s 轮询的 store 读 (打开详情必在看板页, 轮询必活跃, 零重复拉取). **全项目唯一 selector 例外**: `useDashboardStore((state) => ...quotes.find(code))` 按 code 派生单只 quote — 轮询每次 set 新 step 对象但 quote 对象引用稳定, selector 用默认 Object.is 比较, 详情弹窗不会每 5s 重渲染 (整店订阅则每次轮询重渲染, 图表会跟着重建); 新代码默认仍整店订阅, 只有"引用稳定且不想随父订阅重渲染"的场景才考虑 selector. 分时数据由 `useStockDetailStore` 30s 自轮询.
 - 页面内返回看板: `BackToDashboard` (Enter 返回); 任何页面按 `esc` 也能打开菜单切页.
 
 ## 数据源: 腾讯行情接口 (`src/api/index.ts`)
@@ -45,7 +45,7 @@ src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型
 - 格式: `v_sh600000="f0~f1~...";v_sz000001="...";` — 按 `;` 切分, `/^v_([a-z]{2}\d{6})="([^"]*)"/` 取代码, 字段串按 `~` 切分.
 - **字段索引**: 1=名称 2=代码 3=现价 4=昨收 5=今开 6=成交量(手) 30=时间(yyyyMMddHHmmss) 31=涨跌额 32=涨跌幅(%) 33=最高 34=最低 36=成交量(手) 37=成交额(万元) 38=换手率(%) 43=振幅(%) 44=流通市值(亿) 45=总市值(亿) 49=量比. 字段数需 >= 50 守卫 (实测约 60). 振幅可用 `(high-low)/prevClose*100` 自检.
 - **normalizeCode 规则**: 去 SH/SZ/BJ 前后缀后须为 6 位数字; `6xx->sh` `5xx->sh(ETF)` `0xx/1xx/3xx->sz` `4xx/8xx/92xx->bj`, 其余 (含 B 股 9xx) 拒绝.
-- **接口行为**: 无效代码被静默丢弃; 全部无效返回 `v_pv_none_match="1";` (无匹配条目); 停牌/退市股返回现价 0 的记录 (用 `current <= 0` 判停牌, 看板渲染 `--` + `停牌`); 缺数据 = 请求代码集 − 返回集 (看板渲染灰行 `--` + `无数据`).
+- **接口行为**: 无效代码被静默丢弃; 全部无效返回 `v_pv_none_match="1";` (无匹配条目, 此时 `fetchQuotes` **throw** `未查询到任何行情数据...` — 看板进 error 步, add-stock 进 error 步); 停牌/退市股返回现价 0 的记录 (用 `current <= 0` 判停牌, 看板渲染 `--` + `停牌`); 缺数据 = 请求代码集 − 返回集 (看板渲染灰行 `--` + `无数据`).
 - 超时用 `AbortSignal.timeout(8000)`.
 - **分时接口** (`fetchIntraday`): `GET https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=sh600000` — JSON (utf-8, 非 GBK): `data.<code>.data.data` 为 `["0930 9.07 1978 1794046.00", ...]`, 每项 "HHMM 价格 累计成交量(手) 累计成交额(元)". 注意: (a) **收盘后带 15:01-15:30 补点, 需裁剪** (保留 `time <= '1500'`, 否则折线/量柱尾部异常); (b) 成交量是**累计值**, 画柱状图需转分钟增量 (当前点 − 上一累计), 直接画累计值会单调递增失真; (c) 正常响应**没有 qt 字段** (qt 只在无效代码的空响应里出现), prevClose 一律用看板 quote 的; (d) 无效代码/非交易时段返回 `["  0"]` 之类空行, 解析后 points 为空数组, 不抛错.
 
@@ -59,7 +59,7 @@ src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型
 
 - **看板 5s**: **自调度 `setTimeout`** (fetch 完成后才排下一次) + 模块级 `inFlight` 守卫, 避免 8s 超时与 5s 间隔重叠; 页面卸载时 `stop()` 置 `cancelled` 标志 + `clearTimeout`, 进行中的 fetch 结果被丢弃 (fetch 完成后检查 `cancelled` 再 set). 错误语义: 首次失败 (无旧数据) -> `error` 步 + BackToDashboard; 后续轮询失败 -> **保留旧表格 + 内联黄色 errorLine + 继续轮询自愈** (`setStep(prev => prev.type === 'table' ? {...prev, errorLine} : {type:'error', ...})`).
 - **详情 30s**: 同看板模式 (自调度 setTimeout + 模块级 in-flight/cancelled 守卫), **额外守卫**: 响应落地前检查 `get().code !== 请求 code` (打开别的股票后旧响应不污染). 失败置 error 步但**继续轮询自愈**. `close()` 置 cancelled + clearTimeout; `code === null` 即弹窗关闭.
-- 看板快捷键在 `hooks/useDashboard.ts` 的 `useInput` 里: `r` 立即刷新 (调 `handleRefreshNow()`, 有 in-flight 则忽略), `-`/`+` 调整轮询间隔 (`adjustInterval(±POLL_INTERVAL_STEP_MS)`, 步进 500ms, clamp 到 [1s, 60s]); 守卫 `{ isActive: !overlayOpen }` (菜单/详情任一打开即静默).
+- 看板快捷键在 `hooks/useDashboard.ts` 的 `useInput` 里: `r` 立即刷新 (调 store 动作 `refreshNow()`, 有 in-flight 则忽略), `-`/`+` 调整轮询间隔 (`adjustInterval(±POLL_INTERVAL_STEP_MS)`, 步进 500ms, clamp 到 [1s, 60s], 调整时清掉排程重排让新间隔立即生效); 守卫 `{ isActive: !overlayOpen }` (菜单/详情任一打开即静默).
 
 ## 界面风格约定
 
@@ -67,14 +67,14 @@ src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型
 - **界面文案不含任何 emoji**, 新增文案不要加.
 - 颜色语义: `magenta` 标题, `cyan` 信息/引导, `yellow` 警告, `red` 错误, `green` 成功, `gray` 占位/光标.
 - **A股配色: 涨红跌绿平灰** (`src/lib/format.ts` 的 `trendColor(value)`: >0 red, <0 green, =0 gray), 涨跌幅/涨跌额带显式 `+`/`-` 前缀 (`formatSigned`/`formatPercent`).
-- 表格对齐用本地 `displayWidth`/`cell` 辅助 (`src/screens/Dashboard/lib/table.ts`): CJK 字符按宽度 2 计算, **不要引入 string-width 依赖, 不要硬编码宽度**. 看板 15 列 (内容总宽 123 + 14 个列间分隔空格 = 137, 加边框 2 + padding 2 = 141, `WindowSizeGuard` MIN_COLUMNS = 145 留余量), 列定义为数据驱动 `{ kind, title, width, align, render, color? }`, 行由 `headerRow/quoteRow/missingRow` 构造 (加列只需追加一项, 不会漏渲染); 停牌行 `--` + 涨跌幅列 `停牌`, 缺失行 `--` + `无数据`. **列宽按实测最大内容校准** (成交量 `5742.4万手` / 总市值 `16225.93亿` 均 10 宽): 右对齐列内容恰好填满列宽时与前一列零间隔粘连, 行宽超容器会折行并顶掉表头 — 列间必须有 1 分隔空格, 列宽不足会折行.
-- **表格滚动**: 表头固定不参与滚动; 滚动锚定逻辑在 store (`useDashboardStore.viewStart` + `moveSelection(delta, visible)`): **窗口不跟随选中行**, 选中行触到移动方向的窗口边缘才滚动, 否则窗口保持原位 (从末尾往上选时视图不变, 选中行先走完整个窗口); 窗口切片由 `useDashboardPage()` 收口计算并返回 (`slices`), index.tsx 只消费不计算 (键盘的 visible 与渲染共用同一推导); `visibleWindow(total, viewStart, visible)` 纯函数只做越界钳制, 可视行数 = `visibleRowCount(rows, errorLine)` = `rows - 5` (边框 2 + padding 2 + StatusBar 1) - 表头 1 - errorLine 1. Ink 内容超高时**从顶部裁剪**, 窗口必须保证内容不超高, 否则表头会被顶出屏幕.
-- **图表字符**: 分时图 (`src/components/IntradayChart/`) 用 Braille 点阵 (U+2800, 每字符 2 子列 × 4 子行, 位掩码 `DOT_BIT`/`braille` 辅助) 实现 4 倍垂直 + 2 倍水平分辨率: 折线每子列一个点, 相邻桶 lastPrice 线性插值, 陡坡补垂直间隙; 昨收虚线同为 Braille 点 (2 子列开 1 子列停, 灰, 折线优先不覆盖); 量柱用半块 `█▄` 8 档高度, 按各桶收尾价红绿. 全部 < 0x2e80 单宽, 无新依赖; 桶化降采样 (241 点 -> 列数), 午休平线续接、尾部留空 (盘中数据未到); 折线整线颜色按收尾价 vs 昨收红绿灰 (A股惯例). **终端字体需含 Braille 字形 (现代终端均有), 否则显示为空格 — 改渲染前先在用户终端验证.**
+- 表格对齐用本地 `displayWidth`/`cell` 辅助 (`src/screens/Dashboard/lib/table.ts`): CJK 字符按宽度 2 计算, **不要引入 string-width 依赖, 不要硬编码宽度**. 看板 15 列, 内容总宽由 `tableWidth()` 推导 = 列宽和 124 + 14 个列间分隔空格 = 138, 加边框 2 + padding 2 = 142 = `WindowSizeGuard` 的 `MIN_COLUMNS = tableWidth() + 4` (无余量, 由表推导不硬编码; 另要求 `MIN_ROWS = 24`). 列定义为数据驱动 `{ kind, title, width, align, render, color?, suspendedText }`, 行由 `headerRow/quoteRow/missingRow` 构造 (加列只需追加一项, 不会漏渲染); 停牌行 `--` + 涨跌幅列 `停牌`, 缺失行 `--` + `无数据`. **列宽按实测最大内容校准** (成交量列 11 宽 — 最大内容 `99999.9万手` 显示宽 10, 留 1 余量; 总市值列 10 宽恰容 `16225.93亿`): 右对齐列内容恰好填满列宽时与前一列零间隔粘连, 行宽超容器会折行并顶掉表头 — 列间必须有 1 分隔空格, 列宽不足会折行.
+- **表格滚动**: 表头固定不参与滚动; 滚动锚定逻辑在 store (`useDashboardStore.viewStart` + `moveSelection(delta, visible)`): **窗口不跟随选中行**, 选中行触到移动方向的窗口边缘才滚动, 否则窗口保持原位 (从末尾往上选时视图不变, 选中行先走完整个窗口). **可视行数不用 useWindowSize 公式推算, 而是实测**: 行容器 Box (`flexGrow={1} overflow="hidden"`) 挂 `ref={rowsRef}`, `useDashboardPage()` 里 `useBoxMetrics(rowsRef)` 量实际高度, `visible = hasMeasured ? max(1, floor(height)) : 1` (首帧未测量兜底 1); 表头/errorLine/StatusBar 都在容器外, 天然不占滚动窗口 (旧版 `visibleRowCount(rows, errorLine)` 手工减法公式已删 — 布局一变公式就漂移, 别恢复). 窗口切片由 `useDashboardPage()` 收口计算并返回 (`{ slices, rowsRef }`), index.tsx 只消费不计算 (键盘的 visible 与渲染共用同一推导); `visibleWindow(total, viewStart, visible)` 纯函数只做越界钳制. `overflow="hidden"` 直接裁剪超高行, 不会再把表头/标题顶出屏幕.
+- **图表字符**: 分时图 (`src/components/IntradayChart/`) 用 Braille 点阵 (U+2800, 每字符 2 子列 × 4 子行, 位掩码 `DOT_BIT`/`braille` 辅助) 实现 4 倍垂直 + 2 倍水平分辨率: 折线每子列一个点, 相邻桶 lastPrice 线性插值, 陡坡补垂直间隙; 昨收虚线同为 Braille 点 (2 子列开 1 子列停, 灰, 折线优先不覆盖); 量柱用半块 `█▄` 8 档高度 (至少 1 半块防太矮), 按各桶收尾价红绿; 底部时间轴行 (灰, `09:30` / `11:30/13:00` / `15:00`). 全部 < 0x2e80 单宽, 无新依赖; 桶化降采样 (241 点 -> 列数), 午休平线续接、尾部留空 (盘中数据未到); 折线整线颜色按收尾价 vs 昨收红绿灰 (A股惯例). **终端字体需含 Braille 字形 (现代终端均有), 否则显示为空格 — 改渲染前先在用户终端验证.**
 - 页面级结果/警告消息用 `<ActionResult tone msg>` / `<Message tone msg>` 展示 (`msg` 为消息文本字符串), 返回提示用 `<BackToDashboard/>` (文案 "按 Enter 返回看板...", 组件自行订阅 router store 的 goTo). **只用于 add-stock/remove-stock 页 (返回看板有意义); dashboard 自身 (empty/error 步) 不用 — 已经在看板上, 返回是无效操作且会误导 (曾有反馈 "按 Enter 无反应"), 用引导文案 + StatusBar 提示即可.**
 - **StatusBar** (`src/components/StatusBar.tsx`): 左侧 `hint` 按键提示由 app.tsx 从 `SCREEN_META` 传入 (`<StatusBar hint={SCREEN_META[screen].hint}/>`, 组件不订阅 router store), 右侧日期 `YYYY-MM-DD` — `Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', ... })` (en-CA 恰好输出该格式; 时区固定上海, 不要用本地时区).
-- 顶层 Box 统一 `borderStyle="classic"` 经典边框 + `padding={1}`, 尺寸撑满 `columns/rows` (useWindowSize).
-- **背景遮罩层**: 菜单或详情**任一浮层弹窗打开**时背景层整体变暗, 形成遮罩 — Ink 没有 Box 级 dimColor (只有 Text 有), 也无法半透明叠加 (终端无 alpha, `<Transform>` 只支持纯文本子树, 包 Box 会丢布局), 所以实现是: `src/hooks/useOverlayOpen.ts` 整店订阅 `useMenuStore` / `useStockDetailStore`, 返回 `open || code !== null` (整店订阅不用 selector — 项目风格; 代价是详情 30s 轮询更新时 useOverlayOpen 消费者跟着重渲染, 30s 一次且树小, 已接受), 背景层三处均由它驱动: 本地包装组件 `src/components/Text.tsx` (默认 `Text`, 给 ink Text 注入 `dimColor`, 不用 React Context — 状态一律走 zustand), app.tsx 的带边框 Box 加 `borderDimColor={overlayOpen}`, StatusBar 背景 blue->gray; 浮层自身 (MenuDialog / StockDetailDialog, 都基于 `components/Dialog.tsx` 外壳) 用不透明 `backgroundColor="black"` 且用 ink 的 Text 保持鲜艳 (不透明背景防止底层内容从 padding 透出). **背景层的文字必须 import 本地 `components/Text.tsx` 而非 ink 的 Text** (漏了该文字不参与变暗, 与漏订阅 overlayOpen 同类遗漏; 浮层是唯一例外, 直接用 ink Text).
-- **边框叠加层**: 页面标题 `| 标题 |` 在左上角, 行情更新时间在右上角 (`BorderUpdatedAt`, cyan, 仅 dashboard 表格步显示; 无 props, 自行订阅 store 并守卫 `screen` + `step.type`). **BorderTitle** 接收 `title`/`top`/`left`/`bright` props: 页面标题由 app.tsx 传入 `<Text color="magenta">{SCREEN_META[screen].title}</Text>` (`left={2}` = 边框 1 + padding 1); `bright` 变体供浮层 Dialog 复用画自己的边框标题 (`top={弹窗top} left={弹窗left+2}`, bars 用 ink Text 保持鲜艳). 都是 `position="absolute" top={0}` 的 Box, **必须是带边框 Box 的兄弟节点且排在其后** — Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符; 放在边框 Box 内部会被 yoga border 内缩 1 格, 盖不到边框线. 页面组件内部不要再渲染自己的标题行. store 常驻进程级, 离开页面不重置 — 依赖页面状态的叠加层要守卫当前 `screen`.
+- 顶层 Box 统一 `borderStyle="round"` 圆角边框 + `padding={1}`, 尺寸撑满 `columns/rows` (useWindowSize); 浮层 Dialog 的边框同为 round (曾用 classic, 已统一).
+- **背景遮罩层**: 菜单或详情**任一浮层弹窗打开**时背景层整体变暗, 形成遮罩 — Ink 没有 Box 级 dimColor (只有 Text 有), 也无法半透明叠加 (终端无 alpha, `<Transform>` 只支持纯文本子树, 包 Box 会丢布局), 所以实现是: `src/hooks/useOverlayOpen.ts` 整店订阅 `useMenuStore` / `useStockDetailStore`, 返回 `open || code !== null` (整店订阅不用 selector — 项目风格, 唯一例外见交互架构的 StockDetailDialog quote 派生; 代价是详情 30s 轮询更新时 useOverlayOpen 消费者跟着重渲染, 30s 一次且树小, 已接受), 背景层三处均由它驱动: 本地包装组件 `src/components/Text.tsx` (默认 `Text`, 给 ink Text 注入 `dimColor`, 不用 React Context — 状态一律走 zustand), app.tsx 的带边框 Box 加 `borderDimColor={overlayOpen}`, StatusBar 背景 blue->gray; 浮层自身 (MenuDialog / StockDetailDialog, 都基于 `components/Dialog.tsx` 外壳) 用不透明 `backgroundColor="black"` 且用 ink 的 Text 保持鲜艳 (不透明背景防止底层内容从 padding 透出). **背景层的文字必须 import 本地 `components/Text.tsx` 而非 ink 的 Text** (漏了该文字不参与变暗, 与漏订阅 overlayOpen 同类遗漏; 浮层是唯一例外, 直接用 ink Text).
+- **边框叠加层**: 页面标题 `| 标题 |` 在左上角, 行情更新时间在右上角 (`BorderUpdatedAt`, cyan, 仅 dashboard 表格步显示; 无 props, 自行订阅 store 并守卫 `screen` + `step.type`). **BorderTitle** 接收 `title`/`top`/`left`/`bright` props: 页面标题由 app.tsx 传入 `<Text color="magenta">{SCREEN_META[screen].title}</Text>` (`left={2}` = 边框 1 + padding 1); `bright` 变体供浮层 Dialog 复用画自己的边框标题 (挂在 Dialog 带边框 Box 上, `top={-1} left={1}` 落在边框线上, bars 用 ink Text 保持鲜艳). 都是 `position="absolute"` 的 Box, **浮层 (MenuDialog/StockDetailDialog) 与边框叠加层一样, 必须是带边框 Box 的兄弟节点且排在其后** — app.tsx 渲染顺序: 边框 Box -> 浮层 -> BorderTitle -> BorderUpdatedAt; Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符; 放在边框 Box 内部会被 yoga border 内缩 1 格, 盖不到边框线 (浮层放内部还会盖不住整个窗口). 页面组件内部不要再渲染自己的标题行. store 常驻进程级, 离开页面不重置 — 依赖页面状态的叠加层要守卫当前 `screen`.
 
 ## 测试与验证
 
@@ -84,6 +84,7 @@ src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型
   # esc 弹菜单 -> 数字 2 进添加页 -> 输代码 -> y 确认 -> q 退出
   ( sleep 2; printf '\033'; sleep 1; printf '2'; sleep 1; printf '\r'; sleep 2; printf '600000'; sleep 1; printf '\r'; sleep 2; printf 'y'; sleep 1; printf '\r'; sleep 2; printf 'q' ) | timeout 25 script -qec "pnpm dev" /dev/null
   ```
+- **pty 默认 80×24, 会被 WindowSizeGuard 挡住** (看板需 142×24, 只见"终端尺寸过小"): 在 `script -qec` 命令里先 `stty cols 160 rows 40;` 再启动, 如 `script -qec "stty cols 160 rows 40; pnpm dev" /dev/null`.
 - **冒烟测试会真实写 `~/.config/leek-box-cli/watchlist.json`**, 测完 `rm -f` 复位, 并核对文件内容确认没有意外写入.
 - **pty 输入偶发丢字符/错乱**: `script -qec` 管道在短间隔连发按键时会丢字符 (实测 '3'/'y'/'q' 都丢过), 且曾出现一次无法解释的意外添加 (watchlist 多出一只从未输入的股票, 未复现). 对策: sleep >= 2s 起步, 按键间隔 >= 1s; 每次冒烟后检查 watchlist 文件.
 - 行情接口可用性: `curl -s "https://qt.gtimg.cn/q=sh600000"` (GBK, 无鉴权); 断网/接口异常时看板应显示 error 步或内联错误行, 网络恢复后自动自愈.
@@ -102,4 +103,7 @@ src/lib/              watchlist.ts (自选股存储) / screens.ts (Screen 类型
 9. **build 产物读不到 `process.env.XDG_CONFIG_HOME`** -> rolldown-vite 会把裸 `process.env.xxx` 折叠成 `{}.xxx` (恒 undefined), dev (tsx) 正常但 build 后静默失效 (曾用 vite `define` 自引用规避, 已移除). 读环境变量的文件必须显式 `import process from 'node:process'` (当前唯一在读的是 src/lib/watchlist.ts), 新增 env 读取时不要依赖全局 process.
 10. **用 `process.exit` 而非 `useApp().exit()` 退出** -> 直接杀进程会跳过 Ink 的 unmount 清理, 输出可能截断; 项目内所有退出 (app.tsx 的 q 键, MenuDialog 的"4) 退出程序") 一律走 `useApp()` 拿到的 `exit()`.
 11. **背景层文字 import 了 ink 的 Text 而非本地 `components/Text.tsx`** -> 菜单/详情弹窗打开时该文字不参与遮罩变暗; 新增页面/组件的文字时注意用本地 Text.
-12. **BorderTitle 亮暗配对**: `bright` 只控制 `|` 竖线 (true 时用 ink Text), 标题内容亮暗取决于调用方传哪种 Text — 背景层 (app.tsx) 必须传本地 `components/Text.tsx` 内容 + `bright=false` (随遮罩变暗), 浮层 Dialog 的 `title` 必须传 ink 的 Text + `bright=true` (保持鲜艳). 配对错会要么浮层标题内容随遮罩变暗, 要么背景标题不参与变暗 (与坑 11 同类).
+12. **BorderTitle 亮暗配对**: `bright` 只控制 `|` 竖线 (true 时用 ink Text), 标题内容亮暗取决于调用方传哪种 Text — 背景层 (app.tsx) 必须传本地 `components/Text.tsx` 内容 + `bright=false` (随遮罩变暗), 浮层 Dialog 的 `title` 必须传 ink 的 Text + `bright=true` (保持鲜艳, 位置 `top={-1} left={1}` 挂在 Dialog 带边框 Box 上). 配对错会要么浮层标题内容随遮罩变暗, 要么背景标题不参与变暗 (与坑 11 同类).
+13. **浮层/叠加层渲染在带边框 Box 内部** -> 定位基准错乱 + 盖不住边框字符 (yoga border 内缩), 浮层还盖不满整个窗口; MenuDialog / StockDetailDialog / BorderTitle / BorderUpdatedAt 都必须是带边框 Box 的**兄弟节点且排在其后** (app.tsx 已如此), 新增浮层照做.
+14. **用 useWindowSize 公式推算可视行数** -> 表头/StatusBar/errorLine 的布局一变动, 手工减法公式就漂移 (旧版 `visibleRowCount` 已删); 用行容器 Box 的 ref + `useBoxMetrics` 实测, 首帧未测量时 `visible` 兜底 1 (不要用 0 或未定义).
+15. **组件 children/title/placeholder 等 React 节点 props 用 `ReactNode` 而非 `JSX.Element | JSX.Element[]`** -> `{cond && <X/>}` 求值为 `false | Element`, 直接传 JSX.Element 类型会 typecheck 报错 (浮层条件渲染移为 WindowSizeGuard 直接子节点时踩过; BorderTitle/Dialog/TextInput/WindowSizeGuard 已统一 ReactNode).

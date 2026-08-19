@@ -45,16 +45,16 @@ export default function App() {
 
   return (
     <WindowSizeGuard>
-      <Box flexDirection="column" height={rows} width={columns} borderStyle="classic" borderDimColor={overlayOpen}>
+      <Box flexDirection="column" height={rows} width={columns} borderStyle="round" borderDimColor={overlayOpen}>
         <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
           {Component && <Component />}
         </Box>
 
-        {menuStore.open && <MenuDialog />}
-        {stockDetailStore.code && <StockDetailDialog />}
-
         <StatusBar hint={SCREEN_META[routerStore.screen].hint} />
       </Box>
+
+      {menuStore.open && <MenuDialog />}
+      {stockDetailStore.code && <StockDetailDialog />}
 
       <BorderTitle title={<Text color="magenta">{SCREEN_META[routerStore.screen].title}</Text>} top={0} left={2} />
       <BorderUpdatedAt />

@@ -13,10 +13,7 @@ const MENU_ITEMS: { label: string; screen: Screen | null }[] = [
   { label: '4) 退出程序', screen: null },
 ]
 
-// 含 '> ' 前缀最长项 18 宽, 内容区 = 总宽 - 边框 2 - padding 2, 留足余量
 const MENU_WIDTH = 30
-// 4 项 = 4 行内容, 再加 paddingY 2 + 边框 2
-const MENU_HEIGHT = MENU_ITEMS.length + 4
 
 export default function MenuDialog() {
   const routerStore = useRouterStore()
@@ -48,7 +45,7 @@ export default function MenuDialog() {
   })
 
   return (
-    <Dialog title={<Text color="magenta">菜单</Text>} width={MENU_WIDTH} height={MENU_HEIGHT}>
+    <Dialog title={<Text color="magenta">菜单</Text>} width={MENU_WIDTH}>
       {MENU_ITEMS.map((item, index) => (
         <Text
           key={item.label}

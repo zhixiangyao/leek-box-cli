@@ -1,38 +1,38 @@
 import { Box, useWindowSize } from 'ink'
-import type { JSX } from 'react'
+import type { ReactNode } from 'react'
 
 import BorderTitle from './BorderTitle.tsx'
 
+/** 弹窗 chrome 宽: 边框 2 + paddingX 2, 供调用方推导内容宽度 */
+export const DIALOG_CHROME = 4
+
 type Props = {
-  title?: JSX.Element | JSX.Element[]
+  title?: ReactNode
   width: number
-  height: number
-  children: JSX.Element | JSX.Element[]
+  children: ReactNode
 }
 
-export default function Dialog({ title, width, height, children }: Props) {
+export default function Dialog({ title, width, children }: Props) {
   const { rows, columns } = useWindowSize()
-  const top = Math.max(0, Math.floor((rows - height) / 2) - 1)
-  const left = Math.max(0, Math.floor((columns - width) / 2) - 1)
 
   return (
-    <>
-      <Box
-        position="absolute"
-        top={top}
-        left={left}
-        width={width}
-        height={height}
-        borderStyle="round"
-        backgroundColor="black"
-        flexDirection="column"
-        paddingX={1}
-        paddingY={1}
-      >
-        {children}
-      </Box>
+    <Box
+      position="absolute"
+      top={0}
+      left={0}
+      width={columns}
+      height={rows}
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+    >
+      <Box width={width} borderStyle="round">
+        {title ? <BorderTitle title={title} bright top={-1} left={1} /> : null}
 
-      {title ? <BorderTitle title={title} bright top={top} left={left + 2} /> : null}
-    </>
+        <Box flexDirection="column" paddingX={1} paddingY={1} backgroundColor="black">
+          {children}
+        </Box>
+      </Box>
+    </Box>
   )
 }

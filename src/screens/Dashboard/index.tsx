@@ -1,3 +1,5 @@
+import { Box } from 'ink'
+
 import Text from '../../components/Text.tsx'
 import { useDashboardStore } from '../../stores/useDashboardStore.ts'
 import { useDashboardPage } from './hooks/useDashboard.ts'
@@ -19,7 +21,7 @@ function StockRow(props: { segments: Row; selected: boolean }) {
 
 export default function Dashboard() {
   const dashboardStore = useDashboardStore()
-  const { slices } = useDashboardPage()
+  const { slices, rowsRef } = useDashboardPage()
 
   if (dashboardStore.step.type === 'loading') {
     return <Text color="cyan">正在获取行情数据...</Text>
@@ -50,16 +52,22 @@ export default function Dashboard() {
           .join('')}
       </Text>
 
-      {quotes.slice(slices.quoteStart, slices.quoteEnd).map((quote, index) => (
-        <StockRow key={quote.code} segments={quoteRow(quote)} selected={slices.quoteStart + index === selectedIndex} />
-      ))}
-      {missing.slice(slices.missingStart, slices.missingEnd).map((entry, index) => (
-        <StockRow
-          key={entry.code}
-          segments={missingRow(entry.code, entry.name)}
-          selected={quotes.length + slices.missingStart + index === selectedIndex}
-        />
-      ))}
+      <Box ref={rowsRef} flexDirection="column" flexGrow={1} overflow="hidden">
+        {quotes.slice(slices.quoteStart, slices.quoteEnd).map((quote, index) => (
+          <StockRow
+            key={quote.code}
+            segments={quoteRow(quote)}
+            selected={slices.quoteStart + index === selectedIndex}
+          />
+        ))}
+        {missing.slice(slices.missingStart, slices.missingEnd).map((entry, index) => (
+          <StockRow
+            key={entry.code}
+            segments={missingRow(entry.code, entry.name)}
+            selected={quotes.length + slices.missingStart + index === selectedIndex}
+          />
+        ))}
+      </Box>
 
       {errorLine ? <Text color="yellow">刷新失败: {errorLine}, 稍后自动重试</Text> : null}
     </>

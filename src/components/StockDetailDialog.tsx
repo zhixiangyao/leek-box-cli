@@ -12,13 +12,11 @@ import {
 } from '../lib/format.ts'
 import { useDashboardStore } from '../stores/useDashboardStore.ts'
 import { useStockDetailStore } from '../stores/useStockDetailStore.ts'
-import Dialog from './Dialog.tsx'
+import Dialog, { DIALOG_CHROME } from './Dialog.tsx'
 import IntradayChart from './IntradayChart/index.tsx'
 
-const DIALOG_WIDTH = 72
-/** 边框 2 + paddingY 2 + 信息 3 + 图表 14 (9 折线 + 4 量柱 + 1 时间轴) */
-const DIALOG_HEIGHT = 21
-const CONTENT_WIDTH = DIALOG_WIDTH - 4
+const STOCK_DETAIL_WIDTH = 72
+const CONTENT_WIDTH = STOCK_DETAIL_WIDTH - DIALOG_CHROME
 
 export default function StockDetailDialog() {
   const detailStore = useStockDetailStore()
@@ -40,8 +38,7 @@ export default function StockDetailDialog() {
           </Text>
         </Text>
       }
-      width={DIALOG_WIDTH}
-      height={DIALOG_HEIGHT}
+      width={STOCK_DETAIL_WIDTH}
     >
       <Box marginBottom={1}>
         <Box flexDirection="column" marginRight={1}>
