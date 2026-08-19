@@ -19,16 +19,13 @@ type RemoveStockState = {
   confirmInputKey: number
   /** 进入页面时加载自选股列表 (store 常驻, 每次进入重新加载并复位输入状态) */
   load: () => void
-  /** 选择序号: 校验范围后进入确认步骤 */
   handleChoice: (choice: string) => void
-  /** y/n 确认: y 删除, n 取消 */
   handleConfirm: (answer: string) => void
 }
 
 // 流程代数: 离开页面后, 进行中的异步请求结果会被丢弃, 避免旧响应污染新流程
 let flowSeq = 0
 
-/** 删除自选股 store: 加载列表 -> 编号选择 -> y/n 确认 -> 写入 */
 export const useRemoveStockStore = create<RemoveStockState>()((set, get) => ({
   step: { type: 'loading' },
   indexInputError: null,

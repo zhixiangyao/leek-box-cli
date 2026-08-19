@@ -28,7 +28,7 @@ const cli = meow(helpMessage, {
   },
 })
 
-// store 是路由状态唯一来源, render 前写入初始页
+// render 前写入初始页
 useRouterStore.setState({ screen: toScreen(cli.command) })
 
 render(<App />, { alternateScreen: true, concurrent: true })

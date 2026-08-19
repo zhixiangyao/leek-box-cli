@@ -11,13 +11,11 @@ type StockDetailState = {
   code: string | null
   /** 打开时快照 (缺失行/行情异常时标题仍可用) */
   name: string
-  /** 分时数据状态 */
   status: 'loading' | 'ready' | 'error'
   points: IntradayPoint[]
   errorMessage?: string
   open: (code: string, name: string) => void
   close: () => void
-  refresh: () => void
 }
 
 // 轮询的非响应式状态: 模块级变量, store 只承载展示数据 (与 useDashboardStore 同模式)
@@ -25,7 +23,7 @@ let timer: ReturnType<typeof setTimeout> | null = null
 let inFlight = false
 let cancelled = false
 
-/** 股票详情弹窗 store: 打开时拉取今日分时并 30s 轮询, 自调度 setTimeout + in-flight 守卫, 失败自愈 */
+/** 股票详情弹窗 store: 打开时拉取今日分时并 30s 轮询, 自调度 setTimeout + inFlight 守卫, 失败自愈 */
 export const useStockDetailStore = create<StockDetailState>()((set, get) => {
   const fetchOnce = async (code: string) => {
     if (inFlight) return
@@ -74,10 +72,6 @@ export const useStockDetailStore = create<StockDetailState>()((set, get) => {
       if (timer) clearTimeout(timer)
       timer = null
       set({ code: null })
-    },
-    refresh: () => {
-      const { code } = get()
-      if (code) void fetchOnce(code)
     },
   }
 })

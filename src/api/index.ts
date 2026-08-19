@@ -11,7 +11,6 @@
  * - 分时图: https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=... (JSON)
  *   data.<code>.data.data 为 ["0930 9.07 1978 1794046.00", ...] 数组,
  *   每项 "HHMM 价格 累计成交量(手) 累计成交额(元)"; 收盘后带 15:01-15:30 补点, 需裁剪
- * - 接口类型定义见 types.ts
  */
 
 import type { IntradayPoint, Quote } from './types.ts'
@@ -23,9 +22,7 @@ const FETCH_TIMEOUT_MS = 8000
 /** 股票代码规范化: 支持 600000 / sh600000 / SH600000 / 600000.SH, 输出 'sh600000' 或 null */
 export function normalizeCode(input: string): string | null {
   let code = input.trim().toUpperCase()
-  // 去掉 .SH / .SZ / .BJ 后缀
   code = code.replace(/\.(SH|SZ|BJ)$/, '')
-  // 去掉 SH / SZ / BJ 前缀
   code = code.replace(/^(SH|SZ|BJ)/, '')
   if (!/^\d{6}$/.test(code)) return null
 

@@ -12,6 +12,6 @@ export const SCREEN_META = {
 export const SCREEN_LIST = ['dashboard', 'add-stock', 'remove-stock'] as const satisfies readonly Screen[]
 
 export const isScreen = (str: string | undefined): str is Screen =>
-  str && SCREEN_LIST.includes(str as Screen) ? true : false
+  str !== undefined && SCREEN_LIST.includes(str as Screen)
 
 export const toScreen = (str: string | undefined): Screen => (isScreen(str) ? str : 'dashboard')

@@ -17,9 +17,9 @@ const DETAIL_KEYS: readonly (keyof Quote)[] = [
 ]
 export const DETAIL_COLUMNS = COLUMNS.filter((col) => DETAIL_KEYS.includes(col.key))
 
-/** 详情表格内容宽 (列宽和 79 + 9 个列间分隔), 由表推导不要硬编码 */
+/** 详情表格内容宽 (列宽和 + 列间分隔) */
 export const detailWidth = () => DETAIL_COLUMNS.reduce((sum, col) => sum + col.width, 0) + (DETAIL_COLUMNS.length - 1)
 
-/** 弹窗宽度 = 内容宽 + DIALOG_CHROME (92), 恰容一行 10 项 */
+/** 弹窗宽度 = 内容宽 + DIALOG_CHROME */
 export const STOCK_DETAIL_WIDTH = detailWidth() + DIALOG_CHROME
 export const CONTENT_WIDTH = STOCK_DETAIL_WIDTH - DIALOG_CHROME

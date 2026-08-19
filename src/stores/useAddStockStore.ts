@@ -7,7 +7,7 @@ import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
 
 export type AddStockStep =
   | { type: 'input-code' }
-  | { type: 'checking'; code: string } // 调用行情接口验证中
+  | { type: 'checking'; code: string }
   | { type: 'confirm'; code: string; name: string; current: number }
   | { type: 'already-exists'; code: string; name: string }
   | { type: 'done'; message: string }
@@ -19,18 +19,16 @@ type AddStockState = {
   codeInputKey: number
   confirmInputError: string | null
   confirmInputKey: number
-  /** 进入页面时重置整个流程 (store 常驻, 不复位会残留上一次的 done/error 步骤) */
+  /** 进入页面时重置整个流程 (store 常驻, 防残留上次流程) */
   reset: () => void
-  /** 输入代码: 规范化校验 -> 行情验证 -> 确认步骤 */
+  /** 输入代码: 规范化 -> 行情验证 -> 确认 */
   handleCodeInput: (input: string) => void
-  /** y/n 确认: y 写入自选股, n 取消 */
   handleConfirm: (answer: string) => void
 }
 
 // 流程代数: reset 或离开页面后, 进行中的异步请求结果会被丢弃, 避免旧响应污染新流程
 let flowSeq = 0
 
-/** 添加自选股 store: 输入代码 -> 规范化校验 -> 行情验证 -> y/n 确认 -> 写入 */
 export const useAddStockStore = create<AddStockState>()((set, get) => ({
   step: { type: 'input-code' },
   codeInputError: null,

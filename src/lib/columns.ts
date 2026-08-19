@@ -26,7 +26,7 @@ type Column = {
   render: (quote: Quote) => string
   /** 涨跌色 (仅现价/涨跌幅/涨跌额); 缺省灰色 */
   color?: (quote: Quote) => TextColor
-  /** 停牌时该列文案 (默认 '--') */
+  /** 停牌时该列文案 */
   suspendedText?: string
 }
 
@@ -155,7 +155,6 @@ export const missingRow = (columns: readonly Column[], code: string, name: strin
     })),
   )
 
-/** 除最后一列外, 每列文本后追加 1 个分隔空格 */
 const withSeparators = (segments: Row): Row =>
   segments.map((segment, index) => ({
     ...segment,

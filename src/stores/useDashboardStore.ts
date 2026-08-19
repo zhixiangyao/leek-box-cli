@@ -11,13 +11,13 @@ export const POLL_INTERVAL_STEP_MS = 500
 
 export type DashboardStep =
   | { type: 'loading' }
-  | { type: 'empty' } // 自选股为空
+  | { type: 'empty' }
   | { type: 'error'; message: string } // 首次拉取失败 (无旧数据可展示)
   | {
       type: 'table'
       quotes: Quote[]
-      missing: { code: string; name: string }[] // 请求了但接口没返回的股票
-      updatedAt: string // 行情时间 HH:MM:SS (取各股最新)
+      missing: { code: string; name: string }[] // 接口没返回的股票
+      updatedAt: string // HH:MM:SS, 取各股最新
       errorLine?: string // 轮询失败时保留旧表格并内联提示
     }
 
@@ -28,15 +28,15 @@ type DashboardState = {
   selectedIndex: number
   /** 滚动窗口起点 (拼接行序列): 窗口不跟随选中行, 选中行触到窗口边缘才滚动 */
   viewStart: number
-  /** 进入看板页时启动轮询: 重置 step + 立即拉取 + 排下一次 */
+  /** 进入看板页时启动轮询 */
   start: () => void
-  /** 离开看板页时停止轮询并丢弃进行中的结果 */
+  /** 离开看板页时停止轮询 */
   stop: () => void
-  /** 手动立即刷新 (有 in-flight 请求则忽略) */
+  /** 手动立即刷新 (inFlight 时忽略) */
   refreshNow: () => void
-  /** 调整轮询间隔 (1s 步进, 夹在 [1s, 60s]); 重置等待期让新间隔立即生效 */
+  /** 调整轮询间隔 (500ms 步进, 夹在 [1s, 60s]); 重置等待期让新间隔立即生效 */
   adjustInterval: (deltaMs: number) => void
-  /** 上下移动选中行 (越界钳制); visible 为可视行数, 选中行触到移动方向的窗口边缘才滚动窗口 */
+  /** 上下移动选中行 (越界钳制, 选中行触到窗口边缘才滚动) */
   moveSelection: (delta: 1 | -1, visible: number) => void
 }
 
@@ -49,7 +49,7 @@ let cancelled = false
 const formatClock = (timestamp: string) =>
   `${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}:${timestamp.slice(12, 14)}`
 
-/** 股票涨跌看板 store: 轮询腾讯行情 (默认 5s, -/+ 可调), 自调度 setTimeout + in-flight 守卫避免重叠 */
+/** 股票涨跌看板 store: 轮询腾讯行情 (默认 5s, -/+ 可调), 自调度 setTimeout + inFlight 守卫避免重叠 */
 export const useDashboardStore = create<DashboardState>()((set, get) => {
   const fetchOnce = async () => {
     if (inFlight) return
@@ -72,7 +72,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
     } catch (err) {
       if (cancelled) return
       const message = errorMessage(err)
-      // 已有表格数据则保留旧数据 + 内联错误, 继续轮询自愈; 否则进 error 步
+      // 保留旧表格 + 内联错误继续轮询自愈, 否则进 error 步
       set((state) =>
         state.step.type === 'table'
           ? { step: { ...state.step, errorLine: message } }
@@ -83,7 +83,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
     }
   }
 
-  // 唯一排程点: 计时器触发 -> fetch -> 再排程; 已有计时器等待时不重复排, 天然单链不会重叠
+  // 唯一排程点: 计时器触发 -> fetch -> 再排程 (有计时器等待时不重复排)
   const armNext = () => {
     if (cancelled || timer) return
     timer = setTimeout(() => {

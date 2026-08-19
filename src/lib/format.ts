@@ -1,4 +1,4 @@
-/** 行情数字格式化 + A股涨跌色 (涨红跌绿平灰); 跨页面共享, 约定见 SKILL.md 界面风格 */
+/** 行情数字格式化 + A股涨跌色 (涨红跌绿平灰) */
 export const formatPrice = (value: number) => (value > 0 ? value.toFixed(2) : '--')
 
 /** 涨跌额 (带符号) -> '+1.23' / '-0.45' */

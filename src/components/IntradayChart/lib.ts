@@ -1,12 +1,12 @@
 import type { IntradayPoint } from '../../api/types.ts'
 
-export type TextColor = 'red' | 'green' | 'gray'
+type TextColor = 'red' | 'green' | 'gray'
 
 /** 图表单元格: 字符 + 可选颜色, 行渲染时相邻同色合并 */
 export type ChartCell = { ch: string; color?: TextColor }
 
 /** 桶: 一列内的聚合值; 空桶 (无数据) 各字段为 0 */
-export type Bucket = {
+type Bucket = {
   avgPrice: number
   maxPrice: number
   minPrice: number
