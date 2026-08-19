@@ -29,7 +29,7 @@ export default function Dialog({ title, width, children }: Props) {
       <Box width={width} borderStyle="round">
         {title ? <BorderTitle title={title} bright top={-1} left={1} /> : null}
 
-        <Box flexDirection="column" paddingX={1} paddingY={1} backgroundColor="black">
+        <Box flexGrow={1} flexDirection="column" paddingX={1} paddingY={1} backgroundColor="black">
           {children}
         </Box>
       </Box>
