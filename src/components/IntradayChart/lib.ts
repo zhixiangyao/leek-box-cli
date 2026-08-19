@@ -80,9 +80,19 @@ export const bucketize = (points: IntradayPoint[], width: number): Bucket[] => {
 }
 
 /**
- * 生成分时图字符矩阵: 价格折线 (2 半行/行, █▀▄ 组合, 整线按收尾价 vs 昨收红绿灰) +
- * 昨收虚线 (╴, 灰, 折线优先) + 成交量柱 (█, 按各桶收尾价 vs 昨收红绿) + 底部时间轴行.
- * 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
+ * Braille 点阵: 每字符 2 子列 × 4 子行. 子行 0-2 走 6 点码位 (位 = 1 << (r + c*3)),
+ * 子行 3 用 8 点制的 dot7/dot8 (位 = 1 << (6 + c)), c 为子列奇偶 (0 左 / 1 右).
+ */
+const DOT_BIT = (c: number, r: number): number => (r < 3 ? 1 << (r + c * 3) : 1 << (6 + c))
+
+/** Braille 字符: U+2800 + 点阵位掩码 */
+const braille = (mask: number): string => String.fromCharCode(0x2800 + mask)
+
+/**
+ * 生成分时图字符矩阵: 价格折线 (Braille 2×4 点阵, 垂直 4 倍 + 水平 2 倍分辨率; 子列间按相邻桶
+ * lastPrice 线性插值, 陡坡补垂直间隙; 整线按收尾价 vs 昨收红绿灰) + 昨收虚线 (Braille 点,
+ * 2 子列开 1 子列停, 灰, 折线优先) + 成交量柱 (半块 █▄, 高度 8 档, 按各桶收尾价 vs 昨收红绿) +
+ * 底部时间轴行. 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
  */
 export const buildChartRows = (
   points: IntradayPoint[],
@@ -111,8 +121,9 @@ export const buildChartRows = (
   }
   if (rangeMax === rangeMin) rangeMax += 1
 
-  const halfRows = priceHeight * 2
-  const yOf = (price: number) => Math.round(((rangeMax - price) / (rangeMax - rangeMin)) * (halfRows - 1))
+  const subRows = priceHeight * 4
+  const subCols = width * 2
+  const yOf = (price: number) => Math.round(((rangeMax - price) / (rangeMax - rangeMin)) * (subRows - 1))
 
   // 折线整体颜色 (A股惯例): 收尾价 > 昨收红, < 绿, 平灰; 无昨收灰
   const filledLastPrices = buckets.map((b) => b.lastPrice).filter((price) => price > 0)
@@ -129,37 +140,75 @@ export const buildChartRows = (
     Array.from({ length: width }, () => ({ ch: ' ', color: undefined })),
   )
 
-  // 价格区: 桶的 min-max 半行区间内填充 (区域折线)
+  // 价格区折线: 每子列一个点 (Braille 2 子列 × 4 子行), 相邻子列陡坡在右侧子列补垂直间隙
+  const line = Array.from({ length: priceHeight }, () => new Uint16Array(width))
+  let lastFilledCol = -1
   for (let col = 0; col < width; col++) {
-    const bucket = buckets[col]!
-    if (bucket.avgPrice <= 0) continue
-    const yMin = yOf(bucket.maxPrice)
-    const yMax = yOf(bucket.minPrice)
-    for (let y = yMin; y <= yMax; y++) {
-      const row = rows[Math.floor(y / 2)]!
-      const ch = y % 2 === 0 ? '▀' : '▄'
-      const cell = row[col]!
-      if (cell.ch === ' ') cell.ch = ch
-      cell.color = lineColor
+    if (buckets[col]!.avgPrice > 0) lastFilledCol = col
+  }
+  let prevY: number | null = null
+  for (let s = 0; s < subCols; s++) {
+    const pos = s / 2
+    if (pos > lastFilledCol) {
+      prevY = null // 尾部留空 (盘中数据未到), 不跨空隙连线
+      continue
     }
+    const left = buckets[Math.floor(pos)]!
+    if (left.avgPrice <= 0) {
+      prevY = null
+      continue
+    }
+    const right = buckets[Math.min(Math.floor(pos) + 1, width - 1)]!
+    // 右桶无数据 (尾部收尾) 时平线, 否则相邻桶 lastPrice 线性插值
+    const price =
+      right.avgPrice > 0
+        ? left.lastPrice + (right.lastPrice - left.lastPrice) * (pos - Math.floor(pos))
+        : left.lastPrice
+    const y = yOf(price)
+    const col = Math.floor(s / 2)
+    const lineRow = line[Math.floor(y / 4)]!
+    lineRow[col] = lineRow[col]! | DOT_BIT(s % 2, y % 4)
+    if (prevY !== null) {
+      const lo = Math.min(prevY, y)
+      const hi = Math.max(prevY, y)
+      for (let yy = lo + 1; yy < hi; yy++) {
+        const gapRow = line[Math.floor(yy / 4)]!
+        gapRow[col] = gapRow[col]! | DOT_BIT(s % 2, yy % 4)
+      }
+    }
+    prevY = y
   }
 
-  // 昨收虚线 (灰, 折线优先)
+  // 昨收虚线 (灰, Braille 点, 2 子列开 1 子列停; 折线优先, 不落在折线已占的单元格)
+  const dash = Array.from({ length: priceHeight }, () => new Uint16Array(width))
   if (prevClose !== null) {
-    const dashRow = Math.floor(yOf(prevClose) / 2)
-    for (let col = 0; col < width; col++) {
-      const cell = rows[dashRow]![col]!
-      if (cell.ch === ' ') cell.ch = '╴'
-      if (!cell.color) cell.color = 'gray'
+    const y = yOf(prevClose)
+    const cellRow = Math.floor(y / 4)
+    for (let s = 0; s < subCols; s++) {
+      if (s % 3 === 2) continue
+      const col = Math.floor(s / 2)
+      if (line[cellRow]![col] !== 0) continue
+      const dashRow = dash[cellRow]!
+      dashRow[col] = dashRow[col]! | DOT_BIT(s % 2, y % 4)
     }
   }
 
-  // 成交量柱: 底部向上, 至少 1 格防太矮
+  // 组装价格区单元格: 折线颜色优先, 否则虚线灰色
+  for (let r = 0; r < priceHeight; r++) {
+    for (let c = 0; c < width; c++) {
+      const mask = line[r]![c]! | dash[r]![c]!
+      if (mask === 0) continue
+      rows[r]![c] = { ch: braille(mask), color: line[r]![c]! !== 0 ? lineColor : 'gray' }
+    }
+  }
+
+  // 成交量柱: 底部向上, 半块字符 8 档高度, 至少 1 半块防太矮
   const maxVolume = Math.max(...buckets.map((b) => b.volume), 0)
   for (let col = 0; col < width; col++) {
     const bucket = buckets[col]!
     if (bucket.volume <= 0 || maxVolume <= 0) continue
-    const bar = Math.max(1, Math.round((bucket.volume / maxVolume) * volumeHeight))
+    const halfBar = Math.max(1, Math.round((bucket.volume / maxVolume) * volumeHeight * 2))
+    const fullRows = Math.floor(halfBar / 2)
     const color: TextColor =
       prevClose === null
         ? 'gray'
@@ -168,8 +217,11 @@ export const buildChartRows = (
           : bucket.lastPrice < prevClose
             ? 'green'
             : 'gray'
-    for (let i = 0; i < bar; i++) {
-      rows[priceHeight + (volumeHeight - 1 - i)]![col] = { ch: '█', color }
+    for (let i = 0; i < fullRows; i++) {
+      rows[priceHeight + volumeHeight - 1 - i]![col] = { ch: '█', color }
+    }
+    if (halfBar % 2 === 1) {
+      rows[priceHeight + volumeHeight - 1 - fullRows]![col] = { ch: '▄', color }
     }
   }
 
