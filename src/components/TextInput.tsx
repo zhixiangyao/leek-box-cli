@@ -1,7 +1,7 @@
 import { Box, useInput } from 'ink'
 import { type JSX, useState } from 'react'
 
-import { useMenuStore } from '../stores/useMenuStore.ts'
+import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
 import Text from './Text.tsx'
 
 type Props = {
@@ -12,9 +12,9 @@ type Props = {
 
 export default function TextInput(props: Props) {
   const { prompt, onSubmit, placeholder } = props
+  const overlayOpen = useOverlayOpen()
   const [value, setValue] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const menuStore = useMenuStore()
 
   useInput(
     (input, key) => {
@@ -29,7 +29,7 @@ export default function TextInput(props: Props) {
         setValue((prev) => prev + input)
       }
     },
-    { isActive: !menuStore.open && !submitted },
+    { isActive: !overlayOpen && !submitted },
   )
 
   return (

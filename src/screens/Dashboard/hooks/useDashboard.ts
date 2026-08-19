@@ -1,19 +1,13 @@
 import { useInput } from 'ink'
 import { useEffect } from 'react'
 
+import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { POLL_INTERVAL_STEP_MS, useDashboardStore } from '../../../stores/useDashboardStore.ts'
-import { useMenuStore } from '../../../stores/useMenuStore.ts'
 import { useStockDetailStore } from '../../../stores/useStockDetailStore.ts'
 
-/**
- * 看板页副作用: 轮询生命周期跟随页面挂载 (进入启动, 离开停止, store 常驻必须显式控制),
- * 以及全局快捷键: ↑/↓ 移动选中行, 回车打开详情弹窗, r 立即刷新, -/+ 调整轮询间隔 (1s 步进).
- * 详情弹窗打开时全部静默 (esc/q 由 app.tsx 全局守卫).
- */
 export function useDashboardPage() {
   const dashboardStore = useDashboardStore()
-  const menuStore = useMenuStore()
-  const stockDetailStore = useStockDetailStore()
+  const overlayOpen = useOverlayOpen()
   const { start, stop } = dashboardStore
 
   useEffect(() => {
@@ -49,6 +43,6 @@ export function useDashboardPage() {
         dashboardStore.adjustInterval(POLL_INTERVAL_STEP_MS)
       }
     },
-    { isActive: !menuStore.open && !stockDetailStore.code },
+    { isActive: !overlayOpen },
   )
 }

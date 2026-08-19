@@ -36,7 +36,7 @@ export default function App() {
       // esc 优先级: 详情弹窗 > 菜单 (详情开着时先关详情, 不会误开菜单)
       if (stockDetailStore.code) stockDetailStore.close()
       else menuStore.toggle()
-    } else if (input === 'q' && !menuStore.open && !stockDetailStore.code) {
+    } else if (input === 'q' && !overlayOpen) {
       exit()
     }
   })

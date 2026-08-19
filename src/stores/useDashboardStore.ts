@@ -4,11 +4,10 @@ import { fetchQuotes, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
 import { loadWatchlist } from '../lib/watchlist.ts'
 
-/** 默认轮询间隔 5s; 可调范围 [1s, 60s], 步进 1s (看板 -/+ 键) */
 export const DEFAULT_POLL_INTERVAL_MS = 5000
 export const MIN_POLL_INTERVAL_MS = 1000
 export const MAX_POLL_INTERVAL_MS = 60_000
-export const POLL_INTERVAL_STEP_MS = 1000
+export const POLL_INTERVAL_STEP_MS = 500
 
 export type DashboardStep =
   | { type: 'loading' }
