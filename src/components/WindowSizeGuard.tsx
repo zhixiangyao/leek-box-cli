@@ -1,5 +1,5 @@
 import { Box, useWindowSize } from 'ink'
-import type { ReactNode } from 'react'
+import type { JSX } from 'react'
 
 import { tableWidth } from '../screens/Dashboard/lib/table.ts'
 import Text from './Text.tsx'
@@ -8,7 +8,11 @@ import Text from './Text.tsx'
 const MIN_COLUMNS = tableWidth() + 4
 const MIN_ROWS = 24
 
-export default function WindowSizeGuard({ children }: { children: ReactNode }) {
+type Props = {
+  children: JSX.Element | JSX.Element[]
+}
+
+export default function WindowSizeGuard({ children }: Props) {
   const { columns, rows } = useWindowSize()
   const widthOk = columns >= MIN_COLUMNS
   const heightOk = rows >= MIN_ROWS

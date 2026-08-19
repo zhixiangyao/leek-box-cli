@@ -48,7 +48,7 @@ export default function MenuDialog() {
   })
 
   return (
-    <Dialog width={MENU_WIDTH} height={MENU_HEIGHT}>
+    <Dialog title={<Text color="magenta">菜单</Text>} width={MENU_WIDTH} height={MENU_HEIGHT}>
       {MENU_ITEMS.map((item, index) => (
         <Text
           key={item.label}

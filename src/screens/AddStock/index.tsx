@@ -45,19 +45,15 @@ export default function AddStock() {
   }
 
   if (addStockStore.step.type === 'already-exists') {
-    return (
-      <ActionResult tone="warning">
-        {addStockStore.step.name} ({addStockStore.step.code}) 已在自选股中.
-      </ActionResult>
-    )
+    return <ActionResult tone="warning" msg={`${addStockStore.step.name} (${addStockStore.step.code}) 已在自选股中.`} />
   }
 
   if (addStockStore.step.type === 'done') {
-    return <ActionResult tone="success">{addStockStore.step.message}</ActionResult>
+    return <ActionResult tone="success" msg={addStockStore.step.message} />
   }
 
   if (addStockStore.step.type === 'error') {
-    return <ActionResult tone="error">{addStockStore.step.message}</ActionResult>
+    return <ActionResult tone="error" msg={addStockStore.step.message} />
   }
 
   return null

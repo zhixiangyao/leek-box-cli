@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react'
-
 import Text from './Text.tsx'
 
 export type MessageTone = 'error' | 'warning' | 'success'
@@ -12,13 +10,13 @@ const TONE_COLOR: Record<MessageTone, 'red' | 'yellow' | 'green'> = {
 
 type Props = {
   tone: MessageTone
-  children: ReactNode
+  msg: string
 }
 
-export default function Message({ tone, children }: Props) {
+export default function Message({ tone, msg }: Props) {
   return (
     <Text bold color={TONE_COLOR[tone]}>
-      {children}
+      {msg}
     </Text>
   )
 }

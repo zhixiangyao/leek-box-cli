@@ -2,14 +2,14 @@ import { Box } from 'ink'
 import { useEffect, useState } from 'react'
 
 import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
-import { SCREEN_META } from '../lib/screens.ts'
-import { useRouterStore } from '../stores/useRouterStore.ts'
 import Text from './Text.tsx'
 
-export default function StatusBar() {
-  const routerStore = useRouterStore()
+type Props = {
+  hint: string
+}
+
+export default function StatusBar({ hint }: Props) {
   const overlayOpen = useOverlayOpen()
-  const hint = SCREEN_META[routerStore.screen].hint
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {

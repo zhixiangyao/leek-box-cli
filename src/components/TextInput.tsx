@@ -1,5 +1,5 @@
-import { Box, type BoxProps, useInput } from 'ink'
-import { type ReactNode, useState } from 'react'
+import { Box, useInput } from 'ink'
+import { type JSX, useState } from 'react'
 
 import { useMenuStore } from '../stores/useMenuStore.ts'
 import Text from './Text.tsx'
@@ -7,12 +7,11 @@ import Text from './Text.tsx'
 type Props = {
   prompt: string
   onSubmit: (value: string) => void
-  /** 占位符 */
-  placeholder?: string | ReactNode
-} & BoxProps
+  placeholder?: JSX.Element | JSX.Element[]
+}
 
 export default function TextInput(props: Props) {
-  const { prompt, onSubmit, placeholder, ...boxProps } = props
+  const { prompt, onSubmit, placeholder } = props
   const [value, setValue] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const menuStore = useMenuStore()
@@ -34,7 +33,7 @@ export default function TextInput(props: Props) {
   )
 
   return (
-    <Box {...boxProps}>
+    <Box>
       <Text>
         {prompt}
         {submitted ? (

@@ -1,18 +1,23 @@
-import { Box } from 'ink'
+import { Box, Text as InkText, type BoxProps } from 'ink'
+import type { JSX } from 'react'
 
-import { SCREEN_META } from '../lib/screens.ts'
-import { useRouterStore } from '../stores/useRouterStore.ts'
 import Text from './Text.tsx'
 
-export default function BorderTitle() {
-  const routerStore = useRouterStore()
-  const title = SCREEN_META[routerStore.screen].title
+type Props = {
+  title: JSX.Element | JSX.Element[]
+  bright?: boolean
+  top: BoxProps['top']
+  left: BoxProps['left']
+}
 
+/** 边框叠加层必须是带边框 Box 的兄弟节点且排在其后: Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符 */
+export default function BorderTitle({ title, bright = false, top, left }: Props) {
+  const Bar = bright ? InkText : Text
   return (
-    <Box position="absolute" top={0} left={2}>
-      <Text>|</Text>
-      <Text color="magenta">{title}</Text>
-      <Text>|</Text>
+    <Box position="absolute" top={top} left={left}>
+      <Bar>|</Bar>
+      {title}
+      <Bar>|</Bar>
     </Box>
   )
 }

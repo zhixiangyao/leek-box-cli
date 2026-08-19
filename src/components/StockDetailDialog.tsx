@@ -16,8 +16,8 @@ import Dialog from './Dialog.tsx'
 import IntradayChart from './IntradayChart/index.tsx'
 
 const DIALOG_WIDTH = 72
-/** 边框 2 + paddingY 2 + 标题 1 + 信息 2 + 图表 14 (9 折线 + 4 量柱 + 1 时间轴) */
-const DIALOG_HEIGHT = 21
+/** 边框 2 + paddingY 2 + 信息 2 + 图表 14 (9 折线 + 4 量柱 + 1 时间轴) */
+const DIALOG_HEIGHT = 20
 const CONTENT_WIDTH = DIALOG_WIDTH - 4
 
 export default function StockDetailDialog() {
@@ -30,16 +30,20 @@ export default function StockDetailDialog() {
   const trend = suspended ? 'gray' : trendColor(quote.change)
 
   return (
-    <Dialog width={DIALOG_WIDTH} height={DIALOG_HEIGHT}>
-      <Text>
-        <Text>{detailStore.name}</Text>
-        <Text color="gray"> {detailStore.code}</Text>
-        <Text> </Text>
-        <Text color={trend}>
-          {quote ? formatPrice(quote.current) : '--'} {quote ? formatPercent(quote.changePercent) : ''}
+    <Dialog
+      title={
+        <Text>
+          <Text>{detailStore.name}</Text>
+          <Text color="gray"> {detailStore.code}</Text>
+          <Text> </Text>
+          <Text color={trend}>
+            {quote ? formatPrice(quote.current) : '--'} {quote ? formatPercent(quote.changePercent) : ''}
+          </Text>
         </Text>
-      </Text>
-
+      }
+      width={DIALOG_WIDTH}
+      height={DIALOG_HEIGHT}
+    >
       <Box>
         <Text color="gray">今开 {formatPrice(quote?.open ?? 0)}</Text>
         <Text color="gray">昨收 {formatPrice(quote?.prevClose ?? 0)}</Text>

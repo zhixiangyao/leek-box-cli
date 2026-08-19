@@ -53,11 +53,11 @@ export default function RemoveStock() {
   }
 
   if (removeStockStore.step.type === 'done') {
-    return <ActionResult tone="success">{removeStockStore.step.message}</ActionResult>
+    return <ActionResult tone="success" msg={removeStockStore.step.message} />
   }
 
   if (removeStockStore.step.type === 'error') {
-    return <ActionResult tone="error">{removeStockStore.step.message}</ActionResult>
+    return <ActionResult tone="error" msg={removeStockStore.step.message} />
   }
 
   return null

@@ -6,9 +6,10 @@ import BorderUpdatedAt from './components/BorderUpdatedAt.tsx'
 import MenuDialog from './components/MenuDialog.tsx'
 import StatusBar from './components/StatusBar.tsx'
 import StockDetailDialog from './components/StockDetailDialog.tsx'
+import Text from './components/Text.tsx'
 import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from './hooks/useOverlayOpen.ts'
-import type { Screen } from './lib/screens.ts'
+import { SCREEN_META, type Screen } from './lib/screens.ts'
 import AddStock from './screens/AddStock/index.tsx'
 import Dashboard from './screens/Dashboard/index.tsx'
 import RemoveStock from './screens/RemoveStock/index.tsx'
@@ -52,11 +53,10 @@ export default function App() {
         {menuStore.open && <MenuDialog />}
         {stockDetailStore.code && <StockDetailDialog />}
 
-        <StatusBar />
+        <StatusBar hint={SCREEN_META[routerStore.screen].hint} />
       </Box>
 
-      {/* 边框叠加层必须是带边框 Box 的兄弟节点且排在其后: Ink 按 DOM 顺序绘制, 后画的才覆盖边框字符 */}
-      <BorderTitle />
+      <BorderTitle title={<Text color="magenta">{SCREEN_META[routerStore.screen].title}</Text>} top={0} left={2} />
       <BorderUpdatedAt />
     </WindowSizeGuard>
   )
