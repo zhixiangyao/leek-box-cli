@@ -9,7 +9,7 @@ export const MIN_POLL_INTERVAL_MS = 1000
 export const MAX_POLL_INTERVAL_MS = 60_000
 export const POLL_INTERVAL_STEP_MS = 500
 
-export type DashboardStep =
+export type StockListStep =
   | { type: 'loading' }
   | { type: 'empty' }
   | { type: 'error'; message: string } // 首次拉取失败 (无旧数据可展示)
@@ -21,8 +21,8 @@ export type DashboardStep =
       errorLine?: string // 轮询失败时保留旧表格并内联提示
     }
 
-type DashboardState = {
-  step: DashboardStep
+type StockListState = {
+  step: StockListStep
   pollIntervalMs: number
   /** 选中行索引 (quotes + missing 拼接的显示行序列) */
   selectedIndex: number
@@ -41,16 +41,16 @@ type DashboardState = {
 }
 
 // 轮询循环的非响应式状态: 排程/守卫用模块级变量, store 只承载展示数据
-let inFlight = false
 let timer: ReturnType<typeof setTimeout> | null = null
-let pollInterval = DEFAULT_POLL_INTERVAL_MS
+let inFlight = false
 let cancelled = false
+let pollInterval = DEFAULT_POLL_INTERVAL_MS
 
 const formatClock = (timestamp: string) =>
   `${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}:${timestamp.slice(12, 14)}`
 
 /** 股票涨跌看板 store: 轮询腾讯行情 (默认 5s, -/+ 可调), 自调度 setTimeout + inFlight 守卫避免重叠 */
-export const useDashboardStore = create<DashboardState>()((set, get) => {
+export const useStockListStore = create<StockListState>()((set, get) => {
   const fetchOnce = async () => {
     if (inFlight) return
     inFlight = true

@@ -10,7 +10,7 @@ const helpMessage = `
   $ leek-box-cli [command]
 
 命令
-  dashboard     股票自选股看板 (默认, 自动刷新)
+  stock-list    股票自选股看板 (默认, 自动刷新)
   add-stock     添加自选股
   remove-stock  删除自选股
 

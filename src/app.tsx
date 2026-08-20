@@ -11,14 +11,14 @@ import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from './hooks/useOverlayOpen.ts'
 import { SCREEN_META, type Screen } from './lib/screens.ts'
 import AddStock from './screens/AddStock/index.tsx'
-import Dashboard from './screens/Dashboard/index.tsx'
 import RemoveStock from './screens/RemoveStock/index.tsx'
+import StockList from './screens/StockList/index.tsx'
 import { useMenuStore } from './stores/useMenuStore.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
 import { useStockDetailStore } from './stores/useStockDetailStore.ts'
 
 const screenComponentMap = new Map<Screen, ComponentType<{}>>([
-  ['dashboard', Dashboard],
+  ['stock-list', StockList],
   ['add-stock', AddStock],
   ['remove-stock', RemoveStock],
 ])

@@ -1,4 +1,4 @@
-import BackToDashboard from './BackToDashboard.tsx'
+import BackToStockList from './BackToStockList.tsx'
 import Message, { type MessageTone } from './Message.tsx'
 
 type Props = {
@@ -10,7 +10,7 @@ export default function ActionResult({ tone, msg }: Props) {
   return (
     <>
       <Message tone={tone} msg={msg} />
-      <BackToDashboard />
+      <BackToStockList />
     </>
   )
 }

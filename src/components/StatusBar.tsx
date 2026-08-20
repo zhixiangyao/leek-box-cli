@@ -17,7 +17,6 @@ export default function StatusBar({ hint }: Props) {
     return () => clearInterval(timer)
   }, [])
 
-  // en-CA locale 恰好输出 YYYY-MM-DD; timeZone 固定中国上海
   const date = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Shanghai',
     year: 'numeric',

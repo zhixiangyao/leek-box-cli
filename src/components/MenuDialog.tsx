@@ -7,7 +7,7 @@ import { useRouterStore } from '../stores/useRouterStore.ts'
 import Dialog from './Dialog.tsx'
 
 const MENU_ITEMS: { label: string; screen: Screen | null }[] = [
-  { label: '1) 股票自选股看板', screen: 'dashboard' },
+  { label: '1) 股票自选股看板', screen: 'stock-list' },
   { label: '2) 添加自选股', screen: 'add-stock' },
   { label: '3) 删除自选股', screen: 'remove-stock' },
   { label: '4) 退出程序', screen: null },

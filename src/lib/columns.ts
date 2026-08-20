@@ -39,7 +39,7 @@ export const cell = (text: string, column: Column) =>
     ? ' '.repeat(Math.max(0, column.width - displayWidth(text))) + text
     : text + ' '.repeat(Math.max(0, column.width - displayWidth(text)))
 
-/** 表格片段: 文本 + 颜色, 由 Dashboard 渲染为嵌套 Text */
+/** 表格片段: 文本 + 颜色, 由 StockList 渲染为嵌套 Text */
 export type Row = { text: string; color?: TextColor }[]
 
 /** 全量 15 列; 列宽需按实测最大内容校准, 窄了会折行把表头顶出屏幕 */

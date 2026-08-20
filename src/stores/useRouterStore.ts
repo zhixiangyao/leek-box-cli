@@ -8,6 +8,6 @@ type RouterState = {
 }
 
 export const useRouterStore = create<RouterState>()((set) => ({
-  screen: 'dashboard',
+  screen: 'stock-list',
   goTo: (screen) => set({ screen }),
 }))

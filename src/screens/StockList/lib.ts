@@ -2,7 +2,7 @@ import type { Quote } from '../../api/types.ts'
 import { COLUMNS } from '../../lib/columns.ts'
 
 /** 看板 12 列: 显式 key 挑选 (昨收/振幅/量比仅详情面板用, 不占看板列宽) */
-const DASHBOARD_KEYS: readonly (keyof Quote)[] = [
+const STOCK_LIST_KEYS: readonly (keyof Quote)[] = [
   'code',
   'name',
   'current',
@@ -16,11 +16,11 @@ const DASHBOARD_KEYS: readonly (keyof Quote)[] = [
   'turnoverRate',
   'marketCap',
 ]
-export const DASHBOARD_COLUMNS = COLUMNS.filter((col) => DASHBOARD_KEYS.includes(col.key))
+export const STOCK_LIST_COLUMNS = COLUMNS.filter((col) => STOCK_LIST_KEYS.includes(col.key))
 
 /** 表格总宽 (内容列宽和 + 列间分隔空格); WindowSizeGuard 的 MIN_COLUMNS 由此推导, 不要硬编码 */
 export const tableWidth = () =>
-  DASHBOARD_COLUMNS.reduce((sum, col) => sum + col.width, 0) + (DASHBOARD_COLUMNS.length - 1)
+  STOCK_LIST_COLUMNS.reduce((sum, col) => sum + col.width, 0) + (STOCK_LIST_COLUMNS.length - 1)
 
 /**
  * 滚动窗口 [start, end): 窗口起点由 viewStart 决定 (越界钳制), 不与选中行绑定.

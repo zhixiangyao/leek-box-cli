@@ -2,8 +2,8 @@ import { Box, Text } from 'ink'
 
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
-import { useDashboardStore } from '../../stores/useDashboardStore.ts'
 import { useStockDetailStore } from '../../stores/useStockDetailStore.ts'
+import { useStockListStore } from '../../stores/useStockListStore.ts'
 import Dialog from '../Dialog.tsx'
 import IntradayChart from '../IntradayChart/index.tsx'
 import QuoteRow from '../QuoteRow.tsx'
@@ -11,7 +11,7 @@ import { CONTENT_WIDTH, DETAIL_COLUMNS, STOCK_DETAIL_WIDTH } from './lib.ts'
 
 export default function StockDetailDialog() {
   const detailStore = useStockDetailStore()
-  const quote = useDashboardStore((state) =>
+  const quote = useStockListStore((state) =>
     state.step.type === 'table' ? state.step.quotes.find((q) => q.code === detailStore.code) : undefined,
   )
   if (detailStore.code === null) return null

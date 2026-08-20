@@ -3,16 +3,13 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
 
-/**
- * 自选股存储: ~/.config/leek-box-cli/watchlist.json (遵循 XDG_CONFIG_HOME)
- * Schema: 裸数组 [{ code, name, addedAt }], 插入顺序即显示顺序,
- * name 在添加时缓存, 删除页离线也能显示名称
- */
-
 export type WatchEntry = {
-  code: string // 规范化代码, 如 'sh600000'
+  /** 股票代码 */
+  code: string
+  /** 股票名称 */
   name: string
-  addedAt: string // ISO 时间
+  /** 添加时间(ISO 时间) */
+  addedAt: string
 }
 
 export function watchlistPath(): string {

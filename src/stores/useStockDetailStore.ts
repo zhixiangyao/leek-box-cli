@@ -18,7 +18,7 @@ type StockDetailState = {
   close: () => void
 }
 
-// 轮询的非响应式状态: 模块级变量, store 只承载展示数据 (与 useDashboardStore 同模式)
+// 轮询循环的非响应式状态: 排程/守卫用模块级变量, store 只承载展示数据
 let timer: ReturnType<typeof setTimeout> | null = null
 let inFlight = false
 let cancelled = false

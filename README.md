@@ -66,7 +66,7 @@ pnpm sea    # 仅重新打包(dist/cli.mjs 需已存在)
 
 ```bash
 leek-box-cli               # 直接进入股票涨跌看板
-leek-box-cli dashboard     # 同上
+leek-box-cli stock-list    # 同上
 leek-box-cli add-stock     # 直接进入添加自选股
 leek-box-cli remove-stock  # 直接进入删除自选股
 leek-box-cli -v            # 查看版本
@@ -79,7 +79,7 @@ leek-box-cli -h            # 查看帮助
 
 ```
 +----------------------------+
-|> 1) 股票涨跌看板 (dashboard)|
+|> 1) 股票涨跌看板 (stock-list)|
 |  2) 添加自选股 (add-stock)  |
 |  3) 删除自选股 (remove-stock)|
 |  4) 退出程序                |
