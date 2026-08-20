@@ -12,7 +12,7 @@ export type RemoveStockStep =
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
-type InputState = { error: string | null; key: number }
+type InputState = { error: string | null; resetToken: number }
 
 type RemoveStockState = {
   step: RemoveStockStep
@@ -26,7 +26,7 @@ type RemoveStockState = {
 let generation = 0
 const isStale = (gen: number) => gen !== generation
 
-const FRESH_INPUT: InputState = { error: null, key: 0 }
+const FRESH_INPUT: InputState = { error: null, resetToken: 0 }
 
 export const useRemoveStockStore = create<RemoveStockState>()((set, get) => ({
   step: { type: 'loading' },
@@ -55,21 +55,24 @@ export const useRemoveStockStore = create<RemoveStockState>()((set, get) => ({
     const index = Number(choice.trim())
     if (!Number.isInteger(index) || index < 1 || index > current.entries.length) {
       set((state) => ({
-        indexInput: { error: `无效的序号, 请输入 1-${current.entries.length}`, key: state.indexInput.key + 1 },
+        indexInput: {
+          error: `无效的序号, 请输入 1-${current.entries.length}`,
+          resetToken: state.indexInput.resetToken + 1,
+        },
       }))
       return
     }
-    set((state) => ({ indexInput: { error: null, key: state.indexInput.key + 1 } }))
+    set((state) => ({ indexInput: { error: null, resetToken: state.indexInput.resetToken + 1 } }))
     set({ step: { type: 'confirm', entry: current.entries[index - 1]! } })
   },
 
   handleConfirm: (answer: string) => {
     const yn = parseYn(answer)
     if (!yn) {
-      set((state) => ({ confirmInput: { error: YN_ERROR_MESSAGE, key: state.confirmInput.key + 1 } }))
+      set((state) => ({ confirmInput: { error: YN_ERROR_MESSAGE, resetToken: state.confirmInput.resetToken + 1 } }))
       return
     }
-    set((state) => ({ confirmInput: { error: null, key: state.confirmInput.key + 1 } }))
+    set((state) => ({ confirmInput: { error: null, resetToken: state.confirmInput.resetToken + 1 } }))
     if (yn === 'n') {
       set({ step: { type: 'done', message: '已取消.' } })
       return

@@ -5,18 +5,17 @@ import { useStockListStore } from '../stores/useStockListStore.ts'
 import Text from './Text.tsx'
 
 export default function BorderUpdatedAt() {
-  const routerStore = useRouterStore()
-  const stockListStore = useStockListStore()
+  const screen = useRouterStore((state) => state.screen)
+  const updatedAt = useStockListStore((state) => (state.step.type === 'table' ? state.step.updatedAt : null))
+  const pollIntervalMs = useStockListStore((state) => state.pollIntervalMs)
 
-  if (routerStore.screen !== 'stock-list' || stockListStore.step.type !== 'table') {
-    return null
-  }
+  if (screen !== 'stock-list' || updatedAt === null) return null
 
   return (
     <Box position="absolute" top={0} right={2}>
       <Text>|</Text>
       <Text color="cyan">
-        {stockListStore.step.updatedAt} ({stockListStore.pollIntervalMs}ms)
+        {updatedAt} ({pollIntervalMs}ms)
       </Text>
       <Text>|</Text>
     </Box>

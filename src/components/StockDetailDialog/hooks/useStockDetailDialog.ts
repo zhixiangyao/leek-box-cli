@@ -5,8 +5,10 @@ import { useStockListStore } from '../../../stores/useStockListStore.ts'
 const INTRADAY_POLL_INTERVAL_MS = 30_000
 
 export function useStockDetailDialog() {
-  const detailStore = useStockDetailStore()
-  const stock = detailStore.stock
+  const stock = useStockDetailStore((state) => state.stock)
+  const status = useStockDetailStore((state) => state.status)
+  const points = useStockDetailStore((state) => state.points)
+  const detailError = useStockDetailStore((state) => state.errorMessage)
   const quote = useStockListStore((state) => {
     if (state.step.type !== 'table') return undefined
     const row = state.step.rows.find((item) => item.code === stock?.code)
@@ -25,13 +27,12 @@ export function useStockDetailDialog() {
   )
 
   if (!stock) return null
-  const suspended = !quote ? false : quote.current <= 0
   return {
     stock,
     quote,
-    suspended,
-    status: detailStore.status,
-    points: detailStore.points,
-    errorMessage: detailStore.errorMessage,
+    suspended: quote ? quote.current <= 0 : false,
+    status,
+    points,
+    errorMessage: detailError,
   }
 }

@@ -2,17 +2,19 @@ import { render } from 'ink'
 import meow from 'meow'
 
 import App from './app.tsx'
-import { SCREEN_LIST, toScreen } from './lib/screens.ts'
+import { SCREEN_LIST, SCREEN_REGISTRY, toScreen } from './lib/registry.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
+
+const commandHelp = Object.entries(SCREEN_REGISTRY)
+  .map(([command, definition]) => `  ${command.padEnd(13)}${definition.description}`)
+  .join('\n')
 
 const helpMessage = `
 用法
   $ leek-box-cli [command]
 
 命令
-  stock-list    股票自选股看板 (默认, 自动刷新)
-  add-stock     添加自选股
-  remove-stock  删除自选股
+${commandHelp}
 
 选项
   -v, --version  查看版本

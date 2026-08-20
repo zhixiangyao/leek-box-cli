@@ -7,66 +7,61 @@ import { useRemoveStockStore } from '../../stores/useRemoveStockStore.ts'
 import { useRemoveStockPage } from './hooks/useRemoveStock.ts'
 
 export default function RemoveStock() {
-  const removeStockStore = useRemoveStockStore()
+  const step = useRemoveStockStore((state) => state.step)
+  const indexInput = useRemoveStockStore((state) => state.indexInput)
+  const confirmInput = useRemoveStockStore((state) => state.confirmInput)
+  const handleChoice = useRemoveStockStore((state) => state.handleChoice)
+  const handleConfirm = useRemoveStockStore((state) => state.handleConfirm)
 
   useRemoveStockPage()
 
-  if (removeStockStore.step.type === 'loading') {
-    return <Text color="cyan">正在加载自选股...</Text>
-  }
+  if (step.type === 'loading') return <Text color="cyan">正在加载自选股...</Text>
 
-  if (removeStockStore.step.type === 'select') {
+  if (step.type === 'select') {
     return (
       <>
         <Text color="gray">自选股列表:</Text>
-        {removeStockStore.step.entries.map((entry, index) => (
+        {step.entries.map((entry, index) => (
           <Text key={entry.code}>
             {index + 1}) {entry.name} ({entry.code}) <Text color="gray">({entry.addedAt.slice(0, 10)})</Text>
           </Text>
         ))}
-        {removeStockStore.indexInput.error && <Text color="red">{removeStockStore.indexInput.error}</Text>}
+        {indexInput.error && <Text color="red">{indexInput.error}</Text>}
         <Newline />
         <TextInput
-          key={removeStockStore.indexInput.key}
+          resetToken={`index-${indexInput.resetToken}`}
           prompt="请输入要删除的序号: "
-          onSubmit={removeStockStore.handleChoice}
+          onSubmit={handleChoice}
         />
       </>
     )
   }
 
-  if (removeStockStore.step.type === 'confirm') {
+  if (step.type === 'confirm') {
     return (
       <>
         <Text color="yellow">
-          确定删除 {removeStockStore.step.entry.name} ({removeStockStore.step.entry.code})?
+          确定删除 {step.entry.name} ({step.entry.code})?
         </Text>
-        {removeStockStore.confirmInput.error && <Text color="red">{removeStockStore.confirmInput.error}</Text>}
-        {/* key 加字符串前缀: select 步输入框 key 是数字序列, 若相同 React 会复用实例继承旧值, 导致 y/n 无法输入 */}
+        {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
         <TextInput
-          key={`yn-${removeStockStore.confirmInput.key}`}
+          resetToken={`confirm-${confirmInput.resetToken}`}
           prompt="确认删除? (y/n): "
-          onSubmit={removeStockStore.handleConfirm}
+          onSubmit={handleConfirm}
         />
       </>
     )
   }
 
-  if (removeStockStore.step.type === 'removing') {
+  if (step.type === 'removing') {
     return (
       <Text color="cyan">
-        正在删除 {removeStockStore.step.entry.name} ({removeStockStore.step.entry.code})...
+        正在删除 {step.entry.name} ({step.entry.code})...
       </Text>
     )
   }
 
-  if (removeStockStore.step.type === 'done') {
-    return <ActionResult tone="success" msg={removeStockStore.step.message} />
-  }
-
-  if (removeStockStore.step.type === 'error') {
-    return <ActionResult tone="error" msg={removeStockStore.step.message} />
-  }
-
+  if (step.type === 'done') return <ActionResult tone="success" msg={step.message} />
+  if (step.type === 'error') return <ActionResult tone="error" msg={step.message} />
   return null
 }

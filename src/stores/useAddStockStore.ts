@@ -14,7 +14,7 @@ export type AddStockStep =
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
-type InputState = { error: string | null; key: number }
+type InputState = { error: string | null; resetToken: number }
 
 type AddStockState = {
   step: AddStockStep
@@ -28,7 +28,7 @@ type AddStockState = {
 let generation = 0
 const isStale = (gen: number) => gen !== generation
 
-const FRESH_INPUT: InputState = { error: null, key: 0 }
+const FRESH_INPUT: InputState = { error: null, resetToken: 0 }
 
 export const useAddStockStore = create<AddStockState>()((set, get) => ({
   step: { type: 'input-code' },
@@ -47,12 +47,12 @@ export const useAddStockStore = create<AddStockState>()((set, get) => ({
       set((state) => ({
         codeInput: {
           error: '无法识别股票代码, 请输入 6 位数字 (如 600000 或 sh600000).',
-          key: state.codeInput.key + 1,
+          resetToken: state.codeInput.resetToken + 1,
         },
       }))
       return
     }
-    set((state) => ({ codeInput: { error: null, key: state.codeInput.key + 1 } }))
+    set((state) => ({ codeInput: { error: null, resetToken: state.codeInput.resetToken + 1 } }))
     set({ step: { type: 'checking', code } })
 
     try {
@@ -75,10 +75,10 @@ export const useAddStockStore = create<AddStockState>()((set, get) => ({
   handleConfirm: (answer: string) => {
     const yn = parseYn(answer)
     if (!yn) {
-      set((state) => ({ confirmInput: { error: YN_ERROR_MESSAGE, key: state.confirmInput.key + 1 } }))
+      set((state) => ({ confirmInput: { error: YN_ERROR_MESSAGE, resetToken: state.confirmInput.resetToken + 1 } }))
       return
     }
-    set((state) => ({ confirmInput: { error: null, key: state.confirmInput.key + 1 } }))
+    set((state) => ({ confirmInput: { error: null, resetToken: state.confirmInput.resetToken + 1 } }))
     if (yn === 'n') {
       set({ step: { type: 'done', message: '已取消.' } })
       return

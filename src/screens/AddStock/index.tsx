@@ -6,63 +6,61 @@ import { useAddStockStore } from '../../stores/useAddStockStore.ts'
 import { useAddStockPage } from './hooks/useAddStock.ts'
 
 export default function AddStock() {
-  const addStockStore = useAddStockStore()
+  const step = useAddStockStore((state) => state.step)
+  const codeInput = useAddStockStore((state) => state.codeInput)
+  const confirmInput = useAddStockStore((state) => state.confirmInput)
+  const handleCodeInput = useAddStockStore((state) => state.handleCodeInput)
+  const handleConfirm = useAddStockStore((state) => state.handleConfirm)
 
   useAddStockPage()
 
-  if (addStockStore.step.type === 'input-code') {
+  if (step.type === 'input-code') {
     return (
       <>
-        {addStockStore.codeInput.error && <Text color="red">{addStockStore.codeInput.error}</Text>}
+        {codeInput.error && <Text color="red">{codeInput.error}</Text>}
         <TextInput
-          key={addStockStore.codeInput.key}
+          resetToken={`code-${codeInput.resetToken}`}
           prompt="请输入股票代码: "
           placeholder={<Text color="gray">支持 600000 / sh600000 / 600000.SH 等写法</Text>}
-          onSubmit={addStockStore.handleCodeInput}
+          onSubmit={handleCodeInput}
         />
       </>
     )
   }
 
-  if (addStockStore.step.type === 'checking') {
-    return <Text color="cyan">正在验证股票代码 {addStockStore.step.code}...</Text>
+  if (step.type === 'checking') {
+    return <Text color="cyan">正在验证股票代码 {step.code}...</Text>
   }
 
-  if (addStockStore.step.type === 'confirm') {
+  if (step.type === 'confirm') {
     return (
       <>
         <Text color="cyan">
-          找到: {addStockStore.step.name} ({addStockStore.step.code}), 现价 {formatPrice(addStockStore.step.current)}
+          找到: {step.name} ({step.code}), 现价 {formatPrice(step.current)}
         </Text>
-        {addStockStore.confirmInput.error && <Text color="red">{addStockStore.confirmInput.error}</Text>}
+        {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
         <TextInput
-          key={addStockStore.confirmInput.key}
+          resetToken={`confirm-${confirmInput.resetToken}`}
           prompt="确认添加到自选股? (y/n): "
-          onSubmit={addStockStore.handleConfirm}
+          onSubmit={handleConfirm}
         />
       </>
     )
   }
 
-  if (addStockStore.step.type === 'saving') {
+  if (step.type === 'saving') {
     return (
       <Text color="cyan">
-        正在添加 {addStockStore.step.name} ({addStockStore.step.code})...
+        正在添加 {step.name} ({step.code})...
       </Text>
     )
   }
 
-  if (addStockStore.step.type === 'already-exists') {
-    return <ActionResult tone="warning" msg={`${addStockStore.step.name} (${addStockStore.step.code}) 已在自选股中.`} />
+  if (step.type === 'already-exists') {
+    return <ActionResult tone="warning" msg={`${step.name} (${step.code}) 已在自选股中.`} />
   }
 
-  if (addStockStore.step.type === 'done') {
-    return <ActionResult tone="success" msg={addStockStore.step.message} />
-  }
-
-  if (addStockStore.step.type === 'error') {
-    return <ActionResult tone="error" msg={addStockStore.step.message} />
-  }
-
+  if (step.type === 'done') return <ActionResult tone="success" msg={step.message} />
+  if (step.type === 'error') return <ActionResult tone="error" msg={step.message} />
   return null
 }

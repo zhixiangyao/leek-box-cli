@@ -15,20 +15,20 @@ import { visibleWindow } from '../lib.ts'
 export function useStockListPage() {
   const rowsRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(rowsRef)
-  const stockListStore = useStockListStore()
+  const step = useStockListStore((state) => state.step)
+  const scrollOffset = useStockListStore((state) => state.scrollOffset)
+  const pollIntervalMs = useStockListStore((state) => state.pollIntervalMs)
+  const moveSelection = useStockListStore((state) => state.moveSelection)
   const overlayOpen = useOverlayOpen()
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
-  const window =
-    stockListStore.step.type === 'table'
-      ? visibleWindow(stockListStore.step.rows.length, stockListStore.scrollOffset, visible)
-      : { start: 0, end: 0 }
+  const window = step.type === 'table' ? visibleWindow(step.rows.length, scrollOffset, visible) : { start: 0, end: 0 }
 
   useEffect(() => {
     useStockListStore.setState({ step: { type: 'loading' } })
   }, [])
 
   const { refresh } = usePolling((signal) => useStockListStore.getState().refreshQuotes(signal), {
-    intervalMs: stockListStore.pollIntervalMs,
+    intervalMs: pollIntervalMs,
   })
 
   const adjustPollInterval = (deltaMs: number) => {
@@ -41,13 +41,13 @@ export function useStockListPage() {
     (input, key) => {
       if (key.ctrl) return
       if (key.upArrow) {
-        stockListStore.moveSelection(-1, visible)
+        moveSelection(-1, visible)
       } else if (key.downArrow) {
-        stockListStore.moveSelection(1, visible)
+        moveSelection(1, visible)
       } else if (key.return) {
-        const { step, selectedCode } = useStockListStore.getState()
-        if (step.type !== 'table' || !selectedCode) return
-        const row = step.rows.find((item) => item.code === selectedCode)
+        const current = useStockListStore.getState()
+        if (current.step.type !== 'table' || !current.selectedCode) return
+        const row = current.step.rows.find((item) => item.code === current.selectedCode)
         if (row) useStockDetailStore.getState().open(row.code, row.name)
       } else if (input === 'r') {
         refresh()

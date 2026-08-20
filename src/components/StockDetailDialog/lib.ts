@@ -1,6 +1,6 @@
 import type { Quote } from '../../api/types.ts'
 import { COLUMNS } from '../../lib/columns.ts'
-import { DIALOG_CHROME } from '../Dialog.tsx'
+import { DIALOG_CHROME } from '../../lib/layout.ts'
 
 /** 详情面板 10 列: 显式 key 挑选 (现价/涨跌额已在弹窗标题行展示, 不重复) */
 const DETAIL_KEYS: readonly (keyof Quote)[] = [

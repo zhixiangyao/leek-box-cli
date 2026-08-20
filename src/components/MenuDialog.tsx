@@ -1,33 +1,34 @@
 import { useApp, useInput } from 'ink'
 import { useState } from 'react'
 
-import type { Screen } from '../lib/screens.ts'
+import { SCREEN_REGISTRY, type Screen } from '../lib/registry.ts'
 import { useMenuStore } from '../stores/useMenuStore.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
 import Dialog from './Dialog.tsx'
 import Text from './Text.tsx'
 
-type Menu = { label: string; screen: Screen | null }
+type MenuItem = { label: string; screen: Screen | null }
 
-const MENU_ITEMS: Menu[] = [
-  { label: '1) 股票自选股看板', screen: 'stock-list' },
-  { label: '2) 添加自选股', screen: 'add-stock' },
-  { label: '3) 删除自选股', screen: 'remove-stock' },
-  { label: '4) 退出程序', screen: null },
+const MENU_ITEMS: MenuItem[] = [
+  ...Object.entries(SCREEN_REGISTRY).map(([screen, definition], index): MenuItem => ({
+    label: `${index + 1}) ${definition.menuLabel}`,
+    screen: screen as Screen,
+  })),
+  { label: `${Object.keys(SCREEN_REGISTRY).length + 1}) 退出程序`, screen: null },
 ]
 
 const MENU_WIDTH = 30
 
 export default function MenuDialog() {
-  const routerStore = useRouterStore()
-  const menuStore = useMenuStore()
+  const goTo = useRouterStore((state) => state.goTo)
+  const closeMenu = useMenuStore((state) => state.close)
   const { exit } = useApp()
   const [highlight, setHighlight] = useState(0)
 
-  const choose = (item: (typeof MENU_ITEMS)[number]) => {
+  const choose = (item: MenuItem) => {
     if (item.screen) {
-      menuStore.close()
-      routerStore.goTo(item.screen)
+      closeMenu()
+      goTo(item.screen)
     } else {
       exit()
     }
@@ -35,15 +36,17 @@ export default function MenuDialog() {
 
   useInput((input, key) => {
     if (key.upArrow) {
-      setHighlight((prev) => (prev + MENU_ITEMS.length - 1) % MENU_ITEMS.length)
+      setHighlight((previous) => (previous + MENU_ITEMS.length - 1) % MENU_ITEMS.length)
     } else if (key.downArrow) {
-      setHighlight((prev) => (prev + 1) % MENU_ITEMS.length)
+      setHighlight((previous) => (previous + 1) % MENU_ITEMS.length)
     } else if (key.return) {
       choose(MENU_ITEMS[highlight]!)
-    } else if (/^[1-4]$/.test(input)) {
+    } else if (/^[1-9]$/.test(input)) {
       const index = Number(input) - 1
+      const item = MENU_ITEMS[index]
+      if (!item) return
       setHighlight(index)
-      choose(MENU_ITEMS[index]!)
+      choose(item)
     }
   })
 

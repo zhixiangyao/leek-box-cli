@@ -3,9 +3,6 @@ import type { ReactNode } from 'react'
 
 import BorderTitle from './BorderTitle.tsx'
 
-/** 弹窗 chrome 宽: 边框 2 + paddingX 2, 供调用方推导内容宽度 */
-export const DIALOG_CHROME = 4
-
 type Props = {
   title?: ReactNode
   width: number

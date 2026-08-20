@@ -1,4 +1,4 @@
-import { Text as InkText, TextProps } from 'ink'
+import { Text as InkText, type TextProps } from 'ink'
 
 import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
 

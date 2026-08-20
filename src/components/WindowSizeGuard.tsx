@@ -1,12 +1,12 @@
 import { Box, useWindowSize } from 'ink'
 import type { ReactNode } from 'react'
 
-import { tableWidth } from '../screens/StockList/lib.ts'
+import { MIN_TERMINAL_ROWS } from '../lib/layout.ts'
+import { stockTableWidth } from '../lib/stockTable.ts'
 import Text from './Text.tsx'
 
-/** 看板表格占宽: 内容 (COLUMNS 推导) + 边框 2 + padding 2 */
-const MIN_COLUMNS = tableWidth() + 4
-const MIN_ROWS = 26
+/** 看板表格占宽: 内容 + 边框 2 + padding 2. */
+const MIN_COLUMNS = stockTableWidth() + 4
 
 type Props = {
   children: ReactNode
@@ -15,11 +15,9 @@ type Props = {
 export default function WindowSizeGuard({ children }: Props) {
   const { columns, rows } = useWindowSize()
   const widthOk = columns >= MIN_COLUMNS
-  const heightOk = rows >= MIN_ROWS
+  const heightOk = rows >= MIN_TERMINAL_ROWS
 
-  if (widthOk && heightOk) {
-    return children
-  }
+  if (widthOk && heightOk) return children
 
   return (
     <Box width={columns} height={rows} flexDirection="column" alignItems="center" justifyContent="center">
@@ -31,7 +29,7 @@ export default function WindowSizeGuard({ children }: Props) {
       </Box>
       <Box height={1} />
       <Text color="gray">所需最小尺寸:</Text>
-      <Text color="gray">{`宽度 = ${MIN_COLUMNS} 高度 = ${MIN_ROWS}`}</Text>
+      <Text color="gray">{`宽度 = ${MIN_COLUMNS} 高度 = ${MIN_TERMINAL_ROWS}`}</Text>
     </Box>
   )
 }
