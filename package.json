@@ -29,6 +29,7 @@
     "dev": "tsx src/cli.tsx",
     "mock": "tsx scripts/mock.ts",
     "preview": "node dist/cli.mjs",
+    "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
