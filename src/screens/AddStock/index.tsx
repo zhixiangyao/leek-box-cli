@@ -44,6 +44,14 @@ export default function AddStock() {
     )
   }
 
+  if (addStockStore.step.type === 'saving') {
+    return (
+      <Text color="cyan">
+        正在添加 {addStockStore.step.name} ({addStockStore.step.code})...
+      </Text>
+    )
+  }
+
   if (addStockStore.step.type === 'already-exists') {
     return <ActionResult tone="warning" msg={`${addStockStore.step.name} (${addStockStore.step.code}) 已在自选股中.`} />
   }

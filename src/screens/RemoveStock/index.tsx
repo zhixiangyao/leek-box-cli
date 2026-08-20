@@ -52,6 +52,14 @@ export default function RemoveStock() {
     )
   }
 
+  if (removeStockStore.step.type === 'removing') {
+    return (
+      <Text color="cyan">
+        正在删除 {removeStockStore.step.entry.name} ({removeStockStore.step.entry.code})...
+      </Text>
+    )
+  }
+
   if (removeStockStore.step.type === 'done') {
     return <ActionResult tone="success" msg={removeStockStore.step.message} />
   }

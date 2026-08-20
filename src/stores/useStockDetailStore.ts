@@ -10,7 +10,7 @@ type StockDetailState = {
   errorMessage?: string
   open: (code: string, name: string) => void
   close: () => void
-  refreshIntraday: (code: string) => Promise<void>
+  refreshIntraday: (code: string, signal?: AbortSignal) => Promise<void>
 }
 
 export const useStockDetailStore = create<StockDetailState>()((set, get) => ({
@@ -19,13 +19,13 @@ export const useStockDetailStore = create<StockDetailState>()((set, get) => ({
   points: [],
   open: (code, name) => set({ stock: { code, name }, status: 'loading', points: [], errorMessage: undefined }),
   close: () => set({ stock: null }),
-  refreshIntraday: async (code: string) => {
+  refreshIntraday: async (code: string, signal?: AbortSignal) => {
     try {
-      const points = await fetchIntraday(code)
-      if (get().stock?.code !== code) return
-      set({ status: 'ready', points })
+      const points = await fetchIntraday(code, signal)
+      if (get().stock?.code !== code || signal?.aborted) return
+      set({ status: 'ready', points, errorMessage: undefined })
     } catch (err) {
-      if (get().stock?.code !== code) return
+      if (get().stock?.code !== code || signal?.aborted) return
       set({ status: 'error', errorMessage: errorMessage(err) })
     }
   },

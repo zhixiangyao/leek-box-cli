@@ -8,6 +8,7 @@ export type RemoveStockStep =
   | { type: 'loading' }
   | { type: 'select'; entries: WatchEntry[] }
   | { type: 'confirm'; entry: WatchEntry }
+  | { type: 'removing'; entry: WatchEntry }
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
@@ -77,11 +78,16 @@ export const useRemoveStockStore = create<RemoveStockState>()((set, get) => ({
     const gen = generation
     const current = get().step
     if (current.type !== 'confirm') return
+    set({ step: { type: 'removing', entry: current.entry } })
     void (async () => {
       try {
-        await removeStock(current.entry.code)
+        const removed = await removeStock(current.entry.code)
         if (isStale(gen)) return
-        set({ step: { type: 'done', message: `已删除 ${current.entry.name} (${current.entry.code}).` } })
+        set({
+          step: removed
+            ? { type: 'done', message: `已删除 ${current.entry.name} (${current.entry.code}).` }
+            : { type: 'error', message: `${current.entry.name} (${current.entry.code}) 已不在自选股中.` },
+        })
       } catch (err) {
         if (isStale(gen)) return
         set({ step: { type: 'error', message: `删除失败: ${errorMessage(err)}` } })

@@ -9,6 +9,7 @@ export type AddStockStep =
   | { type: 'input-code' }
   | { type: 'checking'; code: string }
   | { type: 'confirm'; code: string; name: string; current: number }
+  | { type: 'saving'; code: string; name: string }
   | { type: 'already-exists'; code: string; name: string }
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
@@ -86,11 +87,17 @@ export const useAddStockStore = create<AddStockState>()((set, get) => ({
     const gen = generation
     const current = get().step
     if (current.type !== 'confirm') return
+    set({ step: { type: 'saving', code: current.code, name: current.name } })
     void (async () => {
       try {
-        await addStock({ code: current.code, name: current.name, addedAt: new Date().toISOString() })
+        const result = await addStock({ code: current.code, name: current.name, addedAt: new Date().toISOString() })
         if (isStale(gen)) return
-        set({ step: { type: 'done', message: `已添加 ${current.name} (${current.code}) 到自选股.` } })
+        set({
+          step:
+            result.status === 'duplicate'
+              ? { type: 'already-exists', code: current.code, name: current.name }
+              : { type: 'done', message: `已添加 ${current.name} (${current.code}) 到自选股.` },
+        })
       } catch (err) {
         if (isStale(gen)) return
         set({ step: { type: 'error', message: `写入自选股失败: ${errorMessage(err)}` } })

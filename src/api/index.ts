@@ -19,6 +19,11 @@ export type { IntradayPoint, Quote } from './types.ts'
 
 const FETCH_TIMEOUT_MS = 8000
 
+const requestSignal = (signal?: AbortSignal) => {
+  const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT_MS)
+  return signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+}
+
 /** 股票代码规范化: 支持 600000 / sh600000 / SH600000 / 600000.SH, 输出 'sh600000' 或 null */
 export function normalizeCode(input: string): string | null {
   let code = input.trim().toUpperCase()
@@ -40,11 +45,11 @@ export function normalizeCode(input: string): string | null {
 }
 
 /** 拉取一批股票代码的实时行情; 无效代码被接口丢弃, 返回结果可能少于请求 */
-export async function fetchQuotes(codes: string[]): Promise<Quote[]> {
+export async function fetchQuotes(codes: string[], signal?: AbortSignal): Promise<Quote[]> {
   if (codes.length === 0) return []
 
   const res = await fetch(`https://qt.gtimg.cn/q=${codes.join(',')}`, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    signal: requestSignal(signal),
   })
   if (!res.ok) {
     throw new Error(`行情接口请求失败: HTTP ${res.status}`)
@@ -96,9 +101,9 @@ export async function fetchQuotes(codes: string[]): Promise<Quote[]> {
 }
 
 /** 拉取单只股票今日分时 (0930-1500 每分钟一点); 非交易时段/无效代码返回空数组, 收盘补点 (>15:00) 被裁剪 */
-export async function fetchIntraday(code: string): Promise<IntradayPoint[]> {
+export async function fetchIntraday(code: string, signal?: AbortSignal): Promise<IntradayPoint[]> {
   const res = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=${code}`, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    signal: requestSignal(signal),
   })
   if (!res.ok) {
     throw new Error(`分时接口请求失败: HTTP ${res.status}`)

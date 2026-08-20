@@ -27,7 +27,7 @@ type StockListState = {
   pollIntervalMs: number
   selectedIndex: number
   scrollOffset: number
-  refreshQuotes: () => Promise<void>
+  refreshQuotes: (signal?: AbortSignal) => Promise<void>
   moveSelection: (delta: 1 | -1, visible: number) => void
 }
 
@@ -52,14 +52,19 @@ export const useStockListStore = create<StockListState>()((set, get) => ({
   pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
   selectedIndex: 0,
   scrollOffset: 0,
-  refreshQuotes: async () => {
+  refreshQuotes: async (signal?: AbortSignal) => {
     try {
       const entries = await loadWatchlist()
+      if (signal?.aborted) return
       if (entries.length === 0) {
         set({ step: { type: 'empty' } })
         return
       }
-      const quotes = await fetchQuotes(entries.map((entry) => entry.code))
+      const quotes = await fetchQuotes(
+        entries.map((entry) => entry.code),
+        signal,
+      )
+      if (signal?.aborted) return
       const quoteCodes = new Set(quotes.map((quote) => quote.code))
       const missing = entries
         .filter((entry) => !quoteCodes.has(entry.code))
@@ -67,6 +72,7 @@ export const useStockListStore = create<StockListState>()((set, get) => ({
       const updatedAt = formatClock(quotes.reduce((max, quote) => (quote.timestamp > max ? quote.timestamp : max), ''))
       set({ step: { type: 'table', quotes, missing, updatedAt } })
     } catch (err) {
+      if (signal?.aborted) return
       const message = errorMessage(err)
       set((state) =>
         state.step.type === 'table'
