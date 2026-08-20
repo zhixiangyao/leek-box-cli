@@ -8,13 +8,13 @@ type IntradayChartProps = {
   prevClose: number | null
   /** 可用列数 */
   width: number
-  /** 价格区高度 (行); 每行 Braille 2×4 点阵 = 4 子行分辨率 */
+  /** 价格区高度 (行) */
   priceHeight?: number
   /** 成交量柱区高度 (行) */
   volumeHeight?: number
 }
 
-/** 今日分时图: 价格折线 (Braille 2×4 点阵: 4 倍垂直 / 2 倍水平分辨率) + 昨收虚线 + 成交量柱 + 时间轴 */
+/** 今日分时图: 价格折线 + 昨收虚线 + 成交量柱 + 时间轴 */
 export default function IntradayChart({
   points,
   prevClose,

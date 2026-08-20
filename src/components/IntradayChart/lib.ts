@@ -91,8 +91,9 @@ const braille = (mask: number): string => String.fromCharCode(0x2800 + mask)
 /**
  * 生成分时图字符矩阵: 价格折线 (Braille 2×4 点阵, 垂直 4 倍 + 水平 2 倍分辨率; 子列间按相邻桶
  * lastPrice 线性插值, 陡坡补垂直间隙; 整线按收尾价 vs 昨收红绿灰) + 昨收虚线 (Braille 点,
- * 2 子列开 1 子列停, 灰, 折线优先) + 成交量柱 (半块 █▄, 高度 8 档, 按各桶收尾价 vs 昨收红绿) +
- * 底部时间轴行. 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
+ * 2 子列开 1 子列停, 灰, 折线优先) + 成交量柱 (Braille 点阵, 双子列整列填, 高度 4×volumeHeight
+ * 档, 按各桶相对上一桶涨跌红绿, 首桶回退昨收, 平盘灰) + 底部时间轴行.
+ * 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
  */
 export const buildChartRows = (
   points: IntradayPoint[],
@@ -202,26 +203,43 @@ export const buildChartRows = (
     }
   }
 
-  // 成交量柱: 底部向上, 半块字符 8 档高度, 至少 1 半块防太矮
+  // 成交量柱: 底部向上, Braille 点阵 (每字符 4 子行, 双子列整列填 = 实心柱),
+  // 高度 4×volumeHeight 档, 至少 1 子行防太矮
+  const vol = Array.from({ length: volumeHeight }, () => new Uint16Array(width))
   const maxVolume = Math.max(...buckets.map((b) => b.volume), 0)
   for (let col = 0; col < width; col++) {
     const bucket = buckets[col]!
     if (bucket.volume <= 0 || maxVolume <= 0) continue
-    const halfBar = Math.max(1, Math.round((bucket.volume / maxVolume) * volumeHeight * 2))
-    const fullRows = Math.floor(halfBar / 2)
-    const color: TextColor =
-      prevClose === null
+    const totalSubRows = volumeHeight * 4
+    const barSubRows = Math.max(1, Math.round((bucket.volume / maxVolume) * totalSubRows))
+    for (let sr = totalSubRows - barSubRows; sr < totalSubRows; sr++) {
+      const volRow = vol[Math.floor(sr / 4)]!
+      volRow[col] = volRow[col]! | DOT_BIT(0, sr % 4) | DOT_BIT(1, sr % 4)
+    }
+  }
+
+  // 组装成交量区单元格: 由各子行位掩码合成 Braille 字符; 颜色按该桶相对上一桶涨跌
+  // (分钟方向, 同股票软件红绿交替), 首桶回退昨收, 平盘灰
+  const barColor: (TextColor | undefined)[] = Array.from({ length: width }, () => undefined)
+  let prevBarPrice: number | null = prevClose
+  for (let col = 0; col < width; col++) {
+    const bucket = buckets[col]!
+    if (bucket.lastPrice <= 0) continue
+    barColor[col] =
+      prevBarPrice === null
         ? 'gray'
-        : bucket.lastPrice > prevClose
+        : bucket.lastPrice > prevBarPrice
           ? 'red'
-          : bucket.lastPrice < prevClose
+          : bucket.lastPrice < prevBarPrice
             ? 'green'
             : 'gray'
-    for (let i = 0; i < fullRows; i++) {
-      rows[priceHeight + volumeHeight - 1 - i]![col] = { ch: '█', color }
-    }
-    if (halfBar % 2 === 1) {
-      rows[priceHeight + volumeHeight - 1 - fullRows]![col] = { ch: '▄', color }
+    prevBarPrice = bucket.lastPrice
+  }
+  for (let r = 0; r < volumeHeight; r++) {
+    for (let c = 0; c < width; c++) {
+      const mask = vol[r]![c]!
+      if (mask === 0) continue
+      rows[priceHeight + r]![c] = { ch: braille(mask), color: barColor[c] }
     }
   }
 
