@@ -1,11 +1,9 @@
 import { useApp, useInput } from 'ink'
 import { useState } from 'react'
 
-import { SCREEN_REGISTRY, type Screen } from '../lib/registry.ts'
-import { useMenuStore } from '../stores/useMenuStore.ts'
-import { useRouterStore } from '../stores/useRouterStore.ts'
-import Dialog from './Dialog.tsx'
-import Text from './Text.tsx'
+import { SCREEN_REGISTRY, type Screen } from '../../../lib/registry.ts'
+import { useMenuStore } from '../../../stores/useMenuStore.ts'
+import { useRouterStore } from '../../../stores/useRouterStore.ts'
 
 type MenuItem = { label: string; screen: Screen | null }
 
@@ -17,9 +15,9 @@ const MENU_ITEMS: MenuItem[] = [
   { label: `${Object.keys(SCREEN_REGISTRY).length + 1}) 退出程序`, screen: null },
 ]
 
-const MENU_WIDTH = 30
+const MENU_WIDTH = 45
 
-export default function MenuDialog() {
+export function useMenuDialog() {
   const goTo = useRouterStore((state) => state.goTo)
   const closeMenu = useMenuStore((state) => state.close)
   const { exit } = useApp()
@@ -50,26 +48,9 @@ export default function MenuDialog() {
     }
   })
 
-  return (
-    <Dialog
-      title={
-        <Text bright color="magenta">
-          菜单
-        </Text>
-      }
-      width={MENU_WIDTH}
-    >
-      {MENU_ITEMS.map((item, index) => (
-        <Text
-          bright
-          key={item.label}
-          color={index === highlight ? 'black' : undefined}
-          backgroundColor={index === highlight ? 'cyan' : undefined}
-        >
-          {index === highlight ? '> ' : '  '}
-          {item.label}
-        </Text>
-      ))}
-    </Dialog>
-  )
+  return {
+    width: MENU_WIDTH,
+    menuItems: MENU_ITEMS,
+    highlight,
+  }
 }

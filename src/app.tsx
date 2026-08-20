@@ -2,7 +2,7 @@ import { Box, useApp, useInput, useWindowSize } from 'ink'
 
 import BorderTitle from './components/BorderTitle.tsx'
 import BorderUpdatedAt from './components/BorderUpdatedAt.tsx'
-import MenuDialog from './components/MenuDialog.tsx'
+import MenuDialog from './components/MenuDialog/index.tsx'
 import StatusBar from './components/StatusBar.tsx'
 import StockDetailDialog from './components/StockDetailDialog/index.tsx'
 import Text from './components/Text.tsx'
@@ -42,7 +42,7 @@ export default function App() {
           <Component />
         </Box>
 
-        <StatusBar hint={screenDefinition.hint} />
+        <StatusBar hint={screenDefinition.hint} bright={!overlayOpen} />
       </Box>
 
       {menuOpen && <MenuDialog />}

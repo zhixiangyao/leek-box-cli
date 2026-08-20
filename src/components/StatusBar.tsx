@@ -1,24 +1,31 @@
 import { Box } from 'ink'
 
 import { useClock } from '../hooks/useClock.ts'
-import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
 import Text from './Text.tsx'
 
 type Props = {
-  hint: string
+  hint?: string
+  bright?: boolean
 }
 
-export default function StatusBar({ hint }: Props) {
-  const overlayOpen = useOverlayOpen()
+export default function StatusBar(props: Props) {
+  const { hint, bright = false } = props
   const clock = useClock('date-time')
 
   return (
-    <Box width="100%" justifyContent="space-between" paddingX={1} backgroundColor={overlayOpen ? 'gray' : 'blue'}>
-      <Text color="white" wrap="truncate-start">
-        {hint}
-      </Text>
+    <Box justifyContent="space-between" paddingX={1} backgroundColor={bright ? 'blue' : 'gray'}>
       <Box flexShrink={0}>
-        <Text color="white">{clock}</Text>
+        {hint && (
+          <Text bright={bright} color="white">
+            {hint}
+          </Text>
+        )}
+      </Box>
+
+      <Box flexShrink={0}>
+        <Text bright={bright} color="white">
+          {clock}
+        </Text>
       </Box>
     </Box>
   )

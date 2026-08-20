@@ -2,6 +2,7 @@ import { Box, useWindowSize } from 'ink'
 import type { ReactNode } from 'react'
 
 import BorderTitle from './BorderTitle.tsx'
+import StatusBar from './StatusBar.tsx'
 
 type Props = {
   title?: ReactNode
@@ -9,7 +10,8 @@ type Props = {
   children: ReactNode
 }
 
-export default function Dialog({ title, width, children }: Props) {
+export default function Dialog(props: Props) {
+  const { title, width, children } = props
   const { rows, columns } = useWindowSize()
 
   return (
@@ -23,12 +25,14 @@ export default function Dialog({ title, width, children }: Props) {
       alignItems="center"
       justifyContent="center"
     >
-      <Box width={width} borderStyle="round">
+      <Box flexDirection="column" width={width} borderStyle="round">
         {title ? <BorderTitle title={title} bright top={-1} left={1} /> : null}
 
-        <Box flexGrow={1} flexDirection="column" paddingX={1} paddingY={1} backgroundColor="black">
+        <Box flexDirection="column" paddingX={1} paddingY={1} backgroundColor="black">
           {children}
         </Box>
+
+        <StatusBar bright />
       </Box>
     </Box>
   )
