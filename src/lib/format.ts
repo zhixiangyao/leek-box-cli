@@ -26,3 +26,7 @@ export const formatRatio = (value: number) => (value > 0 ? value.toFixed(2) : '-
 
 /** 总市值 (亿) -> '2987.53亿'; 非正值 '--' */
 export const formatMarketCap = (value: number) => (value > 0 ? `${value.toFixed(2)}亿` : '--')
+
+/** 行情时间戳 (yyyyMMddHHmmss) -> 'HH:MM:SS' */
+export const formatClock = (timestamp: string) =>
+  `${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}:${timestamp.slice(12, 14)}`

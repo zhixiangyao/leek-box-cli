@@ -3,15 +3,61 @@ import { useEffect, useRef } from 'react'
 
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { useStockDetailStore } from '../../../stores/useStockDetailStore.ts'
-import { POLL_INTERVAL_STEP_MS, useStockListStore } from '../../../stores/useStockListStore.ts'
+import {
+  DEFAULT_POLL_INTERVAL_MS,
+  MAX_POLL_INTERVAL_MS,
+  MIN_POLL_INTERVAL_MS,
+  POLL_INTERVAL_STEP_MS,
+  useStockListStore,
+} from '../../../stores/useStockListStore.ts'
 import { tableSlices, type TableSliceRange } from '../lib.ts'
+
+const poll = {
+  timer: null as ReturnType<typeof setTimeout> | null,
+  inFlight: false,
+  cancelled: false,
+  interval: DEFAULT_POLL_INTERVAL_MS,
+}
+
+const pollOnce = async () => {
+  if (poll.inFlight) return
+  poll.inFlight = true
+  try {
+    await useStockListStore.getState().refreshQuotes()
+  } finally {
+    poll.inFlight = false
+  }
+}
+
+const armNext = () => {
+  if (poll.cancelled || poll.timer) return
+  poll.timer = setTimeout(() => {
+    poll.timer = null
+    if (poll.cancelled) return
+    void pollOnce().finally(() => {
+      if (poll.cancelled) return
+      armNext()
+    })
+  }, poll.interval)
+}
+
+const refreshNow = () => void pollOnce()
+
+const adjustPollInterval = (deltaMs: number) => {
+  const next = Math.min(MAX_POLL_INTERVAL_MS, Math.max(MIN_POLL_INTERVAL_MS, poll.interval + deltaMs))
+  if (next === poll.interval) return
+  poll.interval = next
+  useStockListStore.setState({ pollIntervalMs: next })
+  if (poll.timer) clearTimeout(poll.timer)
+  poll.timer = null
+  armNext()
+}
 
 export function useStockListPage() {
   const rowsRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(rowsRef)
   const stockListStore = useStockListStore()
   const overlayOpen = useOverlayOpen()
-  const { startPolling, stopPolling } = stockListStore
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
   const slices: TableSliceRange =
     stockListStore.step.type === 'table'
@@ -43,20 +89,27 @@ export function useStockListPage() {
           useStockDetailStore.getState().open(entry.code, entry.name)
         }
       } else if (input === 'r') {
-        stockListStore.refreshNow()
+        refreshNow()
       } else if (input === '-') {
-        stockListStore.adjustPollInterval(-POLL_INTERVAL_STEP_MS)
+        adjustPollInterval(-POLL_INTERVAL_STEP_MS)
       } else if (input === '+') {
-        stockListStore.adjustPollInterval(POLL_INTERVAL_STEP_MS)
+        adjustPollInterval(POLL_INTERVAL_STEP_MS)
       }
     },
     { isActive: !overlayOpen },
   )
 
   useEffect(() => {
-    startPolling()
-    return () => stopPolling()
-  }, [startPolling, stopPolling])
+    poll.cancelled = false
+    useStockListStore.setState({ step: { type: 'loading' } })
+    void pollOnce()
+    armNext()
+    return () => {
+      poll.cancelled = true
+      if (poll.timer) clearTimeout(poll.timer)
+      poll.timer = null
+    }
+  }, [])
 
   return { slices, rowsRef }
 }
