@@ -13,13 +13,7 @@ export default function StatusBar({ hint }: Props) {
   const clock = useClock('date-time')
 
   return (
-    <Box
-      width="100%"
-      justifyContent="space-between"
-      paddingX={1}
-      // 任一浮层弹窗打开时背景变灰, 配合本地 Text 的 overlayOpen 订阅形成整体遮罩
-      backgroundColor={overlayOpen ? 'gray' : 'blue'}
-    >
+    <Box width="100%" justifyContent="space-between" paddingX={1} backgroundColor={overlayOpen ? 'gray' : 'blue'}>
       <Text color="white" wrap="truncate-start">
         {hint}
       </Text>

@@ -1,12 +1,15 @@
-import { Text, useApp, useInput } from 'ink'
+import { useApp, useInput } from 'ink'
 import { useState } from 'react'
 
 import type { Screen } from '../lib/screens.ts'
 import { useMenuStore } from '../stores/useMenuStore.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
 import Dialog from './Dialog.tsx'
+import Text from './Text.tsx'
 
-const MENU_ITEMS: { label: string; screen: Screen | null }[] = [
+type Menu = { label: string; screen: Screen | null }
+
+const MENU_ITEMS: Menu[] = [
   { label: '1) 股票自选股看板', screen: 'stock-list' },
   { label: '2) 添加自选股', screen: 'add-stock' },
   { label: '3) 删除自选股', screen: 'remove-stock' },
@@ -45,9 +48,17 @@ export default function MenuDialog() {
   })
 
   return (
-    <Dialog title={<Text color="magenta">菜单</Text>} width={MENU_WIDTH}>
+    <Dialog
+      title={
+        <Text bright color="magenta">
+          菜单
+        </Text>
+      }
+      width={MENU_WIDTH}
+    >
       {MENU_ITEMS.map((item, index) => (
         <Text
+          bright
           key={item.label}
           color={index === highlight ? 'black' : undefined}
           backgroundColor={index === highlight ? 'cyan' : undefined}

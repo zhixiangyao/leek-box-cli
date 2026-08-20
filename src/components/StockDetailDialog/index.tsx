@@ -1,10 +1,11 @@
-import { Box, Text } from 'ink'
+import { Box } from 'ink'
 
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
 import Dialog from '../Dialog.tsx'
 import IntradayChart from '../IntradayChart/index.tsx'
 import QuoteRow from '../QuoteRow.tsx'
+import Text from '../Text.tsx'
 import { useStockDetailDialog } from './hooks/useStockDetailDialog.ts'
 import { CONTENT_WIDTH, DETAIL_COLUMNS, STOCK_DETAIL_WIDTH } from './lib.ts'
 
@@ -16,19 +17,22 @@ export default function StockDetailDialog() {
   return (
     <Dialog
       title={
-        <Text>
-          <Text>{stock.name}</Text>
-          <Text color="gray"> {stock.code}</Text>
+        <Text bright>
+          <Text bright>{stock.name}</Text>
           <Text> </Text>
-          <Text color={!quote || suspended ? 'gray' : trendColor(quote.change)}>
+          <Text bright color="gray">
+            {stock.code}
+          </Text>
+          <Text> </Text>
+          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change)}>
             {quote ? formatPrice(quote.current) : '--'}
           </Text>
           <Text> </Text>
-          <Text color={!quote || suspended ? 'gray' : trendColor(quote.changePercent)}>
+          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.changePercent)}>
             {quote ? (suspended ? '停牌' : formatPercent(quote.changePercent)) : '--'}
           </Text>
           <Text> </Text>
-          <Text color={!quote || suspended ? 'gray' : trendColor(quote.change)}>
+          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change)}>
             {quote ? formatSigned(quote.change) : '--'}
           </Text>
         </Text>
@@ -45,13 +49,19 @@ export default function StockDetailDialog() {
 
       <Box marginTop={1}>
         {status === 'loading' ? (
-          <Text color="gray">正在获取分时数据...</Text>
+          <Text bright color="gray">
+            正在获取分时数据...
+          </Text>
         ) : status === 'error' ? (
-          <Text color="red">{errorMessage}</Text>
+          <Text bright color="red">
+            {errorMessage}
+          </Text>
         ) : points.length === 0 ? (
-          <Text color="gray">暂无分时数据 (非交易时段)</Text>
+          <Text bright color="gray">
+            暂无分时数据 (非交易时段)
+          </Text>
         ) : (
-          <IntradayChart points={points} prevClose={quote?.prevClose ?? null} width={CONTENT_WIDTH} />
+          <IntradayChart bright points={points} prevClose={quote?.prevClose ?? null} width={CONTENT_WIDTH} />
         )}
       </Box>
     </Dialog>

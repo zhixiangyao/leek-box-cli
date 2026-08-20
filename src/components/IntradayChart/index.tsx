@@ -1,9 +1,10 @@
-import { Box, Text } from 'ink'
+import { Box } from 'ink'
 
 import type { IntradayPoint } from '../../api/types.ts'
+import Text from '../Text.tsx'
 import { buildChartRows, type ChartCell } from './lib.ts'
 
-type IntradayChartProps = {
+type Props = {
   points: IntradayPoint[]
   prevClose: number | null
   /** 可用列数 */
@@ -12,6 +13,7 @@ type IntradayChartProps = {
   priceHeight?: number
   /** 成交量柱区高度 (行) */
   volumeHeight?: number
+  bright?: boolean
 }
 
 /** 今日分时图: 价格折线 + 昨收虚线 + 成交量柱 + 时间轴 */
@@ -21,7 +23,8 @@ export default function IntradayChart({
   width,
   priceHeight = 9,
   volumeHeight = 4,
-}: IntradayChartProps) {
+  bright = false,
+}: Props) {
   const rows = buildChartRows(points, prevClose, width, priceHeight, volumeHeight)
 
   return (
@@ -38,9 +41,9 @@ export default function IntradayChart({
           }
         }
         return (
-          <Text key={rowIndex}>
+          <Text key={rowIndex} bright={bright}>
             {runs.map((run, runIndex) => (
-              <Text key={runIndex} color={run.color}>
+              <Text key={runIndex} bright={bright} color={run.color}>
                 {run.text}
               </Text>
             ))}

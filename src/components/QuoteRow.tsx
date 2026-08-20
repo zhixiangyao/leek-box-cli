@@ -1,21 +1,22 @@
-import { Text as InkText } from 'ink'
-
 import type { Row } from '../lib/columns.ts'
 import Text from './Text.tsx'
 
-type Props = { segments: Row; selected?: boolean; bright?: boolean }
+type Props = {
+  segments: Row
+  selected?: boolean
+  bright?: boolean
+}
 
 export default function QuoteRow(props: Props) {
   const { segments, selected, bright = false } = props
-  const TextComponent = bright ? InkText : Text
 
   return (
-    <TextComponent inverse={selected}>
+    <Text bright={bright} inverse={selected}>
       {segments.map((segment, index) => (
-        <TextComponent key={index} color={segment.color}>
+        <Text key={index} bright={bright} color={segment.color}>
           {segment.text}
-        </TextComponent>
+        </Text>
       ))}
-    </TextComponent>
+    </Text>
   )
 }
