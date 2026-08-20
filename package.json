@@ -35,19 +35,21 @@
     "lint": "oxlint --fix",
     "lint:check": "oxlint"
   },
+  "dependencies": {
+    "ink": "7.1.1",
+    "meow": "14.1.0",
+    "react": "19.2.8",
+    "react-devtools-core": "7.0.1",
+    "zustand": "5.0.15"
+  },
   "devDependencies": {
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",
-    "ink": "7.1.1",
-    "meow": "14.1.0",
     "oxfmt": "0.63.0",
     "oxlint": "1.78.0",
-    "react": "19.2.8",
-    "react-devtools-core": "7.0.1",
     "tsx": "4.23.12",
     "typescript": "7.0.2",
-    "vite": "8.2.1",
-    "zustand": "5.0.15"
+    "vite": "8.2.1"
   },
   "engines": {
     "node": ">=26.7.0",

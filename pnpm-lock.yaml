@@ -7,6 +7,22 @@ settings:
 importers:
 
   .:
+    dependencies:
+      ink:
+        specifier: 7.1.1
+        version: 7.1.1(@types/react@19.2.18)(react-devtools-core@7.0.1)(react@19.2.8)
+      meow:
+        specifier: 14.1.0
+        version: 14.1.0
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-devtools-core:
+        specifier: 7.0.1
+        version: 7.0.1
+      zustand:
+        specifier: 5.0.15
+        version: 5.0.15(@types/react@19.2.18)(react@19.2.8)
     devDependencies:
       '@types/node':
         specifier: 26.2.0
@@ -14,24 +30,12 @@ importers:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
-      ink:
-        specifier: 7.1.1
-        version: 7.1.1(@types/react@19.2.18)(react-devtools-core@7.0.1)(react@19.2.8)
-      meow:
-        specifier: 14.1.0
-        version: 14.1.0
       oxfmt:
         specifier: 0.63.0
         version: 0.63.0
       oxlint:
         specifier: 1.78.0
         version: 1.78.0
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-devtools-core:
-        specifier: 7.0.1
-        version: 7.0.1
       tsx:
         specifier: 4.23.12
         version: 4.23.12
@@ -41,9 +45,6 @@ importers:
       vite:
         specifier: 8.2.1
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(tsx@4.23.12)
-      zustand:
-        specifier: 5.0.15
-        version: 5.0.15(@types/react@19.2.18)(react@19.2.8)
 
 packages:
 

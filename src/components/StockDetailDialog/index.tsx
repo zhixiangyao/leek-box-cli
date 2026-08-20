@@ -35,7 +35,7 @@ export default function StockDetailDialog() {
       }
       width={STOCK_DETAIL_WIDTH}
     >
-      <Box flexDirection="column" marginBottom={1}>
+      <Box flexDirection="column">
         <QuoteRow bright segments={headerRow(DETAIL_COLUMNS)} />
         <QuoteRow
           bright
@@ -43,15 +43,17 @@ export default function StockDetailDialog() {
         />
       </Box>
 
-      {status === 'loading' ? (
-        <Text color="gray">正在获取分时数据...</Text>
-      ) : status === 'error' ? (
-        <Text color="red">{errorMessage}</Text>
-      ) : points.length === 0 ? (
-        <Text color="gray">暂无分时数据 (非交易时段)</Text>
-      ) : (
-        <IntradayChart points={points} prevClose={quote?.prevClose ?? null} width={CONTENT_WIDTH} />
-      )}
+      <Box marginTop={1}>
+        {status === 'loading' ? (
+          <Text color="gray">正在获取分时数据...</Text>
+        ) : status === 'error' ? (
+          <Text color="red">{errorMessage}</Text>
+        ) : points.length === 0 ? (
+          <Text color="gray">暂无分时数据 (非交易时段)</Text>
+        ) : (
+          <IntradayChart points={points} prevClose={quote?.prevClose ?? null} width={CONTENT_WIDTH} />
+        )}
+      </Box>
     </Dialog>
   )
 }

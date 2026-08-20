@@ -27,7 +27,6 @@ export default function StatusBar({ hint }: Props) {
   return (
     <Box
       width="100%"
-      height={1}
       justifyContent="space-between"
       paddingX={1}
       // 任一浮层弹窗打开时背景变灰, 配合本地 Text 的 overlayOpen 订阅形成整体遮罩
