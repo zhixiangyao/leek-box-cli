@@ -10,7 +10,7 @@ import {
   POLL_INTERVAL_STEP_MS,
   useStockListStore,
 } from '../../../stores/useStockListStore.ts'
-import { tableSlices, type TableSliceRange } from '../lib.ts'
+import { visibleWindow } from '../lib.ts'
 
 export function useStockListPage() {
   const rowsRef = useRef<DOMElement>(null)
@@ -18,15 +18,10 @@ export function useStockListPage() {
   const stockListStore = useStockListStore()
   const overlayOpen = useOverlayOpen()
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
-  const slices: TableSliceRange =
+  const window =
     stockListStore.step.type === 'table'
-      ? tableSlices(
-          visible,
-          stockListStore.step.quotes.length,
-          stockListStore.step.missing.length,
-          stockListStore.scrollOffset,
-        )
-      : { quoteStart: 0, quoteEnd: 0, missingStart: 0, missingEnd: 0 }
+      ? visibleWindow(stockListStore.step.rows.length, stockListStore.scrollOffset, visible)
+      : { start: 0, end: 0 }
 
   useEffect(() => {
     useStockListStore.setState({ step: { type: 'loading' } })
@@ -50,17 +45,10 @@ export function useStockListPage() {
       } else if (key.downArrow) {
         stockListStore.moveSelection(1, visible)
       } else if (key.return) {
-        const { step, selectedIndex } = useStockListStore.getState()
-        if (step.type !== 'table') return
-        const rowCount = step.quotes.length + step.missing.length
-        if (selectedIndex >= rowCount) return
-        if (selectedIndex < step.quotes.length) {
-          const quote = step.quotes[selectedIndex]!
-          useStockDetailStore.getState().open(quote.code, quote.name)
-        } else {
-          const entry = step.missing[selectedIndex - step.quotes.length]!
-          useStockDetailStore.getState().open(entry.code, entry.name)
-        }
+        const { step, selectedCode } = useStockListStore.getState()
+        if (step.type !== 'table' || !selectedCode) return
+        const row = step.rows.find((item) => item.code === selectedCode)
+        if (row) useStockDetailStore.getState().open(row.code, row.name)
       } else if (input === 'r') {
         refresh()
       } else if (input === '-') {
@@ -72,5 +60,5 @@ export function useStockListPage() {
     { isActive: !overlayOpen },
   )
 
-  return { slices, rowsRef }
+  return { window, rowsRef }
 }

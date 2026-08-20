@@ -32,27 +32,3 @@ export const visibleWindow = (total: number, scrollOffset: number, visible: numb
   const start = Math.min(Math.max(scrollOffset, 0), maxStart)
   return { start, end: start + visible }
 }
-
-/** 滚动窗口切片: quotes 与 missing 两侧的 slice 下标 (拼接序列上 quotes 在前, missing 在后) */
-export type TableSliceRange = {
-  quoteStart: number
-  quoteEnd: number
-  missingStart: number
-  missingEnd: number
-}
-
-/** 在 quotes + missing 拼接序列上切窗并拆回两侧切片 */
-export const tableSlices = (
-  visible: number,
-  quotesLength: number,
-  missingLength: number,
-  scrollOffset: number,
-): TableSliceRange => {
-  const { start, end } = visibleWindow(quotesLength + missingLength, scrollOffset, visible)
-  return {
-    quoteStart: Math.min(start, quotesLength),
-    quoteEnd: Math.min(end, quotesLength),
-    missingStart: Math.max(0, start - quotesLength),
-    missingEnd: Math.max(0, end - quotesLength),
-  }
-}

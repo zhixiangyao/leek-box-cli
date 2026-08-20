@@ -9,7 +9,7 @@ import { STOCK_LIST_COLUMNS } from './lib.ts'
 
 export default function StockList() {
   const stockListStore = useStockListStore()
-  const { slices, rowsRef } = useStockListPage()
+  const { window, rowsRef } = useStockListPage()
 
   if (stockListStore.step.type === 'loading') {
     return <Text color="cyan">正在获取行情数据...</Text>
@@ -28,8 +28,7 @@ export default function StockList() {
     )
   }
 
-  const { quotes, missing, errorLine } = stockListStore.step
-  const { selectedIndex } = stockListStore
+  const { rows, errorLine } = stockListStore.step
 
   return (
     <>
@@ -37,18 +36,15 @@ export default function StockList() {
       <QuoteRow segments={headerRow(STOCK_LIST_COLUMNS)} />
 
       <Box ref={rowsRef} flexDirection="column" flexGrow={1} overflow="hidden">
-        {quotes.slice(slices.quoteStart, slices.quoteEnd).map((quote, index) => (
+        {rows.slice(window.start, window.end).map((row) => (
           <QuoteRow
-            key={quote.code}
-            segments={quoteRow(STOCK_LIST_COLUMNS, quote)}
-            selected={slices.quoteStart + index === selectedIndex}
-          />
-        ))}
-        {missing.slice(slices.missingStart, slices.missingEnd).map((entry, index) => (
-          <QuoteRow
-            key={entry.code}
-            segments={missingRow(STOCK_LIST_COLUMNS, entry.code, entry.name)}
-            selected={quotes.length + slices.missingStart + index === selectedIndex}
+            key={row.code}
+            segments={
+              row.kind === 'quote'
+                ? quoteRow(STOCK_LIST_COLUMNS, row.quote)
+                : missingRow(STOCK_LIST_COLUMNS, row.code, row.name)
+            }
+            selected={row.code === stockListStore.selectedCode}
           />
         ))}
       </Box>
