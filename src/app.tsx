@@ -34,7 +34,7 @@ export default function App() {
   useInput((input, key) => {
     if (key.escape) {
       // esc 优先级: 详情弹窗 > 菜单 (详情开着时先关详情, 不会误开菜单)
-      if (stockDetailStore.code) stockDetailStore.close()
+      if (stockDetailStore.stock) stockDetailStore.close()
       else menuStore.toggle()
     } else if (input === 'q' && !overlayOpen) {
       exit()
@@ -54,7 +54,7 @@ export default function App() {
       </Box>
 
       {menuStore.open && <MenuDialog />}
-      {stockDetailStore.code && <StockDetailDialog />}
+      {stockDetailStore.stock && <StockDetailDialog />}
 
       <BorderTitle title={<Text color="magenta">{SCREEN_META[routerStore.screen].title}</Text>} top={0} left={2} />
       <BorderUpdatedAt />

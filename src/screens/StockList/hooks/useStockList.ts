@@ -11,7 +11,7 @@ export function useStockListPage() {
   const boxMetrics = useBoxMetrics(rowsRef)
   const stockListStore = useStockListStore()
   const overlayOpen = useOverlayOpen()
-  const { start, stop } = stockListStore
+  const { startPolling, stopPolling } = stockListStore
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
   const slices: TableSliceRange =
     stockListStore.step.type === 'table'
@@ -19,7 +19,7 @@ export function useStockListPage() {
           visible,
           stockListStore.step.quotes.length,
           stockListStore.step.missing.length,
-          stockListStore.viewStart,
+          stockListStore.scrollOffset,
         )
       : { quoteStart: 0, quoteEnd: 0, missingStart: 0, missingEnd: 0 }
 
@@ -45,18 +45,18 @@ export function useStockListPage() {
       } else if (input === 'r') {
         stockListStore.refreshNow()
       } else if (input === '-') {
-        stockListStore.adjustInterval(-POLL_INTERVAL_STEP_MS)
+        stockListStore.adjustPollInterval(-POLL_INTERVAL_STEP_MS)
       } else if (input === '+') {
-        stockListStore.adjustInterval(POLL_INTERVAL_STEP_MS)
+        stockListStore.adjustPollInterval(POLL_INTERVAL_STEP_MS)
       }
     },
     { isActive: !overlayOpen },
   )
 
   useEffect(() => {
-    start()
-    return () => stop()
-  }, [start, stop])
+    startPolling()
+    return () => stopPolling()
+  }, [startPolling, stopPolling])
 
   return { slices, rowsRef }
 }

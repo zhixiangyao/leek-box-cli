@@ -6,5 +6,5 @@ export function useOverlayOpen(): boolean {
   const menuStore = useMenuStore()
   const stockDetailStore = useStockDetailStore()
 
-  return menuStore.open || !!stockDetailStore.code
+  return menuStore.open || stockDetailStore.stock !== null
 }

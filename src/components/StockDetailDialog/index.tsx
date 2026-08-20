@@ -11,10 +11,11 @@ import { CONTENT_WIDTH, DETAIL_COLUMNS, STOCK_DETAIL_WIDTH } from './lib.ts'
 
 export default function StockDetailDialog() {
   const detailStore = useStockDetailStore()
+  const stock = detailStore.stock
   const quote = useStockListStore((state) =>
-    state.step.type === 'table' ? state.step.quotes.find((q) => q.code === detailStore.code) : undefined,
+    state.step.type === 'table' ? state.step.quotes.find((q) => q.code === stock?.code) : undefined,
   )
-  if (detailStore.code === null) return null
+  if (!stock) return null
   const missing = !quote
   const suspended = missing ? false : quote.current <= 0
 
@@ -22,8 +23,8 @@ export default function StockDetailDialog() {
     <Dialog
       title={
         <Text>
-          <Text>{detailStore.name}</Text>
-          <Text color="gray"> {detailStore.code}</Text>
+          <Text>{stock.name}</Text>
+          <Text color="gray"> {stock.code}</Text>
           <Text> </Text>
           <Text color={missing || suspended ? 'gray' : trendColor(quote.change)}>
             {quote ? formatPrice(quote.current) : '--'}
@@ -44,9 +45,7 @@ export default function StockDetailDialog() {
         <QuoteRow bright segments={headerRow(DETAIL_COLUMNS)} />
         <QuoteRow
           bright
-          segments={
-            quote ? quoteRow(DETAIL_COLUMNS, quote) : missingRow(DETAIL_COLUMNS, detailStore.code, detailStore.name)
-          }
+          segments={quote ? quoteRow(DETAIL_COLUMNS, quote) : missingRow(DETAIL_COLUMNS, stock.code, stock.name)}
         />
       </Box>
 

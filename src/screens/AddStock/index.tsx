@@ -13,9 +13,9 @@ export default function AddStock() {
   if (addStockStore.step.type === 'input-code') {
     return (
       <>
-        {addStockStore.codeInputError && <Text color="red">{addStockStore.codeInputError}</Text>}
+        {addStockStore.codeInput.error && <Text color="red">{addStockStore.codeInput.error}</Text>}
         <TextInput
-          key={addStockStore.codeInputKey}
+          key={addStockStore.codeInput.key}
           prompt="请输入股票代码: "
           placeholder={<Text color="gray">支持 600000 / sh600000 / 600000.SH 等写法</Text>}
           onSubmit={addStockStore.handleCodeInput}
@@ -34,9 +34,9 @@ export default function AddStock() {
         <Text color="cyan">
           找到: {addStockStore.step.name} ({addStockStore.step.code}), 现价 {formatPrice(addStockStore.step.current)}
         </Text>
-        {addStockStore.confirmInputError && <Text color="red">{addStockStore.confirmInputError}</Text>}
+        {addStockStore.confirmInput.error && <Text color="red">{addStockStore.confirmInput.error}</Text>}
         <TextInput
-          key={addStockStore.confirmInputKey}
+          key={addStockStore.confirmInput.key}
           prompt="确认添加到自选股? (y/n): "
           onSubmit={addStockStore.handleConfirm}
         />
