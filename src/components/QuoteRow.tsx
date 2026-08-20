@@ -3,7 +3,9 @@ import { Text as InkText } from 'ink'
 import type { Row } from '../lib/columns.ts'
 import Text from './Text.tsx'
 
-export default function QuoteRow(props: { segments: Row; selected?: boolean; bright?: boolean }) {
+type Props = { segments: Row; selected?: boolean; bright?: boolean }
+
+export default function QuoteRow(props: Props) {
   const { segments, selected, bright = false } = props
   const TextComponent = bright ? InkText : Text
 

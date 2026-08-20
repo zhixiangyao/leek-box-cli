@@ -1,6 +1,6 @@
 import { Box } from 'ink'
-import { useEffect, useState } from 'react'
 
+import { useClock } from '../hooks/useClock.ts'
 import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
 import Text from './Text.tsx'
 
@@ -10,19 +10,7 @@ type Props = {
 
 export default function StatusBar({ hint }: Props) {
   const overlayOpen = useOverlayOpen()
-  const [now, setNow] = useState(() => new Date())
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  const date = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now)
+  const clock = useClock('date-time')
 
   return (
     <Box
@@ -36,7 +24,7 @@ export default function StatusBar({ hint }: Props) {
         {hint}
       </Text>
       <Box flexShrink={0}>
-        <Text color="white">{date}</Text>
+        <Text color="white">{clock}</Text>
       </Box>
     </Box>
   )
