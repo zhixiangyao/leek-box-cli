@@ -1,13 +1,23 @@
 import { Box } from 'ink'
 import { type ReactNode } from 'react'
 
+import Card from '../../components/Card.tsx'
 import QuoteRow from '../../components/QuoteRow.tsx'
+import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
+import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { STOCK_LIST_COLUMNS } from '../../lib/stockTable.ts'
+import StockListUpdatedAt from './components/StockListUpdatedAt.tsx'
 import { useStockList } from './hooks/useStockList.ts'
 
-export default function StockList() {
+type Props = {
+  title: string
+  hint: string
+}
+
+export default function StockList({ title, hint }: Props) {
+  const overlayOpen = useOverlayOpen()
   const { rowsRef, step, selectedCode, window } = useStockList()
   let content: ReactNode
 
@@ -58,5 +68,15 @@ export default function StockList() {
     }
   }
 
-  return content
+  return (
+    <Card
+      fullScreen
+      bright={!overlayOpen}
+      title={<Text color="magenta">{title}</Text>}
+      extra={<StockListUpdatedAt />}
+      footer={<StatusBar hint={hint} bright={!overlayOpen} />}
+    >
+      {content}
+    </Card>
+  )
 }

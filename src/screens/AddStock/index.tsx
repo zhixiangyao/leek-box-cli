@@ -1,12 +1,21 @@
 import { type ReactNode } from 'react'
 
 import ActionResult from '../../components/ActionResult.tsx'
+import Card from '../../components/Card.tsx'
+import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import TextInput from '../../components/TextInput.tsx'
+import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { formatPrice } from '../../lib/format.ts'
 import { useAddStock } from './hooks/useAddStock.ts'
 
-export default function AddStock() {
+type Props = {
+  title: string
+  hint: string
+}
+
+export default function AddStock({ title, hint }: Props) {
+  const overlayOpen = useOverlayOpen()
   const { step, codeInput, confirmInput, handleCodeInput, handleConfirm } = useAddStock()
   let content: ReactNode
 
@@ -73,5 +82,14 @@ export default function AddStock() {
     }
   }
 
-  return content
+  return (
+    <Card
+      fullScreen
+      bright={!overlayOpen}
+      title={<Text color="magenta">{title}</Text>}
+      footer={<StatusBar hint={hint} bright={!overlayOpen} />}
+    >
+      {content}
+    </Card>
+  )
 }

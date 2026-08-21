@@ -33,7 +33,7 @@ const quote = (code: string, name = code): Quote => ({
   volumeRatio: 1.2,
 })
 
-test('add stock store reports a duplicate found during the final locked write', async () => {
+test('添加股票时报告最终加锁写入发现的重复项', async () => {
   const store = createAddStockStore({
     addStock: async () => ({ status: 'duplicate' }),
     fetchQuotes: async () => [quote('sh600000', '浦发银行')],
@@ -48,7 +48,7 @@ test('add stock store reports a duplicate found during the final locked write', 
   assert.deepEqual(store.getState().step, { type: 'already-exists', code: 'sh600000', name: '浦发银行' })
 })
 
-test('remove stock store reports an entry removed by another process', async () => {
+test('删除股票时报告已被其他进程删除的条目', async () => {
   const target = entry('sz000001', '平安银行')
   const store = createRemoveStockStore({
     loadWatchlist: async () => [target],
@@ -64,7 +64,7 @@ test('remove stock store reports an entry removed by another process', async () 
   })
 })
 
-test('stock list preserves watchlist order, selected code, and unchanged quote references', async () => {
+test('股票列表保留自选股顺序, 选中代码和未变化的行情引用', async () => {
   const firstEntries = [entry('sh600000'), entry('sz000001'), entry('sz300001')]
   const secondEntries = [entry('sz300001'), entry('sz000001')]
   const thirdEntries = [entry('sz300001')]
@@ -99,7 +99,7 @@ test('stock list preserves watchlist order, selected code, and unchanged quote r
   assert.equal(store.getState().scrollOffset, 0)
 })
 
-test('stock detail ignores a completed request for a previously opened code', async () => {
+test('股票详情忽略先前打开代码已完成的请求', async () => {
   let resolveOld: (points: IntradayPoint[]) => void = () => undefined
   const oldRequest = new Promise<IntradayPoint[]>((resolve) => {
     resolveOld = resolve

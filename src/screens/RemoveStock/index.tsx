@@ -2,11 +2,20 @@ import { Newline } from 'ink'
 import { type ReactNode } from 'react'
 
 import ActionResult from '../../components/ActionResult.tsx'
+import Card from '../../components/Card.tsx'
+import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import TextInput from '../../components/TextInput.tsx'
+import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useRemoveStock } from './hooks/useRemoveStock.ts'
 
-export default function RemoveStock() {
+type Props = {
+  title: string
+  hint: string
+}
+
+export default function RemoveStock({ title, hint }: Props) {
+  const overlayOpen = useOverlayOpen()
   const { step, indexInput, confirmInput, handleChoice, handleConfirm } = useRemoveStock()
   let content: ReactNode
 
@@ -74,5 +83,14 @@ export default function RemoveStock() {
     }
   }
 
-  return content
+  return (
+    <Card
+      fullScreen
+      bright={!overlayOpen}
+      title={<Text color="magenta">{title}</Text>}
+      footer={<StatusBar hint={hint} bright={!overlayOpen} />}
+    >
+      {content}
+    </Card>
+  )
 }

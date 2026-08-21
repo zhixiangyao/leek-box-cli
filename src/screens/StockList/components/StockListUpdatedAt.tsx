@@ -1,13 +1,11 @@
-import { useRouterStore } from '../stores/useRouterStore.ts'
-import { useStockListStore } from '../stores/useStockListStore.ts'
-import Text from './Text.tsx'
+import Text from '../../../components/Text.tsx'
+import { useStockListStore } from '../../../stores/useStockListStore.ts'
 
 export default function StockListUpdatedAt() {
-  const screen = useRouterStore((state) => state.screen)
   const updatedAt = useStockListStore((state) => (state.step.type === 'table' ? state.step.updatedAt : undefined))
   const pollIntervalMs = useStockListStore((state) => state.pollIntervalMs)
 
-  if (screen !== 'stock-list' || updatedAt === undefined) return undefined
+  if (updatedAt === undefined) return undefined
 
   return (
     <Text color="cyan">

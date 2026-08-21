@@ -3,14 +3,14 @@ import test from 'node:test'
 
 import { normalizeCode, parseIntradayResponse, parseQuoteText } from '../src/api/index.ts'
 
-test('normalizeCode supports common A-share formats', () => {
+test('normalizeCode 支持常见的 A 股代码格式', () => {
   assert.equal(normalizeCode('600000.SH'), 'sh600000')
   assert.equal(normalizeCode('SZ000001'), 'sz000001')
   assert.equal(normalizeCode('920001'), 'bj920001')
   assert.equal(normalizeCode('invalid'), undefined)
 })
 
-test('parseQuoteText maps Tencent fields and skips malformed records', () => {
+test('parseQuoteText 映射腾讯字段并跳过格式错误的记录', () => {
   const fields = Array<string>(50).fill('')
   fields[1] = '浦发银行'
   fields[3] = '10.25'
@@ -49,7 +49,7 @@ test('parseQuoteText maps Tencent fields and skips malformed records', () => {
   })
 })
 
-test('parseIntradayResponse filters malformed and post-close points', () => {
+test('parseIntradayResponse 过滤格式错误和收盘后的数据点', () => {
   const points = parseIntradayResponse(
     {
       data: {
