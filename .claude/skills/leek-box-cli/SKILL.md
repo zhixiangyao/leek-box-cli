@@ -60,7 +60,7 @@ render(<App />, { alternateScreen: true, concurrent: true })
 
 - Zustand 是应用共享状态的唯一来源, 不为 overlay 再复制 Context 或第二份状态.
 - React 组件必须使用窄 selector, 例如 `useMenuStore(state => state.open)`; 不要无参数整店订阅.
-- `useOverlayOpen()` 只订阅 `menu.open` 与 `detail.stock !== null` 两个布尔派生值.
+- `useOverlayOpen()` 只订阅 `menu.open` 与 `detail.stock !== undefined` 两个布尔派生值.
 - store action 需要读取多个同步字段时可使用 `get()`; 事件接线需要当前快照时可使用 `useXxxStore.getState()`.
 - Add, Remove, StockList, StockDetail 均导出 `createXxxStore(dependencies)`, 生产环境再以默认依赖创建 `useXxxStore`. 网络, 文件, 时间通过 factory 依赖替换, 不使用 DI 容器.
 - Add/Remove 的 `generation` 位于各 factory 闭包内; 页面重置后, 旧异步结果不得覆盖新流程.
@@ -92,7 +92,7 @@ TextInput 的 `value` 和 `submitted` 是组件本地瞬时状态. 业务 store 
 
 ```ts
 {
-  error: string | null
+  error: string | undefined
   resetToken: number
 }
 ```

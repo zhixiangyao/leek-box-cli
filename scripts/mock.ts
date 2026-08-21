@@ -1,8 +1,3 @@
-/**
- * 一键填充 mock 自选股 (22 只, 沪深主板 + 创业板 + 科创板).
- * 默认追加去重 (保留已有自选股), 传 `--reset` 完全覆盖.
- * 用法: pnpm mock [--reset]
- */
 import process from 'node:process'
 
 import { loadWatchlist, saveWatchlist, watchlistPath } from '../src/lib/watchlist.ts'

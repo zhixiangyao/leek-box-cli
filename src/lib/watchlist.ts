@@ -87,7 +87,7 @@ async function withWatchlistLock<T>(operation: () => Promise<T>): Promise<T> {
   const lockToken = randomUUID()
   await mkdir(dirname(path), { recursive: true })
   const startedAt = Date.now()
-  let handle: Awaited<ReturnType<typeof open>> | null = null
+  let handle: Awaited<ReturnType<typeof open>> | undefined = undefined
 
   while (!handle) {
     try {
@@ -139,13 +139,13 @@ export async function addStock(entry: WatchEntry): Promise<{ status: 'added' | '
   })
 }
 
-export async function removeStock(code: string): Promise<WatchEntry | null> {
+export async function removeStock(code: string): Promise<WatchEntry | undefined> {
   return withWatchlistLock(async () => {
     const entries = await loadWatchlist()
     const index = entries.findIndex((item) => item.code === code)
-    if (index < 0) return null
+    if (index < 0) return undefined
     const [removed] = entries.splice(index, 1)
     await saveWatchlist(entries)
-    return removed ?? null
+    return removed
   })
 }

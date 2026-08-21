@@ -60,7 +60,13 @@ export default function AddStock() {
     return <ActionResult tone="warning" msg={`${step.name} (${step.code}) 已在自选股中.`} />
   }
 
-  if (step.type === 'done') return <ActionResult tone="success" msg={step.message} />
-  if (step.type === 'error') return <ActionResult tone="error" msg={step.message} />
-  return null
+  if (step.type === 'done') {
+    return <ActionResult tone="success" msg={step.message} />
+  }
+
+  if (step.type === 'error') {
+    return <ActionResult tone="error" msg={step.message} />
+  }
+
+  return undefined
 }

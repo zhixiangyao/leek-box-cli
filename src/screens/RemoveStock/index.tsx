@@ -15,7 +15,9 @@ export default function RemoveStock() {
 
   useRemoveStockPage()
 
-  if (step.type === 'loading') return <Text color="cyan">正在加载自选股...</Text>
+  if (step.type === 'loading') {
+    return <Text color="cyan">正在加载自选股...</Text>
+  }
 
   if (step.type === 'select') {
     return (
@@ -61,7 +63,13 @@ export default function RemoveStock() {
     )
   }
 
-  if (step.type === 'done') return <ActionResult tone="success" msg={step.message} />
-  if (step.type === 'error') return <ActionResult tone="error" msg={step.message} />
-  return null
+  if (step.type === 'done') {
+    return <ActionResult tone="success" msg={step.message} />
+  }
+
+  if (step.type === 'error') {
+    return <ActionResult tone="error" msg={step.message} />
+  }
+
+  return undefined
 }

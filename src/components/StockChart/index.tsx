@@ -11,7 +11,7 @@ export const STOCK_CHART_HEIGHT = DEFAULT_PRICE_HEIGHT + DEFAULT_VOLUME_HEIGHT +
 type Props = {
   points: ChartPoint[]
   period: ChartPeriod
-  prevClose: number | null
+  prevClose?: number
   /** 可用列数 */
   width: number
   /** 价格区高度 (行) */
@@ -31,7 +31,7 @@ export default function StockChart({
   volumeHeight = DEFAULT_VOLUME_HEIGHT,
   bright = false,
 }: Props) {
-  const rows = buildChartRows(points, period, prevClose, width, priceHeight, volumeHeight)
+  const rows = buildChartRows({ points, period, prevClose, width, priceHeight, volumeHeight })
 
   return (
     <Box flexDirection="column">

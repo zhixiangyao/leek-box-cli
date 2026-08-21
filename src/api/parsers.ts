@@ -1,7 +1,7 @@
 import type { HistoricalPoint, IntradayPoint, Quote } from './types.ts'
 
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
+const asRecord = (value: unknown): Record<string, unknown> | undefined =>
+  typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined
 
 const numericField = (fields: string[], index: number) => {
   const value = Number.parseFloat(fields[index] ?? '')

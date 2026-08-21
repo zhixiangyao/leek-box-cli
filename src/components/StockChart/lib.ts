@@ -14,9 +14,9 @@ type Bucket = {
   volume: number
 }
 
-/** 交易分钟序号: 09:30=0, 11:30=120, 13:00=120, 15:00=240; 解析失败/越界返回 null (盘前集合竞价点钳到 0) */
-export const tradingMinute = (time: string): number | null => {
-  if (!/^\d{4}$/.test(time)) return null
+/** 交易分钟序号: 09:30=0, 11:30=120, 13:00=120, 15:00=240; 解析失败/越界返回 undefined (盘前集合竞价点钳到 0) */
+const tradingMinute = (time: string): number | undefined => {
+  if (!/^\d{4}$/.test(time)) return undefined
   const minutes = Number(time.slice(0, 2)) * 60 + Number(time.slice(2)) - 570
   if (minutes < 0) return 0
   if (minutes > 120) return minutes - 90 // 午休 90 分钟
@@ -42,7 +42,7 @@ export const bucketize = (points: IntradayPoint[], width: number): Bucket[] => {
 
   for (const point of points) {
     const minute = tradingMinute(point.time)
-    if (minute === null) continue
+    if (minute === undefined) continue
     const col = Math.min(width - 1, Math.floor((minute / 240) * width))
     const bucket = raw[col]!
     bucket.sum += point.price
@@ -126,14 +126,15 @@ const braille = (mask: number): string => String.fromCharCode(0x2800 + mask)
  * 档, 按各桶相对上一桶涨跌红绿, 首桶回退昨收, 平盘灰) + 底部时间轴行.
  * 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
  */
-export const buildChartRows = (
-  points: ChartPoint[],
-  period: ChartPeriod,
-  prevClose: number | null,
-  width: number,
-  priceHeight: number,
-  volumeHeight: number,
-): ChartCell[][] => {
+export const buildChartRows = (params: {
+  points: ChartPoint[]
+  period: ChartPeriod
+  prevClose?: number
+  width: number
+  priceHeight: number
+  volumeHeight: number
+}): ChartCell[][] => {
+  const { points, period, prevClose, width, priceHeight, volumeHeight } = params
   const historicalPoints = points.filter(isHistoricalPoint)
   const buckets =
     period === 'day'
@@ -142,7 +143,7 @@ export const buildChartRows = (
           width,
         )
       : bucketizeHistorical(historicalPoints, width)
-  const referencePrice = period === 'day' ? prevClose : (historicalPoints[0]?.close ?? null)
+  const referencePrice = period === 'day' ? prevClose : historicalPoints[0]?.close
 
   // 价格范围 (含昨收); 全部无数据时兜底防除零
   let rangeMin = Infinity
@@ -152,7 +153,7 @@ export const buildChartRows = (
     rangeMin = Math.min(rangeMin, bucket.minPrice)
     rangeMax = Math.max(rangeMax, bucket.maxPrice)
   }
-  if (referencePrice !== null) {
+  if (referencePrice !== undefined) {
     rangeMin = Math.min(rangeMin, referencePrice)
     rangeMax = Math.max(rangeMax, referencePrice)
   }
@@ -169,7 +170,7 @@ export const buildChartRows = (
   // 折线整体颜色 (A股惯例): 收尾价 > 昨收红, < 绿, 平灰; 无昨收灰
   const filledLastPrices = buckets.map((b) => b.lastPrice).filter((price) => price > 0)
   const lineColor: TextColor =
-    referencePrice === null
+    referencePrice === undefined
       ? 'gray'
       : (filledLastPrices.at(-1) ?? 0) > referencePrice
         ? 'red'
@@ -187,16 +188,16 @@ export const buildChartRows = (
   for (let col = 0; col < width; col++) {
     if (buckets[col]!.avgPrice > 0) lastFilledCol = col
   }
-  let prevY: number | null = null
+  let prevY: number | undefined = undefined
   for (let s = 0; s < subCols; s++) {
     const pos = s / 2
     if (pos > lastFilledCol) {
-      prevY = null // 尾部留空 (盘中数据未到), 不跨空隙连线
+      prevY = undefined // 尾部留空 (盘中数据未到), 不跨空隙连线
       continue
     }
     const left = buckets[Math.floor(pos)]!
     if (left.avgPrice <= 0) {
-      prevY = null
+      prevY = undefined
       continue
     }
     const right = buckets[Math.min(Math.floor(pos) + 1, width - 1)]!
@@ -209,7 +210,7 @@ export const buildChartRows = (
     const col = Math.floor(s / 2)
     const lineRow = line[Math.floor(y / 4)]!
     lineRow[col] = lineRow[col]! | DOT_BIT(s % 2, y % 4)
-    if (prevY !== null) {
+    if (prevY !== undefined) {
       const lo = Math.min(prevY, y)
       const hi = Math.max(prevY, y)
       for (let yy = lo + 1; yy < hi; yy++) {
@@ -222,7 +223,7 @@ export const buildChartRows = (
 
   // 昨收虚线 (灰, Braille 点, 2 子列开 1 子列停; 折线优先, 不落在折线已占的单元格)
   const dash = Array.from({ length: priceHeight }, () => new Uint16Array(width))
-  if (referencePrice !== null) {
+  if (referencePrice !== undefined) {
     const y = yOf(referencePrice)
     const cellRow = Math.floor(y / 4)
     for (let s = 0; s < subCols; s++) {
@@ -261,12 +262,12 @@ export const buildChartRows = (
   // 组装成交量区单元格: 由各子行位掩码合成 Braille 字符; 颜色按该桶相对上一桶涨跌
   // (分钟方向, 同股票软件红绿交替), 首桶回退昨收, 平盘灰
   const barColor: (TextColor | undefined)[] = Array.from({ length: width }, () => undefined)
-  let prevBarPrice: number | null = referencePrice
+  let prevBarPrice: number | undefined = referencePrice
   for (let col = 0; col < width; col++) {
     const bucket = buckets[col]!
     if (bucket.lastPrice <= 0) continue
     barColor[col] =
-      prevBarPrice === null
+      prevBarPrice === undefined
         ? 'gray'
         : bucket.lastPrice > prevBarPrice
           ? 'red'

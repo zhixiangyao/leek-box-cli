@@ -18,12 +18,12 @@ const requestSignal = (signal?: AbortSignal) => {
   return signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
 }
 
-/** 股票代码规范化: 支持 600000 / sh600000 / SH600000 / 600000.SH, 输出 'sh600000' 或 null. */
-export function normalizeCode(input: string): string | null {
+/** 股票代码规范化 */
+export function normalizeCode(input: string): string | undefined {
   let code = input.trim().toUpperCase()
   code = code.replace(/\.(SH|SZ|BJ)$/, '')
   code = code.replace(/^(SH|SZ|BJ)/, '')
-  if (!/^\d{6}$/.test(code)) return null
+  if (!/^\d{6}$/.test(code)) return undefined
 
   let prefix: string
   if (code.startsWith('6') || code.startsWith('5')) {
@@ -33,7 +33,7 @@ export function normalizeCode(input: string): string | null {
   } else if (code.startsWith('4') || code.startsWith('8') || code.startsWith('92')) {
     prefix = 'bj'
   } else {
-    return null
+    return undefined
   }
   return `${prefix}${code}`
 }

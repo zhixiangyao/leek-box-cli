@@ -14,7 +14,7 @@ export type AddStockStep =
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
-type InputState = { error: string | null; resetToken: number }
+type InputState = { error: string | undefined; resetToken: number }
 
 type AddStockState = {
   step: AddStockStep
@@ -29,7 +29,7 @@ export type AddStockDependencies = {
   addStock: (entry: WatchEntry) => Promise<{ status: 'added' | 'duplicate' }>
   fetchQuotes: (codes: string[]) => Promise<Quote[]>
   loadWatchlist: () => Promise<WatchEntry[]>
-  normalizeCode: (input: string) => string | null
+  normalizeCode: (input: string) => string | undefined
   now: () => string
 }
 
@@ -41,7 +41,7 @@ const defaultDependencies: AddStockDependencies = {
   now: () => new Date().toISOString(),
 }
 
-const FRESH_INPUT: InputState = { error: null, resetToken: 0 }
+const FRESH_INPUT: InputState = { error: undefined, resetToken: 0 }
 
 export function createAddStockStore(dependencies: AddStockDependencies = defaultDependencies) {
   let generation = 0
@@ -69,7 +69,7 @@ export function createAddStockStore(dependencies: AddStockDependencies = default
         }))
         return
       }
-      set((state) => ({ codeInput: { error: null, resetToken: state.codeInput.resetToken + 1 } }))
+      set((state) => ({ codeInput: { error: undefined, resetToken: state.codeInput.resetToken + 1 } }))
       set({ step: { type: 'checking', code } })
 
       try {
@@ -95,7 +95,7 @@ export function createAddStockStore(dependencies: AddStockDependencies = default
         }))
         return
       }
-      set((state) => ({ confirmInput: { error: null, resetToken: state.confirmInput.resetToken + 1 } }))
+      set((state) => ({ confirmInput: { error: undefined, resetToken: state.confirmInput.resetToken + 1 } }))
       if (confirmation === 'n') {
         set({ step: { type: 'done', message: '已取消.' } })
         return

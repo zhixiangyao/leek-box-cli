@@ -39,19 +39,19 @@ export function usePolling(
 
     let active = true
     let inFlight = false
-    let timer: ReturnType<typeof setTimeout> | null = null
-    let controller: AbortController | null = null
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined
+    let controller: AbortController | undefined = undefined
 
     const clearTimer = () => {
       if (!timer) return
       clearTimeout(timer)
-      timer = null
+      timer = undefined
     }
 
     const schedule = () => {
       if (!active || inFlight || timer) return
       timer = setTimeout(() => {
-        timer = null
+        timer = undefined
         startRun()
       }, intervalRef.current)
     }
@@ -66,7 +66,7 @@ export function usePolling(
       } catch (error) {
         if (!currentController.signal.aborted) onErrorRef.current?.(error)
       } finally {
-        if (controller === currentController) controller = null
+        if (controller === currentController) controller = undefined
         inFlight = false
         schedule()
       }

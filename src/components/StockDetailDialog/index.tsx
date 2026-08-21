@@ -11,7 +11,9 @@ import { CONTENT_WIDTH, DETAIL_COLUMNS, STOCK_DETAIL_WIDTH } from './lib.ts'
 
 export default function StockDetailDialog() {
   const stockDetailDialog = useStockDetailDialog()
-  if (!stockDetailDialog) return null
+
+  if (!stockDetailDialog) return undefined
+
   const { stock, quote, suspended, period, status, points, errorMessage } = stockDetailDialog
   const periodLabel = CHART_PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? ''
 
@@ -71,13 +73,7 @@ export default function StockDetailDialog() {
             暂无{periodLabel}行情数据
           </Text>
         ) : (
-          <StockChart
-            bright
-            points={points}
-            period={period}
-            prevClose={quote?.prevClose ?? null}
-            width={CONTENT_WIDTH}
-          />
+          <StockChart bright points={points} period={period} prevClose={quote?.prevClose} width={CONTENT_WIDTH} />
         )}
       </Box>
     </Dialog>

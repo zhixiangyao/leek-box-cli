@@ -5,14 +5,14 @@ import { SCREEN_REGISTRY, type Screen } from '../../../lib/registry.ts'
 import { useMenuStore } from '../../../stores/useMenuStore.ts'
 import { useRouterStore } from '../../../stores/useRouterStore.ts'
 
-type MenuItem = { label: string; screen: Screen | null }
+type MenuItem = { label: string; screen: Screen | undefined }
 
 const MENU_ITEMS: MenuItem[] = [
   ...Object.entries(SCREEN_REGISTRY).map(([screen, definition], index): MenuItem => ({
     label: `${index + 1}) ${definition.menuLabel}`,
     screen: screen as Screen,
   })),
-  { label: `${Object.keys(SCREEN_REGISTRY).length + 1}) 退出程序`, screen: null },
+  { label: `${Object.keys(SCREEN_REGISTRY).length + 1}) 退出程序`, screen: undefined },
 ]
 
 const MENU_WIDTH = 45

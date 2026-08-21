@@ -52,7 +52,7 @@ test('remove stock store reports an entry removed by another process', async () 
   const target = entry('sz000001', '平安银行')
   const store = createRemoveStockStore({
     loadWatchlist: async () => [target],
-    removeStock: async () => null,
+    removeStock: async () => undefined,
   })
 
   await store.getState().loadEntries()
@@ -81,7 +81,7 @@ test('stock list preserves watchlist order, selected code, and unchanged quote r
   const firstStep = store.getState().step
   assert.equal(firstStep.type, 'table')
   if (firstStep.type !== 'table') return
-  const selectedQuote = firstStep.rows[1]!.kind === 'quote' ? firstStep.rows[1]!.quote : null
+  const selectedQuote = firstStep.rows[1]!.kind === 'quote' ? firstStep.rows[1]!.quote : undefined
 
   await store.getState().refreshQuotes()
   const secondStep = store.getState().step
@@ -92,7 +92,7 @@ test('stock list preserves watchlist order, selected code, and unchanged quote r
     ['sz300001', 'sz000001'],
   )
   assert.equal(store.getState().selectedCode, 'sz000001')
-  assert.equal(secondStep.rows[1]!.kind === 'quote' ? secondStep.rows[1]!.quote : null, selectedQuote)
+  assert.equal(secondStep.rows[1]!.kind === 'quote' ? secondStep.rows[1]!.quote : undefined, selectedQuote)
 
   await store.getState().refreshQuotes()
   assert.equal(store.getState().selectedCode, 'sz300001')

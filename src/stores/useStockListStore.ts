@@ -23,7 +23,7 @@ export type StockListStep =
 type StockListState = {
   step: StockListStep
   pollIntervalMs: number
-  selectedCode: string | null
+  selectedCode: string | undefined
   scrollOffset: number
   refreshQuotes: (signal?: AbortSignal) => Promise<void>
   moveSelection: (delta: 1 | -1, visible: number) => void
@@ -52,7 +52,7 @@ const anchoredScrollOffset = (
   return Math.min(scrollOffset, maxOffset)
 }
 
-const rowIndex = (rows: StockRow[], code: string | null) => {
+const rowIndex = (rows: StockRow[], code: string | undefined) => {
   if (!code) return 0
   const index = rows.findIndex((row) => row.code === code)
   return index < 0 ? 0 : index
@@ -80,7 +80,7 @@ export function createStockListStore(dependencies: StockListDependencies = defau
   return create<StockListState>()((set, get) => ({
     step: { type: 'loading' },
     pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
-    selectedCode: null,
+    selectedCode: undefined,
     scrollOffset: 0,
 
     refreshQuotes: async (signal?: AbortSignal) => {
@@ -88,7 +88,7 @@ export function createStockListStore(dependencies: StockListDependencies = defau
         const entries = await dependencies.loadWatchlist()
         if (signal?.aborted) return
         if (entries.length === 0) {
-          set({ step: { type: 'empty' }, selectedCode: null, scrollOffset: 0 })
+          set({ step: { type: 'empty' }, selectedCode: undefined, scrollOffset: 0 })
           return
         }
         const fetchedQuotes = await dependencies.fetchQuotes(
@@ -125,7 +125,7 @@ export function createStockListStore(dependencies: StockListDependencies = defau
           const relativeIndex = Math.max(0, previousIndex - state.scrollOffset)
           return {
             step: { type: 'table', rows, updatedAt },
-            selectedCode: rows[nextIndex]?.code ?? null,
+            selectedCode: rows[nextIndex]?.code,
             scrollOffset: Math.max(0, nextIndex - relativeIndex),
           }
         })
@@ -146,7 +146,7 @@ export function createStockListStore(dependencies: StockListDependencies = defau
       const currentIndex = rowIndex(step.rows, selectedCode)
       const nextIndex = clampSelection(currentIndex + delta, step.rows.length)
       set({
-        selectedCode: step.rows[nextIndex]?.code ?? null,
+        selectedCode: step.rows[nextIndex]?.code,
         scrollOffset: anchoredScrollOffset(delta, currentIndex, step.rows.length, scrollOffset, visible),
       })
     },

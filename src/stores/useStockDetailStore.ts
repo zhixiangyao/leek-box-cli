@@ -10,8 +10,8 @@ import {
 } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
 
-const HISTORY_DAYS_BY_PERIOD: Record<ChartPeriod, number | null> = {
-  day: null,
+const HISTORY_DAYS_BY_PERIOD = {
+  day: undefined,
   week: 5,
   month: 22,
   'half-year': 120,
@@ -23,7 +23,7 @@ const DEFAULT_PERIOD: ChartPeriod = 'day'
 const historyDaysFor = (period: ChartPeriod) => HISTORY_DAYS_BY_PERIOD[period]
 
 type StockDetailState = {
-  stock: { code: string; name: string } | null
+  stock: { code: string; name: string } | undefined
   period: ChartPeriod
   status: 'loading' | 'ready' | 'error'
   points: ChartPoint[]
@@ -47,7 +47,7 @@ export function createStockDetailStore(dependencies: StockDetailDependencies = d
       try {
         const historyDays = historyDaysFor(period)
         const points =
-          historyDays === null
+          historyDays === undefined
             ? await dependencies.fetchIntraday(code, signal)
             : await dependencies.fetchHistorical?.(code, historyDays, signal)
         if (!points) throw new Error('历史行情数据源不可用')
@@ -60,7 +60,7 @@ export function createStockDetailStore(dependencies: StockDetailDependencies = d
     }
 
     return {
-      stock: null,
+      stock: undefined,
       period: DEFAULT_PERIOD,
       status: 'loading',
       points: [],
@@ -72,7 +72,7 @@ export function createStockDetailStore(dependencies: StockDetailDependencies = d
           points: [],
           errorMessage: undefined,
         }),
-      close: () => set({ stock: null }),
+      close: () => set({ stock: undefined }),
       setPeriod: (period) => {
         if (get().period === period) return
         set({ period, status: 'loading', points: [], errorMessage: undefined })

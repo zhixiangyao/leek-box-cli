@@ -27,8 +27,8 @@ export default function Dialog(props: Props) {
       justifyContent="center"
     >
       <Box flexDirection="column" width={width} borderStyle="round">
-        {title ? <BorderTitle title={title} bright top={-1} left={1} /> : null}
-        {rightTitle ? <BorderTitle title={rightTitle} bright top={-1} right={1} /> : null}
+        {title ? <BorderTitle title={title} bright top={-1} left={1} /> : undefined}
+        {rightTitle ? <BorderTitle title={rightTitle} bright top={-1} right={1} /> : undefined}
 
         <Box flexDirection="column" paddingX={1} paddingY={1} backgroundColor="black">
           {children}

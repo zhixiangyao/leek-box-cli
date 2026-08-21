@@ -36,7 +36,7 @@ export function useStockDetailDialog() {
       const option = CHART_PERIOD_OPTIONS.find((item) => item.key === input)
       if (option) useStockDetailStore.getState().setPeriod(option.value)
     },
-    { isActive: stock !== null && !menuOpen },
+    { isActive: stock !== undefined && !menuOpen },
   )
 
   usePolling(
@@ -44,13 +44,14 @@ export function useStockDetailDialog() {
       if (stock) await useStockDetailStore.getState().refreshChart(stock.code, period, signal)
     },
     {
-      enabled: stock !== null,
+      enabled: stock !== undefined,
       intervalMs: period === 'day' ? INTRADAY_POLL_INTERVAL_MS : HISTORICAL_POLL_INTERVAL_MS,
-      restartKey: stock ? `${stock.code}:${period}` : null,
+      restartKey: stock ? `${stock.code}:${period}` : undefined,
     },
   )
 
-  if (!stock) return null
+  if (!stock) return undefined
+
   return {
     stock,
     quote,

@@ -42,7 +42,7 @@ export default function StockList() {
         ))}
       </Box>
 
-      {step.errorLine ? <Text color="yellow">刷新失败: {step.errorLine}, 稍后自动重试</Text> : null}
+      {step.errorLine ? <Text color="yellow">刷新失败: {step.errorLine}, 稍后自动重试</Text> : undefined}
     </>
   )
 }

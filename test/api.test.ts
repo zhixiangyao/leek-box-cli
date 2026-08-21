@@ -7,7 +7,7 @@ test('normalizeCode supports common A-share formats', () => {
   assert.equal(normalizeCode('600000.SH'), 'sh600000')
   assert.equal(normalizeCode('SZ000001'), 'sz000001')
   assert.equal(normalizeCode('920001'), 'bj920001')
-  assert.equal(normalizeCode('invalid'), null)
+  assert.equal(normalizeCode('invalid'), undefined)
 })
 
 test('parseQuoteText maps Tencent fields and skips malformed records', () => {
