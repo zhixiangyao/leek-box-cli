@@ -1,48 +1,62 @@
 import { Box } from 'ink'
+import { type ReactNode } from 'react'
 
 import QuoteRow from '../../components/QuoteRow.tsx'
 import Text from '../../components/Text.tsx'
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { STOCK_LIST_COLUMNS } from '../../lib/stockTable.ts'
-import { useStockListStore } from '../../stores/useStockListStore.ts'
-import { useStockListPage } from './hooks/useStockList.ts'
+import { useStockList } from './hooks/useStockList.ts'
 
 export default function StockList() {
-  const step = useStockListStore((state) => state.step)
-  const selectedCode = useStockListStore((state) => state.selectedCode)
-  const { window, rowsRef } = useStockListPage()
+  const { rowsRef, step, selectedCode, window } = useStockList()
+  let content: ReactNode
 
-  if (step.type === 'loading') return <Text color="cyan">正在获取行情数据...</Text>
-  if (step.type === 'empty') return <Text color="yellow">自选股为空, 按 esc 打开菜单添加自选股.</Text>
+  switch (step.type) {
+    case 'loading': {
+      content = <Text color="cyan">正在获取行情数据...</Text>
+      break
+    }
 
-  if (step.type === 'error') {
-    return (
-      <>
-        <Text color="red">{step.message}</Text>
-        <Text color="gray">行情接口异常, 稍后自动重试</Text>
-      </>
-    )
+    case 'empty': {
+      content = <Text color="yellow">自选股为空, 按 esc 打开菜单添加自选股.</Text>
+      break
+    }
+
+    case 'error': {
+      content = (
+        <>
+          <Text color="red">{step.message}</Text>
+          <Text color="gray">行情接口异常, 稍后自动重试</Text>
+        </>
+      )
+      break
+    }
+
+    case 'table': {
+      content = (
+        <>
+          <QuoteRow segments={headerRow(STOCK_LIST_COLUMNS)} />
+
+          <Box ref={rowsRef} flexDirection="column" flexGrow={1} overflow="hidden">
+            {step.rows.slice(window.start, window.end).map((row) => (
+              <QuoteRow
+                key={row.code}
+                segments={
+                  row.kind === 'quote'
+                    ? quoteRow(STOCK_LIST_COLUMNS, row.quote)
+                    : missingRow(STOCK_LIST_COLUMNS, row.code, row.name)
+                }
+                selected={row.code === selectedCode}
+              />
+            ))}
+          </Box>
+
+          {step.errorLine ? <Text color="yellow">刷新失败: {step.errorLine}, 稍后自动重试</Text> : undefined}
+        </>
+      )
+      break
+    }
   }
 
-  return (
-    <>
-      <QuoteRow segments={headerRow(STOCK_LIST_COLUMNS)} />
-
-      <Box ref={rowsRef} flexDirection="column" flexGrow={1} overflow="hidden">
-        {step.rows.slice(window.start, window.end).map((row) => (
-          <QuoteRow
-            key={row.code}
-            segments={
-              row.kind === 'quote'
-                ? quoteRow(STOCK_LIST_COLUMNS, row.quote)
-                : missingRow(STOCK_LIST_COLUMNS, row.code, row.name)
-            }
-            selected={row.code === selectedCode}
-          />
-        ))}
-      </Box>
-
-      {step.errorLine ? <Text color="yellow">刷新失败: {step.errorLine}, 稍后自动重试</Text> : undefined}
-    </>
-  )
+  return content
 }

@@ -13,9 +13,10 @@ description: leek-box-cli 项目规范与真实实现结构. 当任务涉及本�
 src/cli.tsx                         meow 命令解析, 初始化 router store, 启动 Ink
 src/app.tsx                         全局按键, 页面装配, 浮层顺序, 顶层布局
 src/lib/registry.ts                 页面唯一注册表: 组件, 标题, 说明, 状态栏提示, 菜单名
-src/screens/<Feature>/index.tsx     按 step 纯渲染, 使用窄 Zustand selector
-src/screens/<Feature>/hooks/        页面生命周期, 输入, 测量和轮询接线
+src/screens/<Feature>/index.tsx     按 step 判别联合纯渲染, 只消费 feature hook 返回的视图模型和事件
+src/screens/<Feature>/hooks/        窄 Zustand 订阅, 页面生命周期, 输入, 测量和轮询接线
 src/screens/<Feature>/lib.ts        feature 局部纯函数
+src/components/Card.tsx             页面与 Dialog 共用的边框, title/extra, 内容 padding 和 footer 框架
 src/components/                     通用 Ink 组件和复合弹窗
 src/components/StockChart/           多周期股票趋势图, Braille 价格线与成交量柱
 src/components/StockDetailDialog/    详情弹窗, 周期快捷键接线与详情布局
@@ -65,7 +66,9 @@ render(<App />, { alternateScreen: true, concurrent: true })
 - Add, Remove, StockList, StockDetail 均导出 `createXxxStore(dependencies)`, 生产环境再以默认依赖创建 `useXxxStore`. 网络, 文件, 时间通过 factory 依赖替换, 不使用 DI 容器.
 - Add/Remove 的 `generation` 位于各 factory 闭包内; 页面重置后, 旧异步结果不得覆盖新流程.
 
-页面采用 step 判别联合: store 保存 step 和动作, `index.tsx` 只按 `step.type` 分支展示, 页面挂载和输入行为放在 hook.
+页面采用 step 判别联合: store 保存 step, 输入状态和业务动作; `index.tsx` 不直接导入 store, 只调用对应的 `useFeature()` hook, 并按 `step.type` 分支纯渲染. feature hook 使用窄 selector 组装页面视图模型和事件, 并负责挂载 reset/load, Ink 输入, 测量和轮询接线. store 不包含 React 生命周期, Ink ref/布局测量或按键处理; 需要当前原子快照的事件接线可在 hook 中使用 `useXxxStore.getState()`.
+
+Add 挂载时由 `useAddStock()` reset; Remove 挂载时由 `useRemoveStock()` loadEntries; StockList 的 rows ref, visible window, polling, 轮询间隔快捷键, 选择/刷新/打开详情和 overlay 输入门控均由 `useStockList()` 负责. screen 只渲染 hook 返回的 step, 输入状态, 选择状态和 handler.
 
 ## Overlay 与输入
 
@@ -85,6 +88,8 @@ bright=true   浮层文字保持鲜艳
 ```
 
 浮层内的可见 Text, QuoteRow, StockChart 和边框标题应传 `bright`. 所有退出行为使用 `useApp().exit()`, 不得调用 `process.exit()`.
+
+`Card.bright` 只控制 Card 边框及 `BorderTitle` 分隔符的亮度, 不会递归修改任意 children; 浮层内容仍须在 Text, QuoteRow 和 StockChart 上显式传 `bright`. 当前 App 主 Card 使用默认 `bright=false`, 因而边框常态 dim; Dialog 使用 `Card bright`, 黑色内容背景和 `StatusBar bright`. 主页面 StatusBar 由 App 传 `bright={!overlayOpen}`, overlay 打开时切为灰色背景并 dim.
 
 ## TextInput 协议
 
@@ -202,9 +207,11 @@ loading -> select -> confirm -> removing -> done/error
 
 提交过程中必须进入显式 saving/removing step, 不能只依赖 TextInput 本地 submitted 状态防重复提交. Store 的异步 action 返回 Promise, 测试可直接 await.
 
-## Dialog, 图表和绘制顺序
+## Card, Dialog, 页面布局和绘制顺序
 
-Dialog 使用全屏 absolute Box 做 flex 居中, 内部 round 边框, 黑色不透明背景和 padding, 宽度由调用方提供. `title` 位于左上边框, 可选 `rightTitle` 位于右上边框. Dialog, MenuDialog, StockDetailDialog, BorderTitle, BorderUpdatedAt 必须是主边框 Box 的后绘制兄弟节点, 不能放进主边框内容区.
+`Card` 是主页面和 Dialog 共用的 frame primitive: round 边框, 左上 `title`, 右上可选 `extra`, `flexGrow` column 内容区和统一 `padding={1}`, 以及内容后的可选 `footer`. `BorderTitle` 由 Card 内部定位并负责 `|...|` 装饰; 调用方不得自行 absolute 定位标题槽或重复绘制分隔符.
+
+App 使用窗口宽高创建唯一主 Card: registry title 属于 `title`, 仅股票列表的 `StockListUpdatedAt` 属于 `extra`, StatusBar 属于 `footer`, screen 只提供内容. Dialog 使用覆盖全窗口的 absolute Box 居中一张 `Card bright`, 调用方提供宽度, title/extra 和内容; Dialog 内容区使用黑色背景. MenuDialog 和 StockDetailDialog 必须在主 Card 之后渲染以覆盖背景; BorderTitle 和 StockListUpdatedAt 不再是主 Card 的后绘制兄弟节点.
 
 `StockDetailDialog` 的图表区固定为 `STOCK_CHART_HEIGHT`, loading/error/empty/ready 都不得改变该区域高度, 避免居中的弹窗在切周期时上下抖动. 周期配置 `CHART_PERIOD_OPTIONS` 位于 `StockDetailDialog/hooks/useStockDetailDialog.ts`, 不要放进仅保存类型的 `src/api/types.ts`.
 
@@ -258,4 +265,5 @@ PTY 冒烟若涉及添加/删除, 应通过临时 `XDG_CONFIG_HOME` 隔离用户
 - 颜色: magenta 标题, cyan 信息, yellow 警告, red 错误, green 成功, gray 占位.
 - 所有文字使用本地 Text; 所有退出使用 `useApp().exit()`.
 - 表格宽度由列元数据推导, 不硬编码; CJK 宽度使用本地 displayWidth/cell, 不新增 string-width 依赖.
+- 主页面和弹窗统一使用 Card 组织边框 chrome; screen 不重复创建页面外框, 标题, 更新时间或 StatusBar. 页面 title 来自 registry, 股票列表更新时间由 App 注入 `Card.extra`, Dialog 的右上附加信息也使用 `extra`.
 - 页面结果使用 ActionResult/Message, 返回看板使用 BackToStockList; StockList 自身的 empty/error 不显示"返回看板".

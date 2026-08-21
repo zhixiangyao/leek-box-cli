@@ -12,10 +12,11 @@ import {
 } from '../../../stores/useStockListStore.ts'
 import { visibleWindow } from '../lib.ts'
 
-export function useStockListPage() {
+export function useStockList() {
   const rowsRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(rowsRef)
   const step = useStockListStore((state) => state.step)
+  const selectedCode = useStockListStore((state) => state.selectedCode)
   const scrollOffset = useStockListStore((state) => state.scrollOffset)
   const pollIntervalMs = useStockListStore((state) => state.pollIntervalMs)
   const moveSelection = useStockListStore((state) => state.moveSelection)
@@ -60,5 +61,5 @@ export function useStockListPage() {
     { isActive: !overlayOpen },
   )
 
-  return { window, rowsRef }
+  return { rowsRef, step, selectedCode, window }
 }

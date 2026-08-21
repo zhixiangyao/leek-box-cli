@@ -40,7 +40,7 @@ export default function StockDetailDialog() {
           </Text>
         </Text>
       }
-      rightTitle={
+      extra={
         <Text bright>
           {CHART_PERIOD_OPTIONS.map((option, index) => (
             <Text key={option.value} bright color={option.value === period ? 'cyan' : 'gray'}>

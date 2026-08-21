@@ -1,10 +1,10 @@
-import { Box, useApp, useInput, useWindowSize } from 'ink'
+import { useApp, useInput, useWindowSize } from 'ink'
 
-import BorderTitle from './components/BorderTitle.tsx'
-import BorderUpdatedAt from './components/BorderUpdatedAt.tsx'
+import Card from './components/Card.tsx'
 import MenuDialog from './components/MenuDialog/index.tsx'
 import StatusBar from './components/StatusBar.tsx'
 import StockDetailDialog from './components/StockDetailDialog/index.tsx'
+import StockListUpdatedAt from './components/StockListUpdatedAt.tsx'
 import Text from './components/Text.tsx'
 import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from './hooks/useOverlayOpen.ts'
@@ -37,19 +37,19 @@ export default function App() {
 
   return (
     <WindowSizeGuard>
-      <Box flexDirection="column" height={rows} width={columns} borderStyle="round" borderDimColor={overlayOpen}>
-        <Box flexGrow={1} flexDirection="column" alignItems="flex-start" padding={1}>
-          <Component />
-        </Box>
-
-        <StatusBar hint={screenDefinition.hint} bright={!overlayOpen} />
-      </Box>
+      <Card
+        bright={!overlayOpen}
+        title={<Text color="magenta">{screenDefinition.title}</Text>}
+        extra={screen === 'stock-list' ? <StockListUpdatedAt /> : undefined}
+        width={columns}
+        height={rows}
+        footer={<StatusBar hint={screenDefinition.hint} bright={!overlayOpen} />}
+      >
+        <Component />
+      </Card>
 
       {menuOpen && <MenuDialog />}
       {detailStock && <StockDetailDialog />}
-
-      <BorderTitle title={<Text color="magenta">{screenDefinition.title}</Text>} top={0} left={2} />
-      <BorderUpdatedAt />
     </WindowSizeGuard>
   )
 }

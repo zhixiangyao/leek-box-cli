@@ -1,18 +1,18 @@
 import { Box, useWindowSize } from 'ink'
 import type { ReactNode } from 'react'
 
-import BorderTitle from './BorderTitle.tsx'
+import Card from './Card.tsx'
 import StatusBar from './StatusBar.tsx'
 
 type Props = {
   title?: ReactNode
-  rightTitle?: ReactNode
+  extra?: ReactNode
   width: number
   children: ReactNode
 }
 
 export default function Dialog(props: Props) {
-  const { title, rightTitle, width, children } = props
+  const { title, extra, width, children } = props
   const { rows, columns } = useWindowSize()
 
   return (
@@ -26,16 +26,9 @@ export default function Dialog(props: Props) {
       alignItems="center"
       justifyContent="center"
     >
-      <Box flexDirection="column" width={width} borderStyle="round">
-        {title ? <BorderTitle title={title} bright top={-1} left={1} /> : undefined}
-        {rightTitle ? <BorderTitle title={rightTitle} bright top={-1} right={1} /> : undefined}
-
-        <Box flexDirection="column" paddingX={1} paddingY={1} backgroundColor="black">
-          {children}
-        </Box>
-
-        <StatusBar bright />
-      </Box>
+      <Card bright title={title} extra={extra} width={width} backgroundColor="black" footer={<StatusBar bright />}>
+        {children}
+      </Card>
     </Box>
   )
 }

@@ -2,11 +2,23 @@ import { useEffect } from 'react'
 
 import { useRemoveStockStore } from '../../../stores/useRemoveStockStore.ts'
 
-/** store 常驻, 每次进入页面重新加载列表并复位输入状态. */
-export function useRemoveStockPage() {
+export function useRemoveStock() {
+  const step = useRemoveStockStore((state) => state.step)
+  const indexInput = useRemoveStockStore((state) => state.indexInput)
+  const confirmInput = useRemoveStockStore((state) => state.confirmInput)
+  const handleChoice = useRemoveStockStore((state) => state.handleChoice)
+  const handleConfirm = useRemoveStockStore((state) => state.handleConfirm)
   const loadEntries = useRemoveStockStore((state) => state.loadEntries)
 
   useEffect(() => {
     loadEntries()
   }, [loadEntries])
+
+  return {
+    step,
+    indexInput,
+    confirmInput,
+    handleChoice,
+    handleConfirm,
+  }
 }

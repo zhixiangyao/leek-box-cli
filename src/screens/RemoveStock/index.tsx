@@ -1,75 +1,78 @@
 import { Newline } from 'ink'
+import { type ReactNode } from 'react'
 
 import ActionResult from '../../components/ActionResult.tsx'
 import Text from '../../components/Text.tsx'
 import TextInput from '../../components/TextInput.tsx'
-import { useRemoveStockStore } from '../../stores/useRemoveStockStore.ts'
-import { useRemoveStockPage } from './hooks/useRemoveStock.ts'
+import { useRemoveStock } from './hooks/useRemoveStock.ts'
 
 export default function RemoveStock() {
-  const step = useRemoveStockStore((state) => state.step)
-  const indexInput = useRemoveStockStore((state) => state.indexInput)
-  const confirmInput = useRemoveStockStore((state) => state.confirmInput)
-  const handleChoice = useRemoveStockStore((state) => state.handleChoice)
-  const handleConfirm = useRemoveStockStore((state) => state.handleConfirm)
+  const { step, indexInput, confirmInput, handleChoice, handleConfirm } = useRemoveStock()
+  let content: ReactNode
 
-  useRemoveStockPage()
+  switch (step.type) {
+    case 'loading': {
+      content = <Text color="cyan">正在加载自选股...</Text>
+      break
+    }
 
-  if (step.type === 'loading') {
-    return <Text color="cyan">正在加载自选股...</Text>
-  }
+    case 'select': {
+      content = (
+        <>
+          <Text color="gray">自选股列表:</Text>
+          {step.entries.map((entry, index) => (
+            <Text key={entry.code}>
+              {index + 1}) {entry.name} ({entry.code}) <Text color="gray">({entry.addedAt.slice(0, 10)})</Text>
+            </Text>
+          ))}
+          {indexInput.error && <Text color="red">{indexInput.error}</Text>}
+          <Newline />
+          <TextInput
+            resetToken={`index-${indexInput.resetToken}`}
+            prompt="请输入要删除的序号: "
+            onSubmit={handleChoice}
+          />
+        </>
+      )
+      break
+    }
 
-  if (step.type === 'select') {
-    return (
-      <>
-        <Text color="gray">自选股列表:</Text>
-        {step.entries.map((entry, index) => (
-          <Text key={entry.code}>
-            {index + 1}) {entry.name} ({entry.code}) <Text color="gray">({entry.addedAt.slice(0, 10)})</Text>
+    case 'confirm': {
+      content = (
+        <>
+          <Text color="yellow">
+            确定删除 {step.entry.name} ({step.entry.code})?
           </Text>
-        ))}
-        {indexInput.error && <Text color="red">{indexInput.error}</Text>}
-        <Newline />
-        <TextInput
-          resetToken={`index-${indexInput.resetToken}`}
-          prompt="请输入要删除的序号: "
-          onSubmit={handleChoice}
-        />
-      </>
-    )
-  }
+          {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
+          <TextInput
+            resetToken={`confirm-${confirmInput.resetToken}`}
+            prompt="确认删除? (y/n): "
+            onSubmit={handleConfirm}
+          />
+        </>
+      )
+      break
+    }
 
-  if (step.type === 'confirm') {
-    return (
-      <>
-        <Text color="yellow">
-          确定删除 {step.entry.name} ({step.entry.code})?
+    case 'removing': {
+      content = (
+        <Text color="cyan">
+          正在删除 {step.entry.name} ({step.entry.code})...
         </Text>
-        {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
-        <TextInput
-          resetToken={`confirm-${confirmInput.resetToken}`}
-          prompt="确认删除? (y/n): "
-          onSubmit={handleConfirm}
-        />
-      </>
-    )
+      )
+      break
+    }
+
+    case 'done': {
+      content = <ActionResult tone="success" msg={step.message} />
+      break
+    }
+
+    case 'error': {
+      content = <ActionResult tone="error" msg={step.message} />
+      break
+    }
   }
 
-  if (step.type === 'removing') {
-    return (
-      <Text color="cyan">
-        正在删除 {step.entry.name} ({step.entry.code})...
-      </Text>
-    )
-  }
-
-  if (step.type === 'done') {
-    return <ActionResult tone="success" msg={step.message} />
-  }
-
-  if (step.type === 'error') {
-    return <ActionResult tone="error" msg={step.message} />
-  }
-
-  return undefined
+  return content
 }
