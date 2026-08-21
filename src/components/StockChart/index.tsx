@@ -1,11 +1,16 @@
 import { Box } from 'ink'
 
-import type { IntradayPoint } from '../../api/types.ts'
+import type { ChartPeriod, ChartPoint } from '../../api/types.ts'
 import Text from '../Text.tsx'
 import { buildChartRows, type ChartCell } from './lib.ts'
 
+const DEFAULT_PRICE_HEIGHT = 9
+const DEFAULT_VOLUME_HEIGHT = 4
+export const STOCK_CHART_HEIGHT = DEFAULT_PRICE_HEIGHT + DEFAULT_VOLUME_HEIGHT + 1
+
 type Props = {
-  points: IntradayPoint[]
+  points: ChartPoint[]
+  period: ChartPeriod
   prevClose: number | null
   /** 可用列数 */
   width: number
@@ -16,16 +21,17 @@ type Props = {
   bright?: boolean
 }
 
-/** 今日分时图: 价格折线 + 昨收虚线 + 成交量柱 + 时间轴 */
-export default function IntradayChart({
+/** 股票趋势图: 分时/历史价格折线 + 参考价虚线 + 成交量柱 + 时间轴 */
+export default function StockChart({
   points,
+  period,
   prevClose,
   width,
-  priceHeight = 9,
-  volumeHeight = 4,
+  priceHeight = DEFAULT_PRICE_HEIGHT,
+  volumeHeight = DEFAULT_VOLUME_HEIGHT,
   bright = false,
 }: Props) {
-  const rows = buildChartRows(points, prevClose, width, priceHeight, volumeHeight)
+  const rows = buildChartRows(points, period, prevClose, width, priceHeight, volumeHeight)
 
   return (
     <Box flexDirection="column">

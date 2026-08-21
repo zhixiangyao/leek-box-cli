@@ -7,12 +7,13 @@ type Props = {
   title: ReactNode
   bright?: boolean
   top: BoxProps['top']
-  left: BoxProps['left']
+  left?: BoxProps['left']
+  right?: BoxProps['right']
 }
 
-export default function BorderTitle({ title, bright = false, top, left }: Props) {
+export default function BorderTitle({ title, bright = false, top, left, right }: Props) {
   return (
-    <Box position="absolute" top={top} left={left}>
+    <Box position="absolute" top={top} left={left} right={right}>
       <Text bright={bright}>|</Text>
       {title}
       <Text bright={bright}>|</Text>

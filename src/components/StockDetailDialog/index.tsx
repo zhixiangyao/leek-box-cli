@@ -3,16 +3,17 @@ import { Box } from 'ink'
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
 import Dialog from '../Dialog.tsx'
-import IntradayChart from '../IntradayChart/index.tsx'
 import QuoteRow from '../QuoteRow.tsx'
+import StockChart, { STOCK_CHART_HEIGHT } from '../StockChart/index.tsx'
 import Text from '../Text.tsx'
-import { useStockDetailDialog } from './hooks/useStockDetailDialog.ts'
+import { CHART_PERIOD_OPTIONS, useStockDetailDialog } from './hooks/useStockDetailDialog.ts'
 import { CONTENT_WIDTH, DETAIL_COLUMNS, STOCK_DETAIL_WIDTH } from './lib.ts'
 
 export default function StockDetailDialog() {
   const stockDetailDialog = useStockDetailDialog()
   if (!stockDetailDialog) return null
-  const { stock, quote, suspended, status, points, errorMessage } = stockDetailDialog
+  const { stock, quote, suspended, period, status, points, errorMessage } = stockDetailDialog
+  const periodLabel = CHART_PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? ''
 
   return (
     <Dialog
@@ -37,6 +38,15 @@ export default function StockDetailDialog() {
           </Text>
         </Text>
       }
+      rightTitle={
+        <Text bright>
+          {CHART_PERIOD_OPTIONS.map((option, index) => (
+            <Text key={option.value} bright color={option.value === period ? 'cyan' : 'gray'}>
+              {index > 0 ? ' ' : ''}[{option.key}]{option.label}
+            </Text>
+          ))}
+        </Text>
+      }
       width={STOCK_DETAIL_WIDTH}
     >
       <Box flexDirection="column">
@@ -47,10 +57,10 @@ export default function StockDetailDialog() {
         />
       </Box>
 
-      <Box marginTop={1}>
+      <Box marginTop={1} height={STOCK_CHART_HEIGHT}>
         {status === 'loading' ? (
           <Text bright color="gray">
-            正在获取分时数据...
+            正在获取{periodLabel}行情...
           </Text>
         ) : status === 'error' ? (
           <Text bright color="red">
@@ -58,10 +68,16 @@ export default function StockDetailDialog() {
           </Text>
         ) : points.length === 0 ? (
           <Text bright color="gray">
-            暂无分时数据 (非交易时段)
+            暂无{periodLabel}行情数据
           </Text>
         ) : (
-          <IntradayChart bright points={points} prevClose={quote?.prevClose ?? null} width={CONTENT_WIDTH} />
+          <StockChart
+            bright
+            points={points}
+            period={period}
+            prevClose={quote?.prevClose ?? null}
+            width={CONTENT_WIDTH}
+          />
         )}
       </Box>
     </Dialog>

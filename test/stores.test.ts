@@ -110,9 +110,9 @@ test('stock detail ignores a completed request for a previously opened code', as
   })
 
   store.getState().open('sh600000', '浦发银行')
-  const pendingOld = store.getState().refreshIntraday('sh600000')
+  const pendingOld = store.getState().refreshChart('sh600000', 'day')
   store.getState().open('sz000001', '平安银行')
-  await store.getState().refreshIntraday('sz000001')
+  await store.getState().refreshChart('sz000001', 'day')
   resolveOld([{ time: '0930', price: 10, volume: 1 }])
   await pendingOld
 

@@ -2,13 +2,14 @@
  * 腾讯行情接口封装
  * - 实时行情: https://qt.gtimg.cn/q=... (GBK 文本, 免费无需鉴权)
  * - 分时图: https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=... (JSON)
+ * - 历史日线: https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=... (JSON)
  */
 
-import { parseIntradayResponse, parseQuoteText } from './parsers.ts'
-import type { IntradayPoint, Quote } from './types.ts'
+import { parseHistoricalResponse, parseIntradayResponse, parseQuoteText } from './parsers.ts'
+import type { HistoricalPoint, IntradayPoint, Quote } from './types.ts'
 
-export { parseIntradayResponse, parseQuoteText } from './parsers.ts'
-export type { IntradayPoint, Quote } from './types.ts'
+export { parseHistoricalResponse, parseIntradayResponse, parseQuoteText } from './parsers.ts'
+export type { ChartPeriod, ChartPoint, HistoricalPoint, IntradayPoint, Quote } from './types.ts'
 
 const FETCH_TIMEOUT_MS = 8000
 
@@ -58,4 +59,18 @@ export async function fetchIntraday(code: string, signal?: AbortSignal): Promise
   })
   if (!response.ok) throw new Error(`分时接口请求失败: HTTP ${response.status}`)
   return parseIntradayResponse(await response.json(), code)
+}
+
+/** 拉取最近指定交易日数量的前复权日线. */
+export async function fetchHistorical(
+  code: string,
+  tradingDays: number,
+  signal?: AbortSignal,
+): Promise<HistoricalPoint[]> {
+  const param = encodeURIComponent(`${code},day,,,${tradingDays},qfq`)
+  const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param}`, {
+    signal: requestSignal(signal),
+  })
+  if (!response.ok) throw new Error(`历史行情接口请求失败: HTTP ${response.status}`)
+  return parseHistoricalResponse(await response.json(), code).slice(-tradingDays)
 }

@@ -1,28 +1,52 @@
+import { useInput } from 'ink'
+
+import type { ChartPeriod } from '../../../api/types.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
+import { useMenuStore } from '../../../stores/useMenuStore.ts'
 import { useStockDetailStore } from '../../../stores/useStockDetailStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
 
 const INTRADAY_POLL_INTERVAL_MS = 30_000
+const HISTORICAL_POLL_INTERVAL_MS = 5 * 60_000
+
+export const CHART_PERIOD_OPTIONS = [
+  { key: '1', value: 'day', label: '1日' },
+  { key: '2', value: 'week', label: '1周' },
+  { key: '3', value: 'month', label: '1月' },
+  { key: '4', value: 'half-year', label: '6月' },
+  { key: '5', value: 'year', label: '1年' },
+] as const satisfies readonly { key: string; value: ChartPeriod; label: string }[]
 
 export function useStockDetailDialog() {
   const stock = useStockDetailStore((state) => state.stock)
+  const period = useStockDetailStore((state) => state.period)
   const status = useStockDetailStore((state) => state.status)
   const points = useStockDetailStore((state) => state.points)
   const detailError = useStockDetailStore((state) => state.errorMessage)
+  const menuOpen = useMenuStore((state) => state.open)
   const quote = useStockListStore((state) => {
     if (state.step.type !== 'table') return undefined
     const row = state.step.rows.find((item) => item.code === stock?.code)
     return row?.kind === 'quote' ? row.quote : undefined
   })
 
+  useInput(
+    (input, key) => {
+      if (key.ctrl) return
+      const option = CHART_PERIOD_OPTIONS.find((item) => item.key === input)
+      if (option) useStockDetailStore.getState().setPeriod(option.value)
+    },
+    { isActive: stock !== null && !menuOpen },
+  )
+
   usePolling(
     async (signal) => {
-      if (stock) await useStockDetailStore.getState().refreshIntraday(stock.code, signal)
+      if (stock) await useStockDetailStore.getState().refreshChart(stock.code, period, signal)
     },
     {
       enabled: stock !== null,
-      intervalMs: INTRADAY_POLL_INTERVAL_MS,
-      restartKey: stock?.code,
+      intervalMs: period === 'day' ? INTRADAY_POLL_INTERVAL_MS : HISTORICAL_POLL_INTERVAL_MS,
+      restartKey: stock ? `${stock.code}:${period}` : null,
     },
   )
 
@@ -31,6 +55,7 @@ export function useStockDetailDialog() {
     stock,
     quote,
     suspended: quote ? quote.current <= 0 : false,
+    period,
     status,
     points,
     errorMessage: detailError,

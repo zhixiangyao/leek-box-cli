@@ -40,3 +40,17 @@ export type IntradayPoint = {
   /** 累计成交量 (手) */
   volume: number
 }
+
+export type HistoricalPoint = {
+  /** YYYY-MM-DD */
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  /** 当日成交量 (手) */
+  volume: number
+}
+
+export type ChartPeriod = 'day' | 'week' | 'month' | 'half-year' | 'year'
+export type ChartPoint = IntradayPoint | HistoricalPoint

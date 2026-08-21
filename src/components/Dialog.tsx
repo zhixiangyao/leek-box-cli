@@ -6,12 +6,13 @@ import StatusBar from './StatusBar.tsx'
 
 type Props = {
   title?: ReactNode
+  rightTitle?: ReactNode
   width: number
   children: ReactNode
 }
 
 export default function Dialog(props: Props) {
-  const { title, width, children } = props
+  const { title, rightTitle, width, children } = props
   const { rows, columns } = useWindowSize()
 
   return (
@@ -27,6 +28,7 @@ export default function Dialog(props: Props) {
     >
       <Box flexDirection="column" width={width} borderStyle="round">
         {title ? <BorderTitle title={title} bright top={-1} left={1} /> : null}
+        {rightTitle ? <BorderTitle title={rightTitle} bright top={-1} right={1} /> : null}
 
         <Box flexDirection="column" paddingX={1} paddingY={1} backgroundColor="black">
           {children}

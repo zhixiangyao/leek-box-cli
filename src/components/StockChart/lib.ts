@@ -1,4 +1,4 @@
-import type { IntradayPoint } from '../../api/types.ts'
+import type { ChartPeriod, ChartPoint, HistoricalPoint, IntradayPoint } from '../../api/types.ts'
 
 type TextColor = 'red' | 'green' | 'gray'
 
@@ -79,6 +79,37 @@ export const bucketize = (points: IntradayPoint[], width: number): Bucket[] => {
   return buckets
 }
 
+const isHistoricalPoint = (point: ChartPoint): point is HistoricalPoint => 'date' in point
+
+/** 把历史日线均匀铺满图表宽度; 价格线性插值, 每列沿用最近交易日成交量. */
+const bucketizeHistorical = (points: HistoricalPoint[], width: number): Bucket[] => {
+  if (points.length === 0) {
+    return Array.from({ length: width }, () => ({
+      avgPrice: 0,
+      maxPrice: 0,
+      minPrice: 0,
+      lastPrice: 0,
+      volume: 0,
+    }))
+  }
+
+  return Array.from({ length: width }, (_, col) => {
+    const position = width <= 1 ? 0 : (col / (width - 1)) * (points.length - 1)
+    const left = points[Math.floor(position)]!
+    const right = points[Math.min(Math.ceil(position), points.length - 1)]!
+    const ratio = position - Math.floor(position)
+    const price = left.close + (right.close - left.close) * ratio
+    const nearest = points[Math.round(position)]!
+    return {
+      avgPrice: price,
+      maxPrice: Math.max(left.high, right.high),
+      minPrice: Math.min(left.low, right.low),
+      lastPrice: price,
+      volume: nearest.volume,
+    }
+  })
+}
+
 /**
  * Braille 点阵: 每字符 2 子列 × 4 子行. 子行 0-2 走 6 点码位 (位 = 1 << (r + c*3)),
  * 子行 3 用 8 点制的 dot7/dot8 (位 = 1 << (6 + c)), c 为子列奇偶 (0 左 / 1 右).
@@ -96,13 +127,22 @@ const braille = (mask: number): string => String.fromCharCode(0x2800 + mask)
  * 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
  */
 export const buildChartRows = (
-  points: IntradayPoint[],
+  points: ChartPoint[],
+  period: ChartPeriod,
   prevClose: number | null,
   width: number,
   priceHeight: number,
   volumeHeight: number,
 ): ChartCell[][] => {
-  const buckets = bucketize(points, width)
+  const historicalPoints = points.filter(isHistoricalPoint)
+  const buckets =
+    period === 'day'
+      ? bucketize(
+          points.filter((point): point is IntradayPoint => !isHistoricalPoint(point)),
+          width,
+        )
+      : bucketizeHistorical(historicalPoints, width)
+  const referencePrice = period === 'day' ? prevClose : (historicalPoints[0]?.close ?? null)
 
   // 价格范围 (含昨收); 全部无数据时兜底防除零
   let rangeMin = Infinity
@@ -112,9 +152,9 @@ export const buildChartRows = (
     rangeMin = Math.min(rangeMin, bucket.minPrice)
     rangeMax = Math.max(rangeMax, bucket.maxPrice)
   }
-  if (prevClose !== null) {
-    rangeMin = Math.min(rangeMin, prevClose)
-    rangeMax = Math.max(rangeMax, prevClose)
+  if (referencePrice !== null) {
+    rangeMin = Math.min(rangeMin, referencePrice)
+    rangeMax = Math.max(rangeMax, referencePrice)
   }
   if (!Number.isFinite(rangeMin)) {
     rangeMin = 0
@@ -129,11 +169,11 @@ export const buildChartRows = (
   // 折线整体颜色 (A股惯例): 收尾价 > 昨收红, < 绿, 平灰; 无昨收灰
   const filledLastPrices = buckets.map((b) => b.lastPrice).filter((price) => price > 0)
   const lineColor: TextColor =
-    prevClose === null
+    referencePrice === null
       ? 'gray'
-      : (filledLastPrices.at(-1) ?? 0) > prevClose
+      : (filledLastPrices.at(-1) ?? 0) > referencePrice
         ? 'red'
-        : (filledLastPrices.at(-1) ?? 0) < prevClose
+        : (filledLastPrices.at(-1) ?? 0) < referencePrice
           ? 'green'
           : 'gray'
 
@@ -182,8 +222,8 @@ export const buildChartRows = (
 
   // 昨收虚线 (灰, Braille 点, 2 子列开 1 子列停; 折线优先, 不落在折线已占的单元格)
   const dash = Array.from({ length: priceHeight }, () => new Uint16Array(width))
-  if (prevClose !== null) {
-    const y = yOf(prevClose)
+  if (referencePrice !== null) {
+    const y = yOf(referencePrice)
     const cellRow = Math.floor(y / 4)
     for (let s = 0; s < subCols; s++) {
       if (s % 3 === 2) continue
@@ -221,7 +261,7 @@ export const buildChartRows = (
   // 组装成交量区单元格: 由各子行位掩码合成 Braille 字符; 颜色按该桶相对上一桶涨跌
   // (分钟方向, 同股票软件红绿交替), 首桶回退昨收, 平盘灰
   const barColor: (TextColor | undefined)[] = Array.from({ length: width }, () => undefined)
-  let prevBarPrice: number | null = prevClose
+  let prevBarPrice: number | null = referencePrice
   for (let col = 0; col < width; col++) {
     const bucket = buckets[col]!
     if (bucket.lastPrice <= 0) continue
@@ -248,9 +288,19 @@ export const buildChartRows = (
   const putAxis = (col: number, text: string) => {
     for (let i = 0; i < text.length && col + i < width; i++) axis[col + i] = { ch: text[i]!, color: 'gray' }
   }
-  putAxis(0, '09:30')
-  putAxis(Math.floor(width / 2) - 5, '11:30/13:00')
-  putAxis(width - 5, '15:00')
+  if (period === 'day') {
+    putAxis(0, '09:30')
+    putAxis(Math.floor(width / 2) - 5, '11:30/13:00')
+    putAxis(width - 5, '15:00')
+  } else if (historicalPoints.length > 0) {
+    const dateLabel = (point: HistoricalPoint) => point.date.slice(5)
+    const first = dateLabel(historicalPoints[0]!)
+    const middle = dateLabel(historicalPoints[Math.floor((historicalPoints.length - 1) / 2)]!)
+    const last = dateLabel(historicalPoints.at(-1)!)
+    putAxis(0, first)
+    putAxis(Math.floor((width - middle.length) / 2), middle)
+    putAxis(width - last.length, last)
+  }
 
   return rows
 }

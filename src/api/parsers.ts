@@ -1,4 +1,4 @@
-import type { IntradayPoint, Quote } from './types.ts'
+import type { HistoricalPoint, IntradayPoint, Quote } from './types.ts'
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
@@ -62,6 +62,34 @@ export function parseIntradayResponse(value: unknown, code: string): IntradayPoi
     if (!Number.isFinite(price) || price <= 0) continue
     const volume = Number.parseFloat(volumeText)
     points.push({ time, price, volume: Number.isFinite(volume) ? volume : 0 })
+  }
+  return points
+}
+
+/** 解析腾讯前复权日线响应; 行格式为日期、开、收、高、低、成交量. */
+export function parseHistoricalResponse(value: unknown, code: string): HistoricalPoint[] {
+  const root = asRecord(value)
+  const data = asRecord(root?.['data'])
+  const stock = asRecord(data?.[code])
+  const rows = stock?.['qfqday'] ?? stock?.['day']
+  if (!Array.isArray(rows)) return []
+
+  const points: HistoricalPoint[] = []
+  const parseNumber = (field: unknown): number => {
+    const parsed = Number.parseFloat(typeof field === 'string' || typeof field === 'number' ? String(field) : '')
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  for (const row of rows) {
+    if (!Array.isArray(row)) continue
+    const [date, openText, closeText, highText, lowText, volumeText] = row
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+    const open = parseNumber(openText)
+    const close = parseNumber(closeText)
+    const high = parseNumber(highText)
+    const low = parseNumber(lowText)
+    const volume = parseNumber(volumeText)
+    if ([open, close, high, low].some((field) => field <= 0)) continue
+    points.push({ date, open, close, high, low, volume: Math.max(0, volume) })
   }
   return points
 }
