@@ -120,10 +120,11 @@ const DOT_BIT = (c: number, r: number): number => (r < 3 ? 1 << (r + c * 3) : 1 
 const braille = (mask: number): string => String.fromCharCode(0x2800 + mask)
 
 /**
- * 生成分时图字符矩阵: 价格折线 (Braille 2×4 点阵, 垂直 4 倍 + 水平 2 倍分辨率; 子列间按相邻桶
- * lastPrice 线性插值, 陡坡补垂直间隙; 整线按收尾价 vs 昨收红绿灰) + 昨收虚线 (Braille 点,
- * 2 子列开 1 子列停, 灰, 折线优先) + 成交量柱 (Braille 点阵, 双子列整列填, 高度 4×volumeHeight
- * 档, 按各桶相对上一桶涨跌红绿, 首桶回退昨收, 平盘灰) + 底部时间轴行.
+ * 生成行情图字符矩阵: 价格折线 (Braille 2×4 点阵, 垂直 4 倍 + 水平 2 倍分辨率; 子列间按相邻桶
+ * lastPrice 线性插值, 陡坡补垂直间隙; 分时整线按现价 vs 昨收红绿灰, 历史按相邻价格段红绿灰)
+ * + 分时昨收虚线 (Braille 点, 2 子列开 1 子列停, 灰, 折线优先) + 成交量柱 (Braille 点阵,
+ * 双子列整列填, 高度 4×volumeHeight 档, 按各桶相对上一桶涨跌红绿, 首桶回退比较基准, 平盘灰)
+ * + 底部时间轴行.
  * 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
  */
 export const buildChartRows = (params: {
@@ -143,9 +144,12 @@ export const buildChartRows = (params: {
           width,
         )
       : bucketizeHistorical(historicalPoints, width)
+  // 历史图不把首日收盘价画成横贯全图的参考线；否则首尾同价时，
+  // 参考线会把 5 日折线视觉上“闭合”成三角形。首日价格仍用于首根量柱的颜色比较。
   const referencePrice = period === 'day' ? prevClose : historicalPoints[0]?.close
+  const referenceLinePrice = period === 'day' ? prevClose : undefined
 
-  // 价格范围 (含昨收); 全部无数据时兜底防除零
+  // 价格范围 (分时图含昨收); 全部无数据时兜底防除零
   let rangeMin = Infinity
   let rangeMax = -Infinity
   for (const bucket of buckets) {
@@ -153,9 +157,9 @@ export const buildChartRows = (params: {
     rangeMin = Math.min(rangeMin, bucket.minPrice)
     rangeMax = Math.max(rangeMax, bucket.maxPrice)
   }
-  if (referencePrice !== undefined) {
-    rangeMin = Math.min(rangeMin, referencePrice)
-    rangeMax = Math.max(rangeMax, referencePrice)
+  if (referenceLinePrice !== undefined) {
+    rangeMin = Math.min(rangeMin, referenceLinePrice)
+    rangeMax = Math.max(rangeMax, referenceLinePrice)
   }
   if (!Number.isFinite(rangeMin)) {
     rangeMin = 0
@@ -166,17 +170,23 @@ export const buildChartRows = (params: {
   const subRows = priceHeight * 4
   const subCols = width * 2
   const yOf = (price: number) => Math.round(((rangeMax - price) / (rangeMax - rangeMin)) * (subRows - 1))
+  const compareColor = (price: number, baseline: number | undefined): TextColor =>
+    baseline === undefined ? 'gray' : price > baseline ? 'red' : price < baseline ? 'green' : 'gray'
 
-  // 折线整体颜色 (A股惯例): 收尾价 > 昨收红, < 绿, 平灰; 无昨收灰
+  // 分时图沿用整线相对昨收的颜色；历史图按每段价格方向着色，避免首尾平盘时整图变灰。
   const filledLastPrices = buckets.map((b) => b.lastPrice).filter((price) => price > 0)
-  const lineColor: TextColor =
-    referencePrice === undefined
-      ? 'gray'
-      : (filledLastPrices.at(-1) ?? 0) > referencePrice
-        ? 'red'
-        : (filledLastPrices.at(-1) ?? 0) < referencePrice
-          ? 'green'
-          : 'gray'
+  const intradayLineColor = compareColor(filledLastPrices.at(-1) ?? 0, referencePrice)
+  const lineColors = buckets.map((bucket, col): TextColor => {
+    if (period === 'day') return intradayLineColor
+    if (bucket.lastPrice <= 0) return 'gray'
+
+    // 当前 Braille 单元格包含从本桶朝下一桶延伸的半段，优先按下一桶方向着色。
+    const nextPrice = buckets[col + 1]?.lastPrice
+    if (nextPrice !== undefined && nextPrice > 0) return compareColor(nextPrice, bucket.lastPrice)
+
+    const previousPrice = buckets[col - 1]?.lastPrice
+    return compareColor(bucket.lastPrice, previousPrice !== undefined && previousPrice > 0 ? previousPrice : undefined)
+  })
 
   const rows: ChartCell[][] = Array.from({ length: priceHeight + volumeHeight + 1 }, () =>
     Array.from({ length: width }, () => ({ ch: ' ', color: undefined })),
@@ -221,10 +231,10 @@ export const buildChartRows = (params: {
     prevY = y
   }
 
-  // 昨收虚线 (灰, Braille 点, 2 子列开 1 子列停; 折线优先, 不落在折线已占的单元格)
+  // 仅分时图绘制昨收虚线；历史首日价格只作比较基准，不参与图形闭合。
   const dash = Array.from({ length: priceHeight }, () => new Uint16Array(width))
-  if (referencePrice !== undefined) {
-    const y = yOf(referencePrice)
+  if (referenceLinePrice !== undefined) {
+    const y = yOf(referenceLinePrice)
     const cellRow = Math.floor(y / 4)
     for (let s = 0; s < subCols; s++) {
       if (s % 3 === 2) continue
@@ -240,7 +250,7 @@ export const buildChartRows = (params: {
     for (let c = 0; c < width; c++) {
       const mask = line[r]![c]! | dash[r]![c]!
       if (mask === 0) continue
-      rows[r]![c] = { ch: braille(mask), color: line[r]![c]! !== 0 ? lineColor : 'gray' }
+      rows[r]![c] = { ch: braille(mask), color: line[r]![c]! !== 0 ? lineColors[c] : 'gray' }
     }
   }
 
