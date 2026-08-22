@@ -294,24 +294,48 @@ export const buildChartRows = (params: {
     }
   }
 
-  // 时间轴行 (灰)
-  const axis = rows[priceHeight + volumeHeight]!
-  const putAxis = (col: number, text: string) => {
-    for (let i = 0; i < text.length && col + i < width; i++) axis[col + i] = { ch: text[i]!, color: 'gray' }
-  }
+  // 时间轴节点同时驱动标签和竖向虚线，确保两者严格对齐。
+  const axisTicks: { col: number; labelCol: number; label: string }[] = []
   if (period === 'day') {
-    putAxis(0, '09:30')
-    putAxis(Math.floor(width / 2) - 5, '11:30/13:00')
-    putAxis(width - 5, '15:00')
+    const middleLabel = '11:30/13:00'
+    axisTicks.push(
+      { col: 0, labelCol: 0, label: '09:30' },
+      {
+        col: Math.floor(width / 2),
+        labelCol: Math.max(0, Math.floor((width - middleLabel.length) / 2)),
+        label: middleLabel,
+      },
+      { col: width - 1, labelCol: Math.max(0, width - 5), label: '15:00' },
+    )
   } else if (historicalPoints.length > 0) {
     const dateLabel = (point: HistoricalPoint) => point.date.slice(5)
     const first = dateLabel(historicalPoints[0]!)
     const middle = dateLabel(historicalPoints[Math.floor((historicalPoints.length - 1) / 2)]!)
     const last = dateLabel(historicalPoints.at(-1)!)
-    putAxis(0, first)
-    putAxis(Math.floor((width - middle.length) / 2), middle)
-    putAxis(width - last.length, last)
+    axisTicks.push(
+      { col: 0, labelCol: 0, label: first },
+      {
+        col: Math.floor(width / 2),
+        labelCol: Math.max(0, Math.floor((width - middle.length) / 2)),
+        label: middle,
+      },
+      { col: width - 1, labelCol: Math.max(0, width - last.length), label: last },
+    )
   }
+
+  // 从时间节点沿 Y 轴绘制灰色竖向虚线；只填空白单元格，不覆盖价格线或成交量柱。
+  for (const { col } of axisTicks) {
+    for (let r = 0; r < priceHeight + volumeHeight; r++) {
+      if (rows[r]![col]!.ch === ' ') rows[r]![col] = { ch: '┊', color: 'gray' }
+    }
+  }
+
+  // 时间轴行 (灰)
+  const axis = rows[priceHeight + volumeHeight]!
+  const putAxis = (col: number, text: string) => {
+    for (let i = 0; i < text.length && col + i < width; i++) axis[col + i] = { ch: text[i]!, color: 'gray' }
+  }
+  for (const tick of axisTicks) putAxis(tick.labelCol, tick.label)
 
   return rows
 }
