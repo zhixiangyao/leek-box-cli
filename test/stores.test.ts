@@ -110,9 +110,9 @@ test('股票详情忽略先前打开代码已完成的请求', async () => {
   })
 
   store.getState().open('sh600000', '浦发银行')
-  const pendingOld = store.getState().refreshChart('sh600000', 'day')
+  const pendingOld = store.getState().refreshChart('sh600000', 'intraday')
   store.getState().open('sz000001', '平安银行')
-  await store.getState().refreshChart('sz000001', 'day')
+  await store.getState().refreshChart('sz000001', 'intraday')
   resolveOld([{ time: '0930', price: 10, volume: 1 }])
   await pendingOld
 

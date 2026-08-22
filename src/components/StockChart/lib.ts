@@ -1,4 +1,4 @@
-import type { ChartPeriod, ChartPoint, HistoricalPoint, IntradayPoint } from '../../api/types.ts'
+import type { ChartPeriod, ChartPoint, FiveDayPoint, HistoricalPoint, IntradayPoint } from '../../api/types.ts'
 
 type TextColor = 'red' | 'green' | 'gray'
 
@@ -29,6 +29,8 @@ const tradingMinute = (time: string): number | undefined => {
  * 成交量 (接口为累计值) 转分钟增量, 空桶/增量小于等于 0 计 0.
  */
 export const bucketize = (points: IntradayPoint[], width: number): Bucket[] => {
+  if (width <= 0) return []
+
   const raw = Array.from({ length: width }, () => ({
     sum: 0,
     count: 0,
@@ -80,8 +82,42 @@ export const bucketize = (points: IntradayPoint[], width: number): Bucket[] => {
 }
 
 const isHistoricalPoint = (point: ChartPoint): point is HistoricalPoint => 'date' in point
+const isFiveDayPoint = (point: ChartPoint): point is FiveDayPoint => 'sessionDate' in point
+const isIntradayPoint = (point: ChartPoint): point is IntradayPoint =>
+  !isHistoricalPoint(point) && !isFiveDayPoint(point)
 
-/** 把历史日线均匀铺满图表宽度; 价格线性插值, 每列沿用最近交易日成交量. */
+/** 把五个交易日分别映射到等宽分段; 每日独立计算累计成交量增量 */
+const bucketizeFiveDay = (points: FiveDayPoint[], width: number): Bucket[] => {
+  const sessions = new Map<string, FiveDayPoint[]>()
+  for (const point of points) {
+    const session = sessions.get(point.sessionDate) ?? []
+    session.push(point)
+    sessions.set(point.sessionDate, session)
+  }
+  const orderedSessions = [...sessions.entries()].sort(([left], [right]) => left.localeCompare(right))
+  if (orderedSessions.length === 0) {
+    return Array.from({ length: width }, () => ({
+      avgPrice: 0,
+      maxPrice: 0,
+      minPrice: 0,
+      lastPrice: 0,
+      volume: 0,
+    }))
+  }
+
+  const buckets: Bucket[] = []
+  for (let index = 0; index < orderedSessions.length; index++) {
+    const start = Math.floor((index / orderedSessions.length) * width)
+    const end = Math.floor(((index + 1) / orderedSessions.length) * width)
+    const segmentWidth = end - start
+    if (segmentWidth <= 0) continue
+    const sessionPoints = orderedSessions[index]![1].sort((left, right) => left.time.localeCompare(right.time))
+    buckets.push(...bucketize(sessionPoints, segmentWidth))
+  }
+  return buckets
+}
+
+/** 把历史 K 线均匀铺满图表宽度; 收盘价线性插值, 每列沿用最近 K 线成交量 */
 const bucketizeHistorical = (points: HistoricalPoint[], width: number): Bucket[] => {
   if (points.length === 0) {
     return Array.from({ length: width }, () => ({
@@ -136,18 +172,23 @@ export const buildChartRows = (params: {
   volumeHeight: number
 }): ChartCell[][] => {
   const { points, period, prevClose, width, priceHeight, volumeHeight } = params
+  const intradayPoints = points.filter(isIntradayPoint)
+  const fiveDayPoints = points.filter(isFiveDayPoint)
   const historicalPoints = points.filter(isHistoricalPoint)
-  const buckets =
-    period === 'day'
-      ? bucketize(
-          points.filter((point): point is IntradayPoint => !isHistoricalPoint(point)),
-          width,
-        )
+  const intradayChart = period === 'intraday'
+  const fiveDayChart = period === 'five-day'
+  const buckets = intradayChart
+    ? bucketize(intradayPoints, width)
+    : fiveDayChart
+      ? bucketizeFiveDay(fiveDayPoints, width)
       : bucketizeHistorical(historicalPoints, width)
-  // 历史图不把首日收盘价画成横贯全图的参考线；否则首尾同价时，
-  // 参考线会把 5 日折线视觉上“闭合”成三角形。首日价格仍用于首根量柱的颜色比较。
-  const referencePrice = period === 'day' ? prevClose : historicalPoints[0]?.close
-  const referenceLinePrice = period === 'day' ? prevClose : undefined
+  // K 线与五日图不绘制全宽基准线，避免走势被视觉上“闭合”；基准价只用于首根量柱颜色。
+  const referencePrice = intradayChart
+    ? prevClose
+    : fiveDayChart
+      ? fiveDayPoints[0]?.prevClose
+      : historicalPoints[0]?.close
+  const referenceLinePrice = intradayChart ? prevClose : undefined
 
   // 价格范围 (分时图含昨收); 全部无数据时兜底防除零
   let rangeMin = Infinity
@@ -173,11 +214,11 @@ export const buildChartRows = (params: {
   const compareColor = (price: number, baseline: number | undefined): TextColor =>
     baseline === undefined ? 'gray' : price > baseline ? 'red' : price < baseline ? 'green' : 'gray'
 
-  // 分时图沿用整线相对昨收的颜色；历史图按每段价格方向着色，避免首尾平盘时整图变灰。
+  // 当日分时沿用整线相对昨收的颜色；五日与 K 线按每段价格方向着色。
   const filledLastPrices = buckets.map((b) => b.lastPrice).filter((price) => price > 0)
   const intradayLineColor = compareColor(filledLastPrices.at(-1) ?? 0, referencePrice)
   const lineColors = buckets.map((bucket, col): TextColor => {
-    if (period === 'day') return intradayLineColor
+    if (intradayChart) return intradayLineColor
     if (bucket.lastPrice <= 0) return 'gray'
 
     // 当前 Braille 单元格包含从本桶朝下一桶延伸的半段，优先按下一桶方向着色。
@@ -296,7 +337,9 @@ export const buildChartRows = (params: {
 
   // 时间轴节点同时驱动标签和竖向虚线，确保两者严格对齐。
   const axisTicks: { col: number; labelCol: number; label: string }[] = []
-  if (period === 'day') {
+  const centeredLabelCol = (col: number, label: string) =>
+    Math.max(0, Math.min(width - label.length, col - Math.floor(label.length / 2)))
+  if (intradayChart) {
     const middleLabel = '11:30/13:00'
     axisTicks.push(
       { col: 0, labelCol: 0, label: '09:30' },
@@ -307,8 +350,20 @@ export const buildChartRows = (params: {
       },
       { col: width - 1, labelCol: Math.max(0, width - 5), label: '15:00' },
     )
+  } else if (fiveDayChart && fiveDayPoints.length > 0) {
+    const sessionDates = [...new Set(fiveDayPoints.map((point) => point.sessionDate))].sort()
+    for (let index = 0; index < sessionDates.length; index++) {
+      const col = Math.min(width - 1, Math.floor(((index + 0.5) / sessionDates.length) * width))
+      const label = sessionDates[index]!.slice(5)
+      axisTicks.push({ col, labelCol: centeredLabelCol(col, label), label })
+    }
   } else if (historicalPoints.length > 0) {
-    const dateLabel = (point: HistoricalPoint) => point.date.slice(5)
+    const dateLabel = (point: HistoricalPoint) => {
+      if (period === 'year') return point.date.slice(0, 4)
+      if (period === 'month') return point.date.slice(0, 7)
+      if (period === 'week') return point.date.slice(2)
+      return point.date.slice(5)
+    }
     const first = dateLabel(historicalPoints[0]!)
     const middle = dateLabel(historicalPoints[Math.floor((historicalPoints.length - 1) / 2)]!)
     const last = dateLabel(historicalPoints.at(-1)!)

@@ -21,7 +21,7 @@ type Props = {
   bright?: boolean
 }
 
-/** 股票趋势图: 分时/历史价格折线 + 参考价虚线 + 成交量柱 + 时间轴 */
+/** 股票趋势图: 分时/五日/K 线收盘趋势 + 分时参考价虚线 + 成交量柱 + 时间轴 */
 export default function StockChart({
   points,
   period,

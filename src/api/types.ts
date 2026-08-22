@@ -37,8 +37,15 @@ export type IntradayPoint = {
   /** HHMM */
   time: string
   price: number
-  /** 累计成交量 (手) */
+  /** 当日累计成交量 (手) */
   volume: number
+}
+
+export type FiveDayPoint = IntradayPoint & {
+  /** YYYY-MM-DD */
+  sessionDate: string
+  /** 当日昨收 */
+  prevClose: number
 }
 
 export type HistoricalPoint = {
@@ -48,9 +55,12 @@ export type HistoricalPoint = {
   high: number
   low: number
   close: number
-  /** 当日成交量 (手) */
+  /** 当前 K 线周期内成交量 (手) */
   volume: number
 }
 
-export type ChartPeriod = 'day' | 'week' | 'month' | 'half-year' | 'year'
-export type ChartPoint = IntradayPoint | HistoricalPoint
+export type KlinePeriod = 'day' | 'week' | 'month' | 'year'
+export type KlineGranularity = Exclude<KlinePeriod, 'year'>
+export type KlineAdjustment = 'qfq' | 'hfq'
+export type ChartPeriod = 'intraday' | 'five-day' | KlinePeriod
+export type ChartPoint = IntradayPoint | FiveDayPoint | HistoricalPoint
