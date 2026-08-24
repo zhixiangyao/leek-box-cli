@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 import { fetchQuotes, normalizeCode, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
-import { addStock, loadWatchlist, type WatchEntry } from '../lib/watchlist.ts'
+import { addStock, loadStocks, type StockEntry } from '../lib/settings.ts'
 import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
 
 export type AddStockStep =
@@ -26,9 +26,9 @@ type AddStockState = {
 }
 
 export type AddStockDependencies = {
-  addStock: (entry: WatchEntry) => Promise<{ status: 'added' | 'duplicate' }>
+  addStock: (entry: StockEntry) => Promise<{ status: 'added' | 'duplicate' }>
   fetchQuotes: (codes: string[]) => Promise<Quote[]>
-  loadWatchlist: () => Promise<WatchEntry[]>
+  loadStocks: () => Promise<StockEntry[]>
   normalizeCode: (input: string) => string | undefined
   now: () => string
 }
@@ -36,7 +36,7 @@ export type AddStockDependencies = {
 const defaultDependencies: AddStockDependencies = {
   addStock,
   fetchQuotes,
-  loadWatchlist,
+  loadStocks,
   normalizeCode,
   now: () => new Date().toISOString(),
 }
@@ -73,7 +73,7 @@ export function createAddStockStore(dependencies: AddStockDependencies = default
       set({ step: { type: 'checking', code } })
 
       try {
-        const existing = (await dependencies.loadWatchlist()).find((entry) => entry.code === code)
+        const existing = (await dependencies.loadStocks()).find((entry) => entry.code === code)
         if (isStale(currentGeneration)) return
         if (existing) {
           set({ step: { type: 'already-exists', code, name: existing.name } })

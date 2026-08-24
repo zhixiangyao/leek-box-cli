@@ -98,7 +98,7 @@ export function parseFiveDayResponse(value: unknown, code: string): FiveDayPoint
     .flatMap((session) => session.points)
 }
 
-/** 解析腾讯复权 K 线响应; 行格式为日期、开、收、高、低、成交量 */
+/** 解析腾讯复权 K 线响应; 行格式为日期, 开, 收, 高, 低, 成交量 */
 export function parseHistoricalResponse(
   value: unknown,
   code: string,

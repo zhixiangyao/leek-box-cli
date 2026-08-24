@@ -3,11 +3,9 @@ import { useInput } from 'ink'
 import type { ChartPeriod } from '../../../api/types.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
 import { useMenuStore } from '../../../stores/useMenuStore.ts'
+import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockDetailStore } from '../../../stores/useStockDetailStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
-
-const MINUTE_POLL_INTERVAL_MS = 30_000
-const KLINE_POLL_INTERVAL_MS = 5 * 60_000
 
 export const CHART_PERIOD_OPTIONS = [
   { key: '1', value: 'intraday', label: '分时' },
@@ -24,6 +22,8 @@ export function useStockDetailDialog() {
   const status = useStockDetailStore((state) => state.status)
   const points = useStockDetailStore((state) => state.points)
   const detailError = useStockDetailStore((state) => state.errorMessage)
+  const minuteChartPollIntervalMs = useSettingsStore((state) => state.minuteChartPollIntervalMs)
+  const klinePollIntervalMs = useSettingsStore((state) => state.klinePollIntervalMs)
   const menuOpen = useMenuStore((state) => state.open)
   const quote = useStockListStore((state) => {
     if (state.step.type !== 'table') return undefined
@@ -46,7 +46,7 @@ export function useStockDetailDialog() {
     },
     {
       enabled: stock !== undefined,
-      intervalMs: period === 'intraday' || period === 'five-day' ? MINUTE_POLL_INTERVAL_MS : KLINE_POLL_INTERVAL_MS,
+      intervalMs: period === 'intraday' || period === 'five-day' ? minuteChartPollIntervalMs : klinePollIntervalMs,
       restartKey: stock ? `${stock.code}:${period}` : undefined,
     },
   )

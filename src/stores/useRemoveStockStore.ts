@@ -1,14 +1,14 @@
 import { create } from 'zustand'
 
 import { errorMessage } from '../lib/error.ts'
-import { loadWatchlist, removeStock, type WatchEntry } from '../lib/watchlist.ts'
+import { loadStocks, removeStock, type StockEntry } from '../lib/settings.ts'
 import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
 
 export type RemoveStockStep =
   | { type: 'loading' }
-  | { type: 'select'; entries: WatchEntry[] }
-  | { type: 'confirm'; entry: WatchEntry }
-  | { type: 'removing'; entry: WatchEntry }
+  | { type: 'select'; entries: StockEntry[] }
+  | { type: 'confirm'; entry: StockEntry }
+  | { type: 'removing'; entry: StockEntry }
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
@@ -24,11 +24,11 @@ type RemoveStockState = {
 }
 
 export type RemoveStockDependencies = {
-  loadWatchlist: () => Promise<WatchEntry[]>
-  removeStock: (code: string) => Promise<WatchEntry | undefined>
+  loadStocks: () => Promise<StockEntry[]>
+  removeStock: (code: string) => Promise<StockEntry | undefined>
 }
 
-const defaultDependencies: RemoveStockDependencies = { loadWatchlist, removeStock }
+const defaultDependencies: RemoveStockDependencies = { loadStocks, removeStock }
 const FRESH_INPUT: InputState = { error: undefined, resetToken: 0 }
 
 export function createRemoveStockStore(dependencies: RemoveStockDependencies = defaultDependencies) {
@@ -44,7 +44,7 @@ export function createRemoveStockStore(dependencies: RemoveStockDependencies = d
       const currentGeneration = ++generation
       set({ step: { type: 'loading' }, indexInput: FRESH_INPUT, confirmInput: FRESH_INPUT })
       try {
-        const entries = await dependencies.loadWatchlist()
+        const entries = await dependencies.loadStocks()
         if (isStale(currentGeneration)) return
         set({
           step:

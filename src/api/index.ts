@@ -6,6 +6,7 @@
  * - 复权 K 线: https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=... (JSON)
  */
 
+import { useSettingsStore } from '../stores/useSettingsStore.ts'
 import { parseFiveDayResponse, parseHistoricalResponse, parseIntradayResponse, parseQuoteText } from './parsers.ts'
 import type {
   FiveDayPoint,
@@ -36,11 +37,35 @@ export type HistoricalRequest = {
   signal?: AbortSignal
 }
 
-const FETCH_TIMEOUT_MS = 8000
+const abortableDelay = (milliseconds: number, signal?: AbortSignal) => {
+  if (milliseconds <= 0) return Promise.resolve()
+  if (signal?.aborted) return Promise.reject(signal.reason)
 
-const requestSignal = (signal?: AbortSignal) => {
-  const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT_MS)
-  return signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', handleAbort)
+      resolve()
+    }, milliseconds)
+    const handleAbort = () => {
+      clearTimeout(timer)
+      reject(signal?.reason)
+    }
+    signal?.addEventListener('abort', handleAbort, { once: true })
+  })
+}
+
+const withRequestTiming = async <Result>(
+  signal: AbortSignal | undefined,
+  request: (signal: AbortSignal) => Promise<Result>,
+): Promise<Result> => {
+  const { requestTimeoutMs, minimumRequestDurationMs } = useSettingsStore.getState()
+  const timeoutSignal = AbortSignal.timeout(requestTimeoutMs)
+  const requestAbortSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+  const startedAt = Date.now()
+
+  const result = await request(requestAbortSignal)
+  await abortableDelay(minimumRequestDurationMs - (Date.now() - startedAt), signal)
+  return result
 }
 
 /** 股票代码规范化 */
@@ -67,32 +92,38 @@ export function normalizeCode(input: string): string | undefined {
 export async function fetchQuotes(codes: string[], signal?: AbortSignal): Promise<Quote[]> {
   if (codes.length === 0) return []
 
-  const response = await fetch(`https://qt.gtimg.cn/q=${codes.join(',')}`, {
-    signal: requestSignal(signal),
-  })
-  if (!response.ok) throw new Error(`行情接口请求失败: HTTP ${response.status}`)
+  return withRequestTiming(signal, async (requestSignal) => {
+    const response = await fetch(`https://qt.gtimg.cn/q=${codes.join(',')}`, {
+      signal: requestSignal,
+    })
+    if (!response.ok) throw new Error(`行情接口请求失败: HTTP ${response.status}`)
 
-  const buffer = await response.arrayBuffer()
-  const text = new TextDecoder('gbk').decode(buffer)
-  return parseQuoteText(text)
+    const buffer = await response.arrayBuffer()
+    const text = new TextDecoder('gbk').decode(buffer)
+    return parseQuoteText(text)
+  })
 }
 
 /** 拉取单只股票今日分时; 非交易时段或无效代码返回空数组, 15:00 后补点会被裁剪 */
 export async function fetchIntraday(code: string, signal?: AbortSignal): Promise<IntradayPoint[]> {
-  const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=${code}`, {
-    signal: requestSignal(signal),
+  return withRequestTiming(signal, async (requestSignal) => {
+    const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=${code}`, {
+      signal: requestSignal,
+    })
+    if (!response.ok) throw new Error(`分时接口请求失败: HTTP ${response.status}`)
+    return parseIntradayResponse(await response.json(), code)
   })
-  if (!response.ok) throw new Error(`分时接口请求失败: HTTP ${response.status}`)
-  return parseIntradayResponse(await response.json(), code)
 }
 
 /** 拉取最近五个交易日的分钟走势 */
 export async function fetchFiveDay(code: string, signal?: AbortSignal): Promise<FiveDayPoint[]> {
-  const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/day/query?code=${code}`, {
-    signal: requestSignal(signal),
+  return withRequestTiming(signal, async (requestSignal) => {
+    const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/day/query?code=${code}`, {
+      signal: requestSignal,
+    })
+    if (!response.ok) throw new Error(`五日行情接口请求失败: HTTP ${response.status}`)
+    return parseFiveDayResponse(await response.json(), code)
   })
-  if (!response.ok) throw new Error(`五日行情接口请求失败: HTTP ${response.status}`)
-  return parseFiveDayResponse(await response.json(), code)
 }
 
 const aggregateYearly = (monthly: HistoricalPoint[]): HistoricalPoint[] => {
@@ -115,15 +146,17 @@ const aggregateYearly = (monthly: HistoricalPoint[]): HistoricalPoint[] => {
 
 /** 拉取指定粒度的复权 K 线; 年 K 使用后复权月 K 在本地聚合, 避免高分红股票早期前复权价为负 */
 export async function fetchHistorical(code: string, request: HistoricalRequest): Promise<HistoricalPoint[]> {
-  const granularity: KlineGranularity = request.period === 'year' ? 'month' : request.period
-  const adjustment: KlineAdjustment = request.period === 'year' ? 'hfq' : 'qfq'
-  const requestedBars = request.period === 'year' ? request.barCount * 12 : request.barCount
-  const param = encodeURIComponent(`${code},${granularity},,,${requestedBars},${adjustment}`)
-  const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param}`, {
-    signal: requestSignal(request.signal),
-  })
-  if (!response.ok) throw new Error(`K 线行情接口请求失败: HTTP ${response.status}`)
+  return withRequestTiming(request.signal, async (requestSignal) => {
+    const granularity: KlineGranularity = request.period === 'year' ? 'month' : request.period
+    const adjustment: KlineAdjustment = request.period === 'year' ? 'hfq' : 'qfq'
+    const requestedBars = request.period === 'year' ? request.barCount * 12 : request.barCount
+    const param = encodeURIComponent(`${code},${granularity},,,${requestedBars},${adjustment}`)
+    const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param}`, {
+      signal: requestSignal,
+    })
+    if (!response.ok) throw new Error(`K 线行情接口请求失败: HTTP ${response.status}`)
 
-  const points = parseHistoricalResponse(await response.json(), code, granularity, adjustment)
-  return (request.period === 'year' ? aggregateYearly(points) : points).slice(-request.barCount)
+    const points = parseHistoricalResponse(await response.json(), code, granularity, adjustment)
+    return (request.period === 'year' ? aggregateYearly(points) : points).slice(-request.barCount)
+  })
 }

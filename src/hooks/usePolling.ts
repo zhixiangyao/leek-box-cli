@@ -13,8 +13,8 @@ type PollingControl = {
 }
 
 /**
- * 实例级自调度轮询. 每轮任务结束后才开始计时, 组件卸载或 restartKey
- * 变化时会取消当前请求和定时器, 避免不同页面实例共享生命周期状态.
+ * 实例级自调度轮询. intervalMs 表示相邻任务的最小启动间隔. 组件卸载或
+ * restartKey 变化时会取消当前请求和定时器, 避免不同页面实例共享状态.
  */
 export function usePolling(
   task: (signal: AbortSignal) => Promise<void>,
@@ -48,16 +48,17 @@ export function usePolling(
       timer = undefined
     }
 
-    const schedule = () => {
+    const schedule = (delayMs = intervalRef.current) => {
       if (!active || inFlight || timer) return
       timer = setTimeout(() => {
         timer = undefined
         startRun()
-      }, intervalRef.current)
+      }, delayMs)
     }
 
     const run = async () => {
       if (!active || inFlight) return
+      const startedAt = Date.now()
       inFlight = true
       controller = new AbortController()
       const currentController = controller
@@ -68,7 +69,7 @@ export function usePolling(
       } finally {
         if (controller === currentController) controller = undefined
         inFlight = false
-        schedule()
+        schedule(Math.max(0, intervalRef.current - (Date.now() - startedAt)))
       }
     }
 

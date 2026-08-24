@@ -3,13 +3,9 @@ import { useEffect, useRef } from 'react'
 
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
+import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockDetailStore } from '../../../stores/useStockDetailStore.ts'
-import {
-  MAX_POLL_INTERVAL_MS,
-  MIN_POLL_INTERVAL_MS,
-  POLL_INTERVAL_STEP_MS,
-  useStockListStore,
-} from '../../../stores/useStockListStore.ts'
+import { useStockListStore } from '../../../stores/useStockListStore.ts'
 import { visibleWindow } from '../lib.ts'
 
 export function useStockList() {
@@ -18,7 +14,7 @@ export function useStockList() {
   const step = useStockListStore((state) => state.step)
   const selectedCode = useStockListStore((state) => state.selectedCode)
   const scrollOffset = useStockListStore((state) => state.scrollOffset)
-  const pollIntervalMs = useStockListStore((state) => state.pollIntervalMs)
+  const pollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
   const moveSelection = useStockListStore((state) => state.moveSelection)
   const overlayOpen = useOverlayOpen()
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
@@ -32,10 +28,8 @@ export function useStockList() {
     intervalMs: pollIntervalMs,
   })
 
-  const adjustPollInterval = (deltaMs: number) => {
-    const current = useStockListStore.getState().pollIntervalMs
-    const next = Math.min(MAX_POLL_INTERVAL_MS, Math.max(MIN_POLL_INTERVAL_MS, current + deltaMs))
-    if (next !== current) useStockListStore.setState({ pollIntervalMs: next })
+  const adjustPollInterval = (direction: 1 | -1) => {
+    useSettingsStore.getState().adjustNumericSetting('quotePollIntervalMs', direction)
   }
 
   useInput(
@@ -53,9 +47,9 @@ export function useStockList() {
       } else if (input === 'r') {
         refresh()
       } else if (input === '-') {
-        adjustPollInterval(-POLL_INTERVAL_STEP_MS)
+        adjustPollInterval(-1)
       } else if (input === '+') {
-        adjustPollInterval(POLL_INTERVAL_STEP_MS)
+        adjustPollInterval(1)
       }
     },
     { isActive: !overlayOpen },

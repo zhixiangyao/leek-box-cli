@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 
 import AddStock from '../screens/AddStock/index.tsx'
 import RemoveStock from '../screens/RemoveStock/index.tsx'
+import Settings from '../screens/Settings/index.tsx'
 import StockList from '../screens/StockList/index.tsx'
 
 type ScreenComponentProps = { title: string; hint: string }
@@ -35,6 +36,13 @@ export const SCREEN_REGISTRY = {
     description: '删除自选股',
     hint: '菜单(esc)   退出(q)',
     menuLabel: '删除自选股',
+  },
+  settings: {
+    Component: Settings,
+    title: '设置',
+    description: '配置主题与请求参数',
+    hint: '菜单(esc)   选择(↑/↓)   调整(←/→/enter)   默认值(d)   退出(q)',
+    menuLabel: '设置',
   },
 } as const satisfies Record<string, ScreenDefinition>
 

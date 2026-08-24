@@ -6,6 +6,7 @@ import QuoteRow from '../../components/QuoteRow.tsx'
 import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
+import { useTheme } from '../../hooks/useTheme.ts'
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { STOCK_LIST_COLUMNS } from '../../lib/stockTable.ts'
 import StockListUpdatedAt from './components/StockListUpdatedAt.tsx'
@@ -18,6 +19,7 @@ type Props = {
 
 export default function StockList({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
+  const theme = useTheme()
   const { rowsRef, step, selectedCode, window } = useStockList()
   let content: ReactNode
 
@@ -72,7 +74,7 @@ export default function StockList({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen}
-      title={<Text color="magenta">{title}</Text>}
+      title={<Text color={theme.primary}>{title}</Text>}
       extra={<StockListUpdatedAt />}
       footer={<StatusBar hint={hint} bright={!overlayOpen} />}
     >

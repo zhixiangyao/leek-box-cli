@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import { loadWatchlist, saveWatchlist, watchlistPath } from '../src/lib/watchlist.ts'
+import { addStocks, loadStocks, replaceStocks, settingsPath } from '../src/lib/settings.ts'
 
 const MOCK_STOCKS = [
   { code: 'sh600584', name: '长电科技' },
@@ -28,21 +28,17 @@ const MOCK_STOCKS = [
 
 const main = async () => {
   const reset = process.argv.includes('--reset')
-  const entries = reset ? [] : await loadWatchlist()
-  const known = new Set(entries.map((entry) => entry.code))
-  let added = 0
-  for (const stock of MOCK_STOCKS) {
-    if (known.has(stock.code)) continue
-    entries.push({ code: stock.code, name: stock.name, addedAt: new Date().toISOString() })
-    known.add(stock.code)
-    added += 1
-  }
-  await saveWatchlist(entries)
+  const addedAt = new Date().toISOString()
+  const candidates = MOCK_STOCKS.map((stock) => ({ ...stock, addedAt }))
+  const added = reset ? candidates.length : await addStocks(candidates)
+  if (reset) await replaceStocks(candidates)
+
+  const entries = await loadStocks()
   console.log(`${reset ? '已重置为 mock 列表' : `已添加 ${added} 只`}: 当前共 ${entries.length} 只自选股`)
   if (!reset && added === 0) {
     console.log('全部 mock 股票已在自选股中, 未重复添加')
   }
-  console.log(`文件: ${watchlistPath()}`)
+  console.log(`文件: ${settingsPath()}`)
 }
 
 await main()

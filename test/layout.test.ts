@@ -21,6 +21,7 @@ const [
   { useMenuStore },
   { useRemoveStockStore },
   { useRouterStore },
+  { useSettingsStore },
   { useStockDetailStore },
   { useStockListStore },
 ] = await Promise.all([
@@ -28,6 +29,7 @@ const [
   import('../src/stores/useMenuStore.ts'),
   import('../src/stores/useRemoveStockStore.ts'),
   import('../src/stores/useRouterStore.ts'),
+  import('../src/stores/useSettingsStore.ts'),
   import('../src/stores/useStockDetailStore.ts'),
   import('../src/stores/useStockListStore.ts'),
 ])
@@ -94,6 +96,7 @@ const resetStores = () => {
   useMenuStore.setState(useMenuStore.getInitialState(), true)
   useRemoveStockStore.setState(useRemoveStockStore.getInitialState(), true)
   useRouterStore.setState(useRouterStore.getInitialState(), true)
+  useSettingsStore.setState(useSettingsStore.getInitialState(), true)
   useStockDetailStore.setState(useStockDetailStore.getInitialState(), true)
   useStockListStore.setState(useStockListStore.getInitialState(), true)
 }
@@ -142,7 +145,6 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
     refreshQuotes: async () => {
       useStockListStore.setState({
         step: { type: 'table', rows: [], updatedAt: '15:00' },
-        pollIntervalMs: 5000,
       })
     },
   })

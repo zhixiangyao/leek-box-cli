@@ -26,7 +26,7 @@ export default function Dialog(props: Props) {
       alignItems="center"
       justifyContent="center"
     >
-      <Card bright title={title} extra={extra} width={width} backgroundColor="black" footer={<StatusBar bright />}>
+      <Card bright title={title} extra={extra} width={width} footer={<StatusBar bright />}>
         {children}
       </Card>
     </Box>

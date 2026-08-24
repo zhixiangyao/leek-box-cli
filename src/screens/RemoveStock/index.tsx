@@ -7,6 +7,7 @@ import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import TextInput from '../../components/TextInput.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
+import { useTheme } from '../../hooks/useTheme.ts'
 import { useRemoveStock } from './hooks/useRemoveStock.ts'
 
 type Props = {
@@ -16,6 +17,7 @@ type Props = {
 
 export default function RemoveStock({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
+  const theme = useTheme()
   const { step, indexInput, confirmInput, handleChoice, handleConfirm } = useRemoveStock()
   let content: ReactNode
 
@@ -87,7 +89,7 @@ export default function RemoveStock({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen}
-      title={<Text color="magenta">{title}</Text>}
+      title={<Text color={theme.primary}>{title}</Text>}
       footer={<StatusBar hint={hint} bright={!overlayOpen} />}
     >
       {content}

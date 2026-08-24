@@ -3,12 +3,7 @@ import { create } from 'zustand'
 import { fetchQuotes, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
 import { formatClock } from '../lib/format.ts'
-import { loadWatchlist, type WatchEntry } from '../lib/watchlist.ts'
-
-export const DEFAULT_POLL_INTERVAL_MS = 5000
-export const MIN_POLL_INTERVAL_MS = 1000
-export const MAX_POLL_INTERVAL_MS = 60_000
-export const POLL_INTERVAL_STEP_MS = 500
+import { loadStocks, type StockEntry } from '../lib/settings.ts'
 
 export type StockRow =
   | { kind: 'quote'; code: string; name: string; quote: Quote }
@@ -22,7 +17,6 @@ export type StockListStep =
 
 type StockListState = {
   step: StockListStep
-  pollIntervalMs: number
   selectedCode: string | undefined
   scrollOffset: number
   refreshQuotes: (signal?: AbortSignal) => Promise<void>
@@ -31,10 +25,10 @@ type StockListState = {
 
 export type StockListDependencies = {
   fetchQuotes: (codes: string[], signal?: AbortSignal) => Promise<Quote[]>
-  loadWatchlist: () => Promise<WatchEntry[]>
+  loadStocks: () => Promise<StockEntry[]>
 }
 
-const defaultDependencies: StockListDependencies = { fetchQuotes, loadWatchlist }
+const defaultDependencies: StockListDependencies = { fetchQuotes, loadStocks }
 
 const clampSelection = (index: number, rowCount: number) => Math.min(Math.max(index, 0), rowCount - 1)
 
@@ -79,13 +73,12 @@ const quotesEqual = (left: Quote, right: Quote) =>
 export function createStockListStore(dependencies: StockListDependencies = defaultDependencies) {
   return create<StockListState>()((set, get) => ({
     step: { type: 'loading' },
-    pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
     selectedCode: undefined,
     scrollOffset: 0,
 
     refreshQuotes: async (signal?: AbortSignal) => {
       try {
-        const entries = await dependencies.loadWatchlist()
+        const entries = await dependencies.loadStocks()
         if (signal?.aborted) return
         if (entries.length === 0) {
           set({ step: { type: 'empty' }, selectedCode: undefined, scrollOffset: 0 })

@@ -1,13 +1,13 @@
 import { expect, test } from 'vitest'
 
 import type { IntradayPoint, Quote } from '../src/api/types.ts'
-import type { WatchEntry } from '../src/lib/watchlist.ts'
+import type { StockEntry } from '../src/lib/settings.ts'
 import { createAddStockStore } from '../src/stores/useAddStockStore.ts'
 import { createRemoveStockStore } from '../src/stores/useRemoveStockStore.ts'
 import { createStockDetailStore } from '../src/stores/useStockDetailStore.ts'
 import { createStockListStore } from '../src/stores/useStockListStore.ts'
 
-const entry = (code: string, name = code): WatchEntry => ({
+const entry = (code: string, name = code): StockEntry => ({
   code,
   name,
   addedAt: '2026-08-20T00:00:00.000Z',
@@ -36,7 +36,7 @@ test('添加股票时报告最终加锁写入发现的重复项', async () => {
   const store = createAddStockStore({
     addStock: async () => ({ status: 'duplicate' }),
     fetchQuotes: async () => [quote('sh600000', '浦发银行')],
-    loadWatchlist: async () => [],
+    loadStocks: async () => [],
     normalizeCode: () => 'sh600000',
     now: () => '2026-08-20T00:00:00.000Z',
   })
@@ -50,7 +50,7 @@ test('添加股票时报告最终加锁写入发现的重复项', async () => {
 test('删除股票时报告已被其他进程删除的条目', async () => {
   const target = entry('sz000001', '平安银行')
   const store = createRemoveStockStore({
-    loadWatchlist: async () => [target],
+    loadStocks: async () => [target],
     removeStock: async () => undefined,
   })
 
@@ -71,7 +71,7 @@ test('股票列表保留自选股顺序, 选中代码和未变化的行情引用
   let round = 0
 
   const store = createStockListStore({
-    loadWatchlist: async () => entryRounds[round++]!,
+    loadStocks: async () => entryRounds[round++]!,
     fetchQuotes: async (codes) => codes.map((code) => quote(code)),
   })
 
