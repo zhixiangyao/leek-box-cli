@@ -30,7 +30,7 @@ src/lib/stockTable.ts               看板列子集和表格宽度
 src/lib/layout.ts                   中性布局常量
 src/lib/watchlist.ts                watchlist schema, 锁, 原子持久化
 src/lib/*.ts                        格式化, 错误, yes/no 等纯逻辑
-test/*.test.ts                      Node test runner 单元和状态机测试
+test/*.test.ts                      Vitest 单元和状态机测试
 ```
 
 依赖保持 `components/screens -> hooks/stores -> api/lib`. 中性组件不得反向导入具体 screen; 共享布局和列定义放 `src/lib`.
@@ -225,7 +225,7 @@ App 使用窗口宽高创建唯一主 Card: registry title 属于 `title`, 仅�
 
 ## 测试与验证
 
-单元测试使用 Node test runner + tsx:
+单元测试使用 Vitest:
 
 ```bash
 pnpm test

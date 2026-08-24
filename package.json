@@ -29,7 +29,7 @@
     "dev": "tsx src/cli.tsx",
     "mock": "tsx scripts/mock.ts",
     "preview": "node dist/cli.mjs",
-    "test": "node --import tsx --test test/*.test.ts",
+    "test": "vitest run --reporter=verbose",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
@@ -50,7 +50,8 @@
     "oxlint": "1.78.0",
     "tsx": "4.23.12",
     "typescript": "7.0.2",
-    "vite": "8.2.1"
+    "vite": "8.2.1",
+    "vitest": "4.1.11"
   },
   "engines": {
     "node": ">=26.7.0",

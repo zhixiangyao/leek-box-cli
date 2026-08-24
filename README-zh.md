@@ -132,7 +132,7 @@ leek-box-cli -h            # 查看帮助
 | `pnpm dev`        | 使用 tsx 运行源码                 |
 | `pnpm build`      | 使用 Vite 构建 `dist/cli.mjs`     |
 | `pnpm preview`    | 运行构建产物                      |
-| `pnpm test`       | 运行 Node.js 内置测试             |
+| `pnpm test`       | 使用 Vitest 运行测试              |
 | `pnpm typecheck`  | TypeScript 类型检查               |
 | `pnpm lint`       | Lint 并自动修复                   |
 | `pnpm lint:check` | 仅检查 Lint                       |
@@ -149,4 +149,4 @@ leek-box-cli -h            # 查看帮助
 - meow
 - Vite
 - oxlint / oxfmt
-- Node.js test runner + tsx
+- Vitest

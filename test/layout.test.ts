@@ -1,10 +1,9 @@
-import assert from 'node:assert/strict'
 import { PassThrough, Writable } from 'node:stream'
-import test from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 import { stripVTControlCharacters } from 'node:util'
 
 import { createElement, type ComponentProps, type ComponentType } from 'react'
+import { expect, test } from 'vitest'
 
 process.env['FORCE_COLOR'] = '1'
 
@@ -81,13 +80,13 @@ const waitForFrame = async (
     await delay(10)
   }
 
-  assert.fail(`Timed out waiting for frame. Latest output:\n${plain(output.frames.at(-1) ?? '')}`)
+  throw new Error(`Timed out waiting for frame. Latest output:\n${plain(output.frames.at(-1) ?? '')}`)
 }
 
 const assertFrameSize = (frame: string, columns: number, rows: number) => {
   const lines = plain(frame).split('\n')
-  assert.equal(lines.length, rows)
-  assert.equal(lines.at(-1)?.length, columns)
+  expect(lines).toHaveLength(rows)
+  expect(lines.at(-1)?.length).toBe(columns)
 }
 
 const resetStores = () => {
@@ -167,27 +166,27 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
       const text = plain(candidate)
       return text.includes('股票自选股看板') && text.includes('15:00 (5000ms)')
     })
-    assert.match(plain(stockFrame), /刷新\(r\)/)
+    expect(plain(stockFrame)).toMatch(/刷新\(r\)/)
     assertFrameSize(stockFrame, columns, rows)
 
     let after = output.frames.length
     useRouterStore.setState({ screen: 'add-stock' })
     const addFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
-    assert.doesNotMatch(plain(addFrame), /15:00 \(5000ms\)/)
-    assert.match(plain(addFrame), /请输入股票代码/)
+    expect(plain(addFrame)).not.toMatch(/15:00 \(5000ms\)/)
+    expect(plain(addFrame)).toMatch(/请输入股票代码/)
     assertFrameSize(addFrame, columns, rows)
 
     after = output.frames.length
     useRouterStore.setState({ screen: 'remove-stock' })
     const removeFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
-    assert.doesNotMatch(plain(removeFrame), /15:00 \(5000ms\)/)
-    assert.match(plain(removeFrame), /测试自选股为空/)
+    expect(plain(removeFrame)).not.toMatch(/15:00 \(5000ms\)/)
+    expect(plain(removeFrame)).toMatch(/测试自选股为空/)
     assertFrameSize(removeFrame, columns, rows)
 
     after = output.frames.length
     useRouterStore.setState({ screen: 'add-stock' })
     const brightFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
-    assert.equal(brightFrame.includes('\u001B[2m'), false)
+    expect(brightFrame).not.toContain('\u001B[2m')
 
     after = output.frames.length
     useMenuStore.setState({ open: true })
@@ -195,7 +194,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
       const text = plain(candidate)
       return text.includes('添加自选股') && text.includes('股票自选股看板') && candidate.includes('\u001B[2m')
     })
-    assert.match(plain(dimmedFrame), /菜单/)
+    expect(plain(dimmedFrame)).toMatch(/菜单/)
     assertFrameSize(dimmedFrame, columns, rows)
   } finally {
     instance.unmount()

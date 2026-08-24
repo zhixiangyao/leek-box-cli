@@ -132,7 +132,7 @@ The application reloads the file every time it refreshes the dashboard, so valid
 | `pnpm dev`        | Run the source code with tsx                     |
 | `pnpm build`      | Build `dist/cli.mjs` with Vite                   |
 | `pnpm preview`    | Run the build output                             |
-| `pnpm test`       | Run tests with the Node.js test runner           |
+| `pnpm test`       | Run tests with Vitest                            |
 | `pnpm typecheck`  | Run TypeScript type checking                     |
 | `pnpm lint`       | Run the linter and apply automatic fixes         |
 | `pnpm lint:check` | Run the linter without modifying files           |
@@ -149,4 +149,4 @@ The application reloads the file every time it refreshes the dashboard, so valid
 - meow
 - Vite
 - oxlint / oxfmt
-- Node.js test runner + tsx
+- Vitest

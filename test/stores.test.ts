@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import test from 'node:test'
+import { expect, test } from 'vitest'
 
 import type { IntradayPoint, Quote } from '../src/api/types.ts'
 import type { WatchEntry } from '../src/lib/watchlist.ts'
@@ -43,9 +42,9 @@ test('添加股票时报告最终加锁写入发现的重复项', async () => {
   })
 
   await store.getState().handleCodeInput('600000')
-  assert.equal(store.getState().step.type, 'confirm')
+  expect(store.getState().step.type).toBe('confirm')
   await store.getState().handleConfirm('y')
-  assert.deepEqual(store.getState().step, { type: 'already-exists', code: 'sh600000', name: '浦发银行' })
+  expect(store.getState().step).toStrictEqual({ type: 'already-exists', code: 'sh600000', name: '浦发银行' })
 })
 
 test('删除股票时报告已被其他进程删除的条目', async () => {
@@ -58,7 +57,7 @@ test('删除股票时报告已被其他进程删除的条目', async () => {
   await store.getState().loadEntries()
   store.getState().handleChoice('1')
   await store.getState().handleConfirm('y')
-  assert.deepEqual(store.getState().step, {
+  expect(store.getState().step).toStrictEqual({
     type: 'error',
     message: '平安银行 (sz000001) 已不在自选股中.',
   })
@@ -79,24 +78,21 @@ test('股票列表保留自选股顺序, 选中代码和未变化的行情引用
   await store.getState().refreshQuotes()
   store.getState().moveSelection(1, 1)
   const firstStep = store.getState().step
-  assert.equal(firstStep.type, 'table')
+  expect(firstStep.type).toBe('table')
   if (firstStep.type !== 'table') return
   const selectedQuote = firstStep.rows[1]!.kind === 'quote' ? firstStep.rows[1]!.quote : undefined
 
   await store.getState().refreshQuotes()
   const secondStep = store.getState().step
-  assert.equal(secondStep.type, 'table')
+  expect(secondStep.type).toBe('table')
   if (secondStep.type !== 'table') return
-  assert.deepEqual(
-    secondStep.rows.map((row) => row.code),
-    ['sz300001', 'sz000001'],
-  )
-  assert.equal(store.getState().selectedCode, 'sz000001')
-  assert.equal(secondStep.rows[1]!.kind === 'quote' ? secondStep.rows[1]!.quote : undefined, selectedQuote)
+  expect(secondStep.rows.map((row) => row.code)).toStrictEqual(['sz300001', 'sz000001'])
+  expect(store.getState().selectedCode).toBe('sz000001')
+  expect(secondStep.rows[1]!.kind === 'quote' ? secondStep.rows[1]!.quote : undefined).toBe(selectedQuote)
 
   await store.getState().refreshQuotes()
-  assert.equal(store.getState().selectedCode, 'sz300001')
-  assert.equal(store.getState().scrollOffset, 0)
+  expect(store.getState().selectedCode).toBe('sz300001')
+  expect(store.getState().scrollOffset).toBe(0)
 })
 
 test('股票详情忽略先前打开代码已完成的请求', async () => {
@@ -116,6 +112,6 @@ test('股票详情忽略先前打开代码已完成的请求', async () => {
   resolveOld([{ time: '0930', price: 10, volume: 1 }])
   await pendingOld
 
-  assert.deepEqual(store.getState().points, newPoints)
-  assert.equal(store.getState().stock?.code, 'sz000001')
+  expect(store.getState().points).toStrictEqual(newPoints)
+  expect(store.getState().stock?.code).toBe('sz000001')
 })
