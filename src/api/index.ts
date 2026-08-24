@@ -113,7 +113,7 @@ const aggregateYearly = (monthly: HistoricalPoint[]): HistoricalPoint[] => {
   return [...yearly.values()]
 }
 
-/** 拉取指定粒度的复权 K 线; 年 K 使用后复权月 K 在本地聚合，避免高分红股票早期前复权价为负 */
+/** 拉取指定粒度的复权 K 线; 年 K 使用后复权月 K 在本地聚合, 避免高分红股票早期前复权价为负 */
 export async function fetchHistorical(code: string, request: HistoricalRequest): Promise<HistoricalPoint[]> {
   const granularity: KlineGranularity = request.period === 'year' ? 'month' : request.period
   const adjustment: KlineAdjustment = request.period === 'year' ? 'hfq' : 'qfq'

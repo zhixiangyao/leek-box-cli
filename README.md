@@ -1,74 +1,117 @@
+<p align="right">
+  <strong>English</strong> | <a href="README-zh.md">中文</a>
+</p>
+
 # leek-box-cli
 
-> 基于 [Ink](https://github.com/vadimdemedes/ink) 的交互式终端股票自选股看板.
+> An interactive terminal stock watchlist dashboard built with [Ink](https://github.com/vadimdemedes/ink).
 
-## 功能
+## Screenshots
 
-- **实时看板**: 启动即展示自选股的现价, 涨跌幅, 涨跌额, 今开, 最高, 最低, 成交量, 成交额, 换手率和总市值; 默认每 5 秒刷新
-- **行选择与详情**: `↑`/`↓` 选择股票, `enter` 打开基础行情和趋势图; 数字键 `1`-`6` 切换分时, 五日, 日 K, 周 K, 月 K和年 K
-- **多周期行情**: 分时与五日分钟走势每 30 秒刷新; 日 K、周 K、月 K和年 K每 5 分钟刷新
-- **刷新控制**: `r` 立即刷新, `-`/`+` 以 500ms 步进调整自动刷新间隔, 范围 1s-60s
-- **自选股管理**: 支持添加, 删除沪深北 A 股与 ETF; 股票代码可写为 `600000`, `sh600000`, `600000.SH` 等形式
-- **容错展示**: 停牌, 部分行情缺失和刷新失败均有独立状态; 后续轮询成功后自动恢复
+### Stock Watchlist
 
-## 交互方式
+![Stock watchlist dashboard](scrennshots/stock-list.png)
 
-- `esc`: 打开菜单; 详情已打开时优先关闭详情, 菜单已打开时关闭菜单
-- 菜单内使用 `↑`/`↓`, `enter` 或数字键选择页面
-- 看板内使用 `↑`/`↓`, `enter`, `r`, `-`, `+`
-- 股票详情内使用 `1`-`6` 切换 `分时`、`五日`、`日K`、`周K`、`月K`、`年K`
-- `q`: 没有菜单或详情浮层时退出; 浮层打开时不退出, 避免误触
-- 状态栏右侧显示 Asia/Shanghai 时区的 `YYYY-MM-DD HH:MM:SS`
+### Menu
 
-## 环境要求
+![Menu dialog](scrennshots/menu-dialog.png)
+
+### Stock Details
+
+<table>
+  <tr>
+    <td align="center"><strong>Intraday</strong></td>
+    <td align="center"><strong>Five-day</strong></td>
+  </tr>
+  <tr>
+    <td><img src="scrennshots/stock-detail-dialog-intraday.png" alt="Intraday stock chart"></td>
+    <td><img src="scrennshots/stock-detail-dialog-five-day.png" alt="Five-day stock chart"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Daily</strong></td>
+    <td align="center"><strong>Weekly</strong></td>
+  </tr>
+  <tr>
+    <td><img src="scrennshots/stock-detail-dialog-day.png" alt="Daily stock chart"></td>
+    <td><img src="scrennshots/stock-detail-dialog-week.png" alt="Weekly stock chart"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Monthly</strong></td>
+    <td align="center"><strong>Yearly</strong></td>
+  </tr>
+  <tr>
+    <td><img src="scrennshots/stock-detail-dialog-month.png" alt="Monthly stock chart"></td>
+    <td><img src="scrennshots/stock-detail-dialog-year.png" alt="Yearly stock chart"></td>
+  </tr>
+</table>
+
+## Features
+
+- **Real-time dashboard**: Displays the latest price, percentage change, price change, open, high, low, volume, turnover, turnover rate, and total market capitalization for every stock in your watchlist. Refreshes every 5 seconds by default.
+- **Row selection and details**: Use `↑`/`↓` to select a stock and `enter` to open its quote details and trend chart. Press `1`-`6` to switch between intraday, five-day, daily, weekly, monthly, and yearly views.
+- **Multiple time frames**: Intraday and five-day minute charts refresh every 30 seconds. Daily, weekly, monthly, and yearly charts refresh every 5 minutes.
+- **Refresh controls**: Press `r` to refresh immediately. Use `-`/`+` to adjust the automatic refresh interval in 500 ms increments, from 1 to 60 seconds.
+- **Watchlist management**: Add or remove Shanghai, Shenzhen, and Beijing A-shares and ETFs. Stock codes can be entered as `600000`, `sh600000`, `600000.SH`, and other common formats.
+- **Resilient display**: Suspended stocks, incomplete quotes, and refresh failures each have a dedicated state. The display recovers automatically after a later poll succeeds.
+
+## Controls
+
+- `esc`: Open the menu. If stock details are open, close them first; if the menu is open, close it.
+- In the menu, use `↑`/`↓`, `enter`, or a number key to select a page.
+- In the dashboard, use `↑`/`↓`, `enter`, `r`, `-`, and `+`.
+- In stock details, press `1`-`6` to switch between `Intraday`, `Five-day`, `Daily`, `Weekly`, `Monthly`, and `Yearly`.
+- `q`: Exit when no menu or stock details overlay is open. It does nothing while an overlay is open to prevent accidental exits.
+- The right side of the status bar displays `YYYY-MM-DD HH:MM:SS` in the Asia/Shanghai time zone.
+
+## Requirements
 
 - [Node.js](https://nodejs.org/) >= 26.7.0
 - [pnpm](https://pnpm.io/) >= 10.0.0
 
-行情通过 Node 原生 `fetch` 获取, 无 curl 等外部运行工具依赖.
+Market data is retrieved with the native Node.js `fetch` API, with no external runtime dependency such as curl.
 
-## 行情数据源
+## Market Data Sources
 
-- 实时行情: 腾讯行情接口 `https://qt.gtimg.cn/q=...`, GBK 编码, 无需鉴权
-- 当日分时: 腾讯分时接口 `https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=...`
-- 五日分时: 腾讯多日分时接口 `https://web.ifzq.gtimg.cn/appstock/app/day/query?code=...`
-- 日 K、周 K、月 K: 腾讯前复权 K 线接口 `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=...`
-- 年 K: 使用同一接口的后复权月 K 在本地按年份聚合
-- 数据实时性和可用性以接口实际返回为准, 仅用于个人展示用途
+- Real-time quotes: Tencent quote API at `https://qt.gtimg.cn/q=...`; GBK-encoded and requires no authentication.
+- Intraday data: Tencent minute API at `https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=...`.
+- Five-day data: Tencent multi-day minute API at `https://web.ifzq.gtimg.cn/appstock/app/day/query?code=...`.
+- Daily, weekly, and monthly data: Tencent forward-adjusted K-line API at `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=...`.
+- Yearly data: Aggregated locally by year from backward-adjusted monthly data returned by the same API.
+- Data timeliness and availability depend on the upstream APIs. This project is intended for personal display purposes only.
 
-## 安装与运行
+## Installation and Usage
 
 ```bash
 pnpm install
 
-# 开发模式
+# Development mode
 pnpm dev
 
-# 构建并运行
+# Build and run
 pnpm build
 pnpm preview
 
-# 构建 Node SEA 单文件产物
+# Build a standalone Node.js SEA executable
 pnpm bundle
 ./dist/leek-box-cli
 ```
 
-也可以通过子命令指定初始页面:
+You can also select the initial page with a subcommand:
 
 ```bash
-leek-box-cli               # 股票自选股看板
-leek-box-cli stock-list    # 同上
-leek-box-cli add-stock     # 添加自选股
-leek-box-cli remove-stock  # 删除自选股
-leek-box-cli -v            # 查看版本
-leek-box-cli -h            # 查看帮助
+leek-box-cli               # Stock watchlist dashboard
+leek-box-cli stock-list    # Same as above
+leek-box-cli add-stock     # Add a stock to the watchlist
+leek-box-cli remove-stock  # Remove a stock from the watchlist
+leek-box-cli -v            # Show version information
+leek-box-cli -h            # Show help
 ```
 
-## 自选股存储
+## Watchlist Storage
 
-自选股保存在 `$XDG_CONFIG_HOME/leek-box-cli/watchlist.json`; 未设置 `XDG_CONFIG_HOME` 时使用 `~/.config/leek-box-cli/watchlist.json`.
+The watchlist is stored at `$XDG_CONFIG_HOME/leek-box-cli/watchlist.json`. If `XDG_CONFIG_HOME` is not set, `~/.config/leek-box-cli/watchlist.json` is used.
 
-文件结构为:
+File structure:
 
 ```json
 [
@@ -80,25 +123,25 @@ leek-box-cli -h            # 查看帮助
 ]
 ```
 
-程序每次刷新看板都会重新读取文件, 因此合法的外部编辑会在下一轮刷新生效. 读取时会完整校验 `code`, `name`, `addedAt` 和重复代码; 写入使用进程间锁与临时文件原子替换, 避免并发读改写丢失和半截 JSON.
+The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates `code`, `name`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
 
-## 开发脚本
+## Development Scripts
 
-| 命令              | 说明                              |
-| ----------------- | --------------------------------- |
-| `pnpm dev`        | 使用 tsx 运行源码                 |
-| `pnpm build`      | 使用 Vite 构建 `dist/cli.mjs`     |
-| `pnpm preview`    | 运行构建产物                      |
-| `pnpm test`       | 运行 Node 内置测试                |
-| `pnpm typecheck`  | TypeScript 类型检查               |
-| `pnpm lint`       | Lint 并自动修复                   |
-| `pnpm lint:check` | 仅检查 Lint                       |
-| `pnpm fmt`        | 格式化代码                        |
-| `pnpm fmt:check`  | 检查格式                          |
-| `pnpm bundle`     | 构建并打包 Node SEA 单文件        |
-| `pnpm sea`        | 仅执行 SEA 打包, 要求已有构建产物 |
+| Command           | Description                                      |
+| ----------------- | ------------------------------------------------ |
+| `pnpm dev`        | Run the source code with tsx                     |
+| `pnpm build`      | Build `dist/cli.mjs` with Vite                   |
+| `pnpm preview`    | Run the build output                             |
+| `pnpm test`       | Run tests with the Node.js test runner           |
+| `pnpm typecheck`  | Run TypeScript type checking                     |
+| `pnpm lint`       | Run the linter and apply automatic fixes         |
+| `pnpm lint:check` | Run the linter without modifying files           |
+| `pnpm fmt`        | Format the code                                  |
+| `pnpm fmt:check`  | Check code formatting                            |
+| `pnpm bundle`     | Build and package a standalone Node.js SEA file  |
+| `pnpm sea`        | Package SEA only; requires existing build output |
 
-## 技术栈
+## Tech Stack
 
 - TypeScript / ESM
 - Ink 7 + React 19
@@ -106,4 +149,4 @@ leek-box-cli -h            # 查看帮助
 - meow
 - Vite
 - oxlint / oxfmt
-- Node test runner + tsx
+- Node.js test runner + tsx

@@ -182,7 +182,7 @@ export const buildChartRows = (params: {
     : fiveDayChart
       ? bucketizeFiveDay(fiveDayPoints, width)
       : bucketizeHistorical(historicalPoints, width)
-  // K 线与五日图不绘制全宽基准线，避免走势被视觉上“闭合”；基准价只用于首根量柱颜色。
+  // K 线与五日图不绘制全宽基准线, 避免走势被视觉上"闭合"; 基准价只用于首根量柱颜色
   const referencePrice = intradayChart
     ? prevClose
     : fiveDayChart
@@ -214,14 +214,14 @@ export const buildChartRows = (params: {
   const compareColor = (price: number, baseline: number | undefined): TextColor =>
     baseline === undefined ? 'gray' : price > baseline ? 'red' : price < baseline ? 'green' : 'gray'
 
-  // 当日分时沿用整线相对昨收的颜色；五日与 K 线按每段价格方向着色。
+  // 当日分时沿用整线相对昨收的颜色; 五日与 K 线按每段价格方向着色.
   const filledLastPrices = buckets.map((b) => b.lastPrice).filter((price) => price > 0)
   const intradayLineColor = compareColor(filledLastPrices.at(-1) ?? 0, referencePrice)
   const lineColors = buckets.map((bucket, col): TextColor => {
     if (intradayChart) return intradayLineColor
     if (bucket.lastPrice <= 0) return 'gray'
 
-    // 当前 Braille 单元格包含从本桶朝下一桶延伸的半段，优先按下一桶方向着色。
+    // 当前 Braille 单元格包含从本桶朝下一桶延伸的半段, 优先按下一桶方向着色.
     const nextPrice = buckets[col + 1]?.lastPrice
     if (nextPrice !== undefined && nextPrice > 0) return compareColor(nextPrice, bucket.lastPrice)
 
@@ -272,7 +272,7 @@ export const buildChartRows = (params: {
     prevY = y
   }
 
-  // 仅分时图绘制昨收虚线；历史首日价格只作比较基准，不参与图形闭合。
+  // 仅分时图绘制昨收虚线; 历史首日价格只作比较基准, 不参与图形闭合.
   const dash = Array.from({ length: priceHeight }, () => new Uint16Array(width))
   if (referenceLinePrice !== undefined) {
     const y = yOf(referenceLinePrice)
@@ -335,7 +335,7 @@ export const buildChartRows = (params: {
     }
   }
 
-  // 时间轴节点同时驱动标签和竖向虚线，确保两者严格对齐。
+  // 时间轴节点同时驱动标签和竖向虚线, 确保两者严格对齐.
   const axisTicks: { col: number; labelCol: number; label: string }[] = []
   const centeredLabelCol = (col: number, label: string) =>
     Math.max(0, Math.min(width - label.length, col - Math.floor(label.length / 2)))
@@ -378,7 +378,7 @@ export const buildChartRows = (params: {
     )
   }
 
-  // 从时间节点沿 Y 轴绘制灰色竖向虚线；只填空白单元格，不覆盖价格线或成交量柱。
+  // 从时间节点沿 Y 轴绘制灰色竖向虚线; 只填空白单元格, 不覆盖价格线或成交量柱.
   for (const { col } of axisTicks) {
     for (let r = 0; r < priceHeight + volumeHeight; r++) {
       if (rows[r]![col]!.ch === ' ') rows[r]![col] = { ch: '┊', color: 'gray' }
