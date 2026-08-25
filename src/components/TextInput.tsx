@@ -1,5 +1,5 @@
 import { Box, useInput } from 'ink'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useState } from 'react'
 
 import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
 import Text from './Text.tsx'
@@ -8,18 +8,12 @@ type Props = {
   prompt: string
   onSubmit: (value: string) => void
   placeholder?: ReactNode
-  resetToken?: string | number
 }
 
-export default function TextInput({ prompt, onSubmit, placeholder, resetToken }: Props) {
+export default function TextInput({ prompt, onSubmit, placeholder }: Props) {
   const overlayOpen = useOverlayOpen()
   const [value, setValue] = useState('')
   const [submitted, setSubmitted] = useState(false)
-
-  useEffect(() => {
-    setValue('')
-    setSubmitted(false)
-  }, [resetToken])
 
   useInput(
     (input, key) => {

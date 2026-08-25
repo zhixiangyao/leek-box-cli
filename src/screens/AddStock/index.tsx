@@ -27,7 +27,7 @@ export default function AddStock({ title, hint }: Props) {
         <>
           {codeInput.error && <Text color="red">{codeInput.error}</Text>}
           <TextInput
-            resetToken={`code-${codeInput.resetToken}`}
+            key={`code-${codeInput.resetToken}`}
             prompt="请输入股票代码: "
             placeholder={<Text color="gray">支持 600000 / sh600000 / 600000.SH 等写法</Text>}
             onSubmit={handleCodeInput}
@@ -50,7 +50,7 @@ export default function AddStock({ title, hint }: Props) {
           </Text>
           {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
           <TextInput
-            resetToken={`confirm-${confirmInput.resetToken}`}
+            key={`confirm-${confirmInput.resetToken}`}
             prompt="确认添加到自选股? (y/n): "
             onSubmit={handleConfirm}
           />

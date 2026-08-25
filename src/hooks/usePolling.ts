@@ -25,9 +25,11 @@ export function usePolling(
   const onErrorRef = useRef(onError)
   const controlRef = useRef<PollingControl>({})
 
-  taskRef.current = task
-  intervalRef.current = intervalMs
-  onErrorRef.current = onError
+  useEffect(() => {
+    taskRef.current = task
+    intervalRef.current = intervalMs
+    onErrorRef.current = onError
+  }, [task, intervalMs, onError])
 
   const refresh = useCallback(() => controlRef.current.refresh?.(), [])
 

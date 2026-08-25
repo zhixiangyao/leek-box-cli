@@ -39,7 +39,7 @@ export default function RemoveStock({ title, hint }: Props) {
           {indexInput.error && <Text color="red">{indexInput.error}</Text>}
           <Newline />
           <TextInput
-            resetToken={`index-${indexInput.resetToken}`}
+            key={`index-${indexInput.resetToken}`}
             prompt="请输入要删除的序号: "
             onSubmit={handleChoice}
           />
@@ -56,7 +56,7 @@ export default function RemoveStock({ title, hint }: Props) {
           </Text>
           {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
           <TextInput
-            resetToken={`confirm-${confirmInput.resetToken}`}
+            key={`confirm-${confirmInput.resetToken}`}
             prompt="确认删除? (y/n): "
             onSubmit={handleConfirm}
           />
