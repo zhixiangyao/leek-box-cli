@@ -9,6 +9,7 @@ import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { STOCK_LIST_COLUMNS } from '../../lib/stockTable.ts'
+import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import { useStockList } from './hooks/useStockList.ts'
 
 type Props = {
@@ -19,6 +20,7 @@ type Props = {
 export default function StockList({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
+  const trendColorMode = useSettingsStore((state) => state.trendColorMode)
   const { rowsRef, step, selectedCode, window } = useStockList()
   let content: ReactNode
 
@@ -54,7 +56,7 @@ export default function StockList({ title, hint }: Props) {
                 key={row.code}
                 segments={
                   row.kind === 'quote'
-                    ? quoteRow(STOCK_LIST_COLUMNS, row.quote)
+                    ? quoteRow(STOCK_LIST_COLUMNS, row.quote, trendColorMode)
                     : missingRow(STOCK_LIST_COLUMNS, row.code, row.name)
                 }
                 selected={row.code === selectedCode}

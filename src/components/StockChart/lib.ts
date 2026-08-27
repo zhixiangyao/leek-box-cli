@@ -1,6 +1,8 @@
 import type { ChartPeriod, ChartPoint, FiveDayPoint, HistoricalPoint, IntradayPoint } from '../../api/types.ts'
+import { trendColor, type TrendColor } from '../../lib/format.ts'
+import { DEFAULT_TREND_COLOR_MODE, type TrendColorMode } from '../../stores/useSettingsStore.ts'
 
-type TextColor = 'red' | 'green' | 'gray'
+type TextColor = TrendColor
 
 /** 图表单元格: 字符 + 可选颜色, 行渲染时相邻同色合并 */
 export type ChartCell = { ch: string; color?: TextColor }
@@ -170,8 +172,17 @@ export const buildChartRows = (params: {
   width: number
   priceHeight: number
   volumeHeight: number
+  trendColorMode?: TrendColorMode
 }): ChartCell[][] => {
-  const { points, period, prevClose, width, priceHeight, volumeHeight } = params
+  const {
+    points,
+    period,
+    prevClose,
+    width,
+    priceHeight,
+    volumeHeight,
+    trendColorMode = DEFAULT_TREND_COLOR_MODE,
+  } = params
   const intradayPoints = points.filter(isIntradayPoint)
   const fiveDayPoints = points.filter(isFiveDayPoint)
   const historicalPoints = points.filter(isHistoricalPoint)
@@ -212,7 +223,7 @@ export const buildChartRows = (params: {
   const subCols = width * 2
   const yOf = (price: number) => Math.round(((rangeMax - price) / (rangeMax - rangeMin)) * (subRows - 1))
   const compareColor = (price: number, baseline: number | undefined): TextColor =>
-    baseline === undefined ? 'gray' : price > baseline ? 'red' : price < baseline ? 'green' : 'gray'
+    baseline === undefined ? 'gray' : trendColor(price - baseline, trendColorMode)
 
   // 当日分时沿用整线相对昨收的颜色; 五日与 K 线按每段价格方向着色.
   const filledLastPrices = buckets.map((b) => b.lastPrice).filter((price) => price > 0)
@@ -317,14 +328,7 @@ export const buildChartRows = (params: {
   for (let col = 0; col < width; col++) {
     const bucket = buckets[col]!
     if (bucket.lastPrice <= 0) continue
-    barColor[col] =
-      prevBarPrice === undefined
-        ? 'gray'
-        : bucket.lastPrice > prevBarPrice
-          ? 'red'
-          : bucket.lastPrice < prevBarPrice
-            ? 'green'
-            : 'gray'
+    barColor[col] = prevBarPrice === undefined ? 'gray' : trendColor(bucket.lastPrice - prevBarPrice, trendColorMode)
     prevBarPrice = bucket.lastPrice
   }
   for (let r = 0; r < volumeHeight; r++) {

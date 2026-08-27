@@ -10,7 +10,19 @@ export const BORDER_STYLES = [
   'classic',
   'arrow',
 ] as const
+
 export type BorderStyle = (typeof BORDER_STYLES)[number]
+
+export const TREND_COLOR_MODES = ['red-up', 'green-up'] as const
+
+export type TrendColorMode = (typeof TREND_COLOR_MODES)[number]
+
+export const TREND_COLOR_MODE_LABELS: Record<TrendColorMode, string> = {
+  'red-up': '涨红跌绿',
+  'green-up': '涨绿跌红',
+}
+
+export const DEFAULT_TREND_COLOR_MODE: TrendColorMode = 'red-up'
 
 export const THEME_PRESETS = {
   classic: {
@@ -45,6 +57,14 @@ export const THEME_PRESETS = {
     background: 'black',
     foreground: 'white',
   },
+  gray: {
+    label: '低调灰',
+    primary: 'gray',
+    accent: 'gray',
+    highlight: 'gray',
+    background: 'black',
+    foreground: 'white',
+  },
 } as const
 
 export type ThemePreset = keyof typeof THEME_PRESETS
@@ -64,6 +84,7 @@ export type NumericSettingKey = keyof typeof SETTING_LIMITS
 
 export type Settings = {
   themePreset: ThemePreset
+  trendColorMode: TrendColorMode
   borderStyle: BorderStyle
   requestTimeoutMs: number
   minimumRequestDurationMs: number
@@ -81,6 +102,7 @@ type SettingsState = Settings & {
 
 export const DEFAULT_SETTINGS: Settings = {
   themePreset: 'classic',
+  trendColorMode: DEFAULT_TREND_COLOR_MODE,
   borderStyle: 'round',
   requestTimeoutMs: 8000,
   minimumRequestDurationMs: 0,
@@ -128,6 +150,7 @@ const normalizeSettings = (settings: Settings): Settings => {
 
 export const settingsSnapshot = (settings: Settings): Settings => ({
   themePreset: settings.themePreset,
+  trendColorMode: settings.trendColorMode,
   borderStyle: settings.borderStyle,
   requestTimeoutMs: settings.requestTimeoutMs,
   minimumRequestDurationMs: settings.minimumRequestDurationMs,
@@ -138,6 +161,7 @@ export const settingsSnapshot = (settings: Settings): Settings => ({
 
 export const settingsEqual = (left: Settings, right: Settings) =>
   left.themePreset === right.themePreset &&
+  left.trendColorMode === right.trendColorMode &&
   left.borderStyle === right.borderStyle &&
   left.requestTimeoutMs === right.requestTimeoutMs &&
   left.minimumRequestDurationMs === right.minimumRequestDurationMs &&
@@ -148,6 +172,7 @@ export const settingsEqual = (left: Settings, right: Settings) =>
 export const settingsPatch = (current: Settings, previous: Settings): Partial<Settings> => {
   const patch: Partial<Settings> = {}
   if (current.themePreset !== previous.themePreset) patch.themePreset = current.themePreset
+  if (current.trendColorMode !== previous.trendColorMode) patch.trendColorMode = current.trendColorMode
   if (current.borderStyle !== previous.borderStyle) patch.borderStyle = current.borderStyle
   if (current.requestTimeoutMs !== previous.requestTimeoutMs) patch.requestTimeoutMs = current.requestTimeoutMs
   if (current.minimumRequestDurationMs !== previous.minimumRequestDurationMs) {

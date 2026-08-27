@@ -4,6 +4,7 @@ import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
 import { DIALOG_CHROME } from '../../lib/layout.ts'
 import { STOCK_DETAIL_COLUMNS, stockDetailColumnsWidth } from '../../lib/stockTable.ts'
+import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import Dialog from '../Dialog.tsx'
 import QuoteRow from '../QuoteRow.tsx'
 import StockChart, { STOCK_CHART_HEIGHT } from '../StockChart/index.tsx'
@@ -16,6 +17,7 @@ const STOCK_DETAIL_WIDTH = stockDetailColumnsWidth() + DIALOG_CHROME + 6
 const CONTENT_WIDTH = STOCK_DETAIL_WIDTH - DIALOG_CHROME
 
 export default function StockDetailDialog() {
+  const trendColorMode = useSettingsStore((state) => state.trendColorMode)
   const stockDetailDialog = useStockDetailDialog()
 
   if (!stockDetailDialog) return undefined
@@ -35,15 +37,15 @@ export default function StockDetailDialog() {
             {stock.code}
           </Text>
           <Text> </Text>
-          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change)}>
+          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change, trendColorMode)}>
             {quote ? formatPrice(quote.current) : '--'}
           </Text>
           <Text> </Text>
-          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.changePercent)}>
+          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.changePercent, trendColorMode)}>
             {quote ? (suspended ? '停牌' : formatPercent(quote.changePercent)) : '--'}
           </Text>
           <Text> </Text>
-          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change)}>
+          <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change, trendColorMode)}>
             {quote ? formatSigned(quote.change) : '--'}
           </Text>
         </Text>
@@ -64,7 +66,9 @@ export default function StockDetailDialog() {
         <QuoteRow
           bright
           segments={
-            quote ? quoteRow(STOCK_DETAIL_COLUMNS, quote) : missingRow(STOCK_DETAIL_COLUMNS, stock.code, stock.name)
+            quote
+              ? quoteRow(STOCK_DETAIL_COLUMNS, quote, trendColorMode)
+              : missingRow(STOCK_DETAIL_COLUMNS, stock.code, stock.name)
           }
         />
       </Box>
@@ -83,7 +87,14 @@ export default function StockDetailDialog() {
             暂无{periodLabel}行情数据
           </Text>
         ) : (
-          <StockChart bright points={points} period={period} prevClose={quote?.prevClose} width={CONTENT_WIDTH} />
+          <StockChart
+            bright
+            points={points}
+            period={period}
+            prevClose={quote?.prevClose}
+            trendColorMode={trendColorMode}
+            width={CONTENT_WIDTH}
+          />
         )}
       </Box>
     </Dialog>

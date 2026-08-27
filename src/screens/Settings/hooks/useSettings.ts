@@ -5,6 +5,8 @@ import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import {
   BORDER_STYLES,
   type NumericSettingKey,
+  TREND_COLOR_MODE_LABELS,
+  TREND_COLOR_MODES,
   THEME_PRESET_NAMES,
   THEME_PRESETS,
   useSettingsStore,
@@ -12,11 +14,13 @@ import {
 
 type SettingItem =
   | { type: 'theme'; label: string; description: string }
+  | { type: 'trendColor'; label: string; description: string }
   | { type: 'border'; label: string; description: string }
   | { type: 'numeric'; label: string; description: string; setting: NumericSettingKey }
 
 const SETTING_ITEMS: SettingItem[] = [
   { type: 'theme', label: '主题色系', description: '界面配色' },
+  { type: 'trendColor', label: '涨跌颜色', description: '选择涨绿或跌绿' },
   { type: 'border', label: '卡片边框', description: '边框样式' },
   { type: 'numeric', label: '请求超时', description: '单次请求最长等待', setting: 'requestTimeoutMs' },
   { type: 'numeric', label: '请求最短耗时', description: '避免加载闪烁', setting: 'minimumRequestDurationMs' },
@@ -61,6 +65,10 @@ export function useSettings() {
       settings.updateSettings({
         themePreset: nextOption(THEME_PRESET_NAMES, settings.themePreset, direction),
       })
+    } else if (selected.type === 'trendColor') {
+      settings.updateSettings({
+        trendColorMode: nextOption(TREND_COLOR_MODES, settings.trendColorMode, direction),
+      })
     } else if (selected.type === 'border') {
       settings.updateSettings({
         borderStyle: nextOption(BORDER_STYLES, settings.borderStyle, direction),
@@ -95,14 +103,16 @@ export function useSettings() {
     value:
       item.type === 'theme'
         ? THEME_PRESETS[settings.themePreset].label
-        : item.type === 'border'
-          ? settings.borderStyle
-          : formatDuration(settings[item.setting]),
+        : item.type === 'trendColor'
+          ? TREND_COLOR_MODE_LABELS[settings.trendColorMode]
+          : item.type === 'border'
+            ? settings.borderStyle
+            : formatDuration(settings[item.setting]),
   }))
 
   return {
     overlayOpen,
-    appearanceItems: rows.slice(0, 2),
-    requestItems: rows.slice(2),
+    appearanceItems: rows.slice(0, 3),
+    requestItems: rows.slice(3),
   }
 }

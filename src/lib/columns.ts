@@ -1,4 +1,5 @@
 import type { Quote } from '../api/types.ts'
+import { DEFAULT_TREND_COLOR_MODE, type TrendColorMode } from '../stores/useSettingsStore.ts'
 import {
   formatMarketCap,
   formatPercent,
@@ -22,7 +23,7 @@ export type Column = {
   title: string
   width: number
   render: (quote: Quote) => string
-  color?: (quote: Quote) => TextColor
+  color?: (quote: Quote, trendColorMode: TrendColorMode) => TextColor
   suspendedText?: string
 }
 
@@ -57,7 +58,7 @@ export const COLUMNS: readonly Column[] = [
     title: '现价',
     width: 8,
     render: (q) => formatPrice(q.current),
-    color: (q) => trendColor(q.change),
+    color: (q, mode) => trendColor(q.change, mode),
   },
   {
     key: 'changePercent',
@@ -65,7 +66,7 @@ export const COLUMNS: readonly Column[] = [
     title: '涨跌幅',
     width: 9,
     render: (q) => formatPercent(q.changePercent),
-    color: (q) => trendColor(q.changePercent),
+    color: (q, mode) => trendColor(q.changePercent, mode),
     suspendedText: '停牌',
   },
   {
@@ -74,7 +75,7 @@ export const COLUMNS: readonly Column[] = [
     title: '涨跌额',
     width: 8,
     render: (q) => formatSigned(q.change),
-    color: (q) => trendColor(q.change),
+    color: (q, mode) => trendColor(q.change, mode),
   },
   {
     key: 'open',
@@ -155,12 +156,16 @@ export const headerRow = (columns: readonly Column[]): Row =>
   withSeparators(columns.map((col) => ({ text: cell(col.title, col), color: 'gray' })))
 
 /** 股票数据行 */
-export const quoteRow = (columns: readonly Column[], quote: Quote): Row => {
+export const quoteRow = (
+  columns: readonly Column[],
+  quote: Quote,
+  trendColorMode: TrendColorMode = DEFAULT_TREND_COLOR_MODE,
+): Row => {
   const suspended = quote.current <= 0
   return withSeparators(
     columns.map((col) => ({
       text: cell(suspended ? (col.suspendedText ?? '--') : col.render(quote), col),
-      color: suspended || !col.color ? 'gray' : col.color(quote),
+      color: suspended || !col.color ? 'gray' : col.color(quote, trendColorMode),
     })),
   )
 }

@@ -1,6 +1,7 @@
 import { Box } from 'ink'
 
 import type { ChartPeriod, ChartPoint } from '../../api/types.ts'
+import type { TrendColorMode } from '../../stores/useSettingsStore.ts'
 import Text from '../Text.tsx'
 import { buildChartRows, type ChartCell } from './lib.ts'
 
@@ -19,6 +20,7 @@ type Props = {
   /** 成交量柱区高度 (行) */
   volumeHeight?: number
   bright?: boolean
+  trendColorMode?: TrendColorMode
 }
 
 /** 股票趋势图: 分时/五日/K 线收盘趋势 + 分时参考价虚线 + 成交量柱 + 时间轴 */
@@ -30,8 +32,9 @@ export default function StockChart({
   priceHeight = DEFAULT_PRICE_HEIGHT,
   volumeHeight = DEFAULT_VOLUME_HEIGHT,
   bright = false,
+  trendColorMode,
 }: Props) {
-  const rows = buildChartRows({ points, period, prevClose, width, priceHeight, volumeHeight })
+  const rows = buildChartRows({ points, period, prevClose, width, priceHeight, volumeHeight, trendColorMode })
 
   return (
     <Box flexDirection="column">

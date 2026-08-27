@@ -7,9 +7,12 @@ import process from 'node:process'
 import {
   BORDER_STYLES,
   DEFAULT_SETTINGS,
+  DEFAULT_TREND_COLOR_MODE,
   SETTING_LIMITS,
+  TREND_COLOR_MODES,
   type Settings,
   type ThemePreset,
+  type TrendColorMode,
   THEME_PRESET_NAMES,
 } from '../stores/useSettingsStore.ts'
 
@@ -57,6 +60,7 @@ const LOCK_STALE_MS = 30_000
 export type SettingsDocument = {
   theme: {
     preset: Settings['themePreset']
+    trendColorMode: Settings['trendColorMode']
     borderStyle: Settings['borderStyle']
   }
   request: {
@@ -77,6 +81,14 @@ const parseThemePreset = (value: unknown): ThemePreset => {
     throw new Error('theme.preset 无效')
   }
   return value as ThemePreset
+}
+
+const parseTrendColorMode = (value: unknown): TrendColorMode => {
+  if (value === undefined) return DEFAULT_TREND_COLOR_MODE
+  if (typeof value !== 'string' || !TREND_COLOR_MODES.includes(value as TrendColorMode)) {
+    throw new Error('theme.trendColorMode 无效')
+  }
+  return value as TrendColorMode
 }
 
 const parseInteger = (value: unknown, name: string, limits: { min: number; max: number }) => {
@@ -109,6 +121,7 @@ export function parseSettingsDocument(value: unknown): SettingsDocument {
   return {
     theme: {
       preset: parseThemePreset(theme['preset']),
+      trendColorMode: parseTrendColorMode(theme['trendColorMode']),
       borderStyle: borderStyle as Settings['borderStyle'],
     },
     request: {
@@ -137,6 +150,7 @@ export function parseSettingsDocument(value: unknown): SettingsDocument {
 export function settingsFromDocument(document: SettingsDocument): Settings {
   return {
     themePreset: document.theme.preset,
+    trendColorMode: document.theme.trendColorMode,
     borderStyle: document.theme.borderStyle,
     requestTimeoutMs: document.request.timeoutMs,
     minimumRequestDurationMs: document.request.minimumDurationMs,
@@ -149,6 +163,7 @@ export function settingsFromDocument(document: SettingsDocument): Settings {
 const createDocument = (settings: Settings, stocks: StockEntry[]): SettingsDocument => ({
   theme: {
     preset: settings.themePreset,
+    trendColorMode: settings.trendColorMode,
     borderStyle: settings.borderStyle,
   },
   request: {

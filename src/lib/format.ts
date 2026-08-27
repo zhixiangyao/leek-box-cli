@@ -1,4 +1,6 @@
-/** 行情数字格式化 + A股涨跌色 (涨红跌绿平灰) */
+import { DEFAULT_TREND_COLOR_MODE, type TrendColorMode } from '../stores/useSettingsStore.ts'
+
+/** 价格 -> '12.34'; 非正值 '--' */
 export const formatPrice = (value: number) => (value > 0 ? value.toFixed(2) : '--')
 
 /** 涨跌额 (带符号) -> '+1.23' / '-0.45' */
@@ -7,8 +9,15 @@ export const formatSigned = (value: number) => `${value > 0 ? '+' : ''}${value.t
 /** 涨跌幅 (带符号, %) -> '+1.23%' / '-0.45%' */
 export const formatPercent = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 
-/** A股涨跌色: 正红 负绿 平灰 */
-export const trendColor = (value: number) => (value > 0 ? 'red' : value < 0 ? 'green' : 'gray')
+export type TrendColor = 'red' | 'green' | 'gray'
+
+/** 涨跌色 (默认涨红跌绿, 可切换为涨绿跌红) -> 'red' / 'green' / 'gray' */
+export const trendColor = (value: number, mode: TrendColorMode = DEFAULT_TREND_COLOR_MODE): TrendColor => {
+  if (value === 0) return 'gray'
+  const rising = value > 0
+  const greenOnRise = mode === 'green-up'
+  return rising === greenOnRise ? 'green' : 'red'
+}
 
 /** 成交量 (手) -> '61.1万手' / '1234手'; 非正值 '--' */
 export const formatVolume = (value: number) =>

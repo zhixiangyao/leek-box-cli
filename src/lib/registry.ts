@@ -40,7 +40,7 @@ export const SCREEN_REGISTRY = {
   settings: {
     Component: Settings,
     title: '设置',
-    description: '配置主题与请求参数',
+    description: '配置主题, 涨跌颜色与请求参数',
     hint: '菜单(esc)   选择(↑/↓)   调整(←/→/enter)   默认值(d)   退出(q)',
     menuLabel: '设置',
   },
