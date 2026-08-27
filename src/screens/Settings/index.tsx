@@ -13,6 +13,7 @@ type Props = {
 
 type SettingRow = {
   label: string
+  description: string
   value: string
   selected: boolean
 }
@@ -23,6 +24,9 @@ function SettingRows({ rows, highlight }: { rows: SettingRow[]; highlight: strin
       <Text color={row.selected ? 'black' : undefined} backgroundColor={row.selected ? highlight : undefined}>
         {row.selected ? '› ' : '  '}
         {row.label}
+        <Text color="gray" backgroundColor={row.selected ? highlight : undefined}>
+          ({row.description})
+        </Text>
       </Text>
       <Text color={row.selected ? highlight : 'gray'}>{row.value}</Text>
     </Box>
@@ -49,7 +53,6 @@ export default function Settings({ title, hint }: Props) {
       </Box>
 
       <Box marginTop={1} flexDirection="column">
-        <Text color="gray">↑/↓ 选择 ←/→ 或 Enter 调整 d 恢复默认值</Text>
         <Text color="gray">请求最短耗时用于避免加载状态闪烁, 且不会超过请求超时.</Text>
       </Box>
     </Card>

@@ -144,7 +144,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
   useStockListStore.setState({
     refreshQuotes: async () => {
       useStockListStore.setState({
-        step: { type: 'table', rows: [], updatedAt: '15:00' },
+        step: { type: 'table', rows: [] },
       })
     },
   })
@@ -166,9 +166,11 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
   try {
     const stockFrame = await waitForFrame(output, 0, (candidate) => {
       const text = plain(candidate)
-      return text.includes('股票自选股看板') && text.includes('15:00 (5000ms)')
+      return text.includes('自选股票看板') && text.includes('名称') && text.includes('代码')
     })
     expect(plain(stockFrame)).toMatch(/刷新\(r\)/)
+    expect(plain(stockFrame)).not.toMatch(/间隔\(-\/\+\)/)
+    expect(plain(stockFrame).indexOf('名称')).toBeLessThan(plain(stockFrame).indexOf('代码'))
     assertFrameSize(stockFrame, columns, rows)
 
     let after = output.frames.length
@@ -194,7 +196,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
     useMenuStore.setState({ open: true })
     const dimmedFrame = await waitForFrame(output, after, (candidate) => {
       const text = plain(candidate)
-      return text.includes('添加自选股') && text.includes('股票自选股看板') && candidate.includes('\u001B[2m')
+      return text.includes('添加自选股') && text.includes('自选股票看板') && candidate.includes('\u001B[2m')
     })
     expect(plain(dimmedFrame)).toMatch(/菜单/)
     assertFrameSize(dimmedFrame, columns, rows)

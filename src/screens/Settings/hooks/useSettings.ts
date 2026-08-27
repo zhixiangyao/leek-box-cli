@@ -11,18 +11,28 @@ import {
 } from '../../../stores/useSettingsStore.ts'
 
 type SettingItem =
-  | { type: 'theme'; label: string }
-  | { type: 'border'; label: string }
-  | { type: 'numeric'; label: string; setting: NumericSettingKey }
+  | { type: 'theme'; label: string; description: string }
+  | { type: 'border'; label: string; description: string }
+  | { type: 'numeric'; label: string; description: string; setting: NumericSettingKey }
 
 const SETTING_ITEMS: SettingItem[] = [
-  { type: 'theme', label: '主题色系' },
-  { type: 'border', label: '卡片边框' },
-  { type: 'numeric', label: '请求超时', setting: 'requestTimeoutMs' },
-  { type: 'numeric', label: '请求最短耗时', setting: 'minimumRequestDurationMs' },
-  { type: 'numeric', label: '行情刷新间隔', setting: 'quotePollIntervalMs' },
-  { type: 'numeric', label: '分时图刷新间隔', setting: 'minuteChartPollIntervalMs' },
-  { type: 'numeric', label: 'K 线刷新间隔', setting: 'klinePollIntervalMs' },
+  { type: 'theme', label: '主题色系', description: '界面配色' },
+  { type: 'border', label: '卡片边框', description: '边框样式' },
+  { type: 'numeric', label: '请求超时', description: '单次请求最长等待', setting: 'requestTimeoutMs' },
+  { type: 'numeric', label: '请求最短耗时', description: '避免加载闪烁', setting: 'minimumRequestDurationMs' },
+  { type: 'numeric', label: '看板刷新间隔', description: '自选股票看板自动刷新频率', setting: 'quotePollIntervalMs' },
+  {
+    type: 'numeric',
+    label: '分时图刷新间隔',
+    description: '分时与五日图自动刷新频率',
+    setting: 'minuteChartPollIntervalMs',
+  },
+  {
+    type: 'numeric',
+    label: 'K 线刷新间隔',
+    description: '日/周/月/年 K 线自动刷新频率',
+    setting: 'klinePollIntervalMs',
+  },
 ]
 
 const nextOption = <Value extends string>(options: readonly Value[], current: Value, direction: 1 | -1) => {
@@ -80,6 +90,7 @@ export function useSettings() {
 
   const rows = SETTING_ITEMS.map((item, index) => ({
     label: item.label,
+    description: item.description,
     selected: index === selectedIndex,
     value:
       item.type === 'theme'

@@ -2,7 +2,6 @@ import { create } from 'zustand'
 
 import { fetchQuotes, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
-import { formatClock } from '../lib/format.ts'
 import { loadStocks, type StockEntry } from '../lib/settings.ts'
 
 export type StockRow =
@@ -13,7 +12,7 @@ export type StockListStep =
   | { type: 'loading' }
   | { type: 'empty' }
   | { type: 'error'; message: string }
-  | { type: 'table'; rows: StockRow[]; updatedAt: string; errorLine?: string }
+  | { type: 'table'; rows: StockRow[]; errorLine?: string }
 
 type StockListState = {
   step: StockListStep
@@ -109,15 +108,12 @@ export function createStockListStore(dependencies: StockListDependencies = defau
               ? { kind: 'quote', code: entry.code, name: quote.name, quote }
               : { kind: 'missing', code: entry.code, name: entry.name }
           })
-          const updatedAt = formatClock(
-            fetchedQuotes.reduce((maximum, quote) => (quote.timestamp > maximum ? quote.timestamp : maximum), ''),
-          )
           const previousIndex = rowIndex(previousRows, state.selectedCode)
           const preservedIndex = state.selectedCode ? rows.findIndex((row) => row.code === state.selectedCode) : -1
           const nextIndex = preservedIndex >= 0 ? preservedIndex : clampSelection(previousIndex, rows.length)
           const relativeIndex = Math.max(0, previousIndex - state.scrollOffset)
           return {
-            step: { type: 'table', rows, updatedAt },
+            step: { type: 'table', rows },
             selectedCode: rows[nextIndex]?.code,
             scrollOffset: Math.max(0, nextIndex - relativeIndex),
           }

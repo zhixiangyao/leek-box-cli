@@ -50,7 +50,7 @@
 - **Real-time dashboard**: Displays the latest price, percentage change, price change, open, high, low, volume, turnover, turnover rate, and total market capitalization for every stock in your watchlist. Refreshes every 5 seconds by default.
 - **Row selection and details**: Use `↑`/`↓` to select a stock and `enter` to open its quote details and trend chart. Press `1`-`6` to switch between intraday, five-day, daily, weekly, monthly, and yearly views.
 - **Multiple time frames**: Intraday and five-day minute charts refresh every 30 seconds. Daily, weekly, monthly, and yearly charts refresh every 5 minutes.
-- **Refresh controls**: Press `r` to refresh immediately. Use `-`/`+` to adjust the automatic refresh interval in 500 ms increments, from 1 to 60 seconds.
+- **Refresh controls**: Press `r` to refresh immediately. Configure the automatic refresh interval in Settings in 500 ms increments, from 1 to 60 seconds.
 - **Watchlist management**: Add or remove Shanghai, Shenzhen, and Beijing A-shares and ETFs. Stock codes can be entered as `600000`, `sh600000`, `600000.SH`, and other common formats.
 - **Resilient display**: Suspended stocks, incomplete quotes, and refresh failures each have a dedicated state. The display recovers automatically after a later poll succeeds.
 
@@ -58,7 +58,8 @@
 
 - `esc`: Open the menu. If stock details are open, close them first; if the menu is open, close it.
 - In the menu, use `↑`/`↓`, `enter`, or a number key to select a page.
-- In the dashboard, use `↑`/`↓`, `enter`, `r`, `-`, and `+`.
+- In the dashboard, use `↑`/`↓`, `enter`, and `r`.
+- In Settings, use `↑`/`↓` to select an item and `←`/`→` or `enter` to adjust it.
 - In stock details, press `1`-`6` to switch between `Intraday`, `Five-day`, `Daily`, `Weekly`, `Monthly`, and `Yearly`.
 - `q`: Exit when no menu or stock details overlay is open. It does nothing while an overlay is open to prevent accidental exits.
 - The right side of the status bar displays `YYYY-MM-DD HH:MM:SS` in the Asia/Shanghai time zone.

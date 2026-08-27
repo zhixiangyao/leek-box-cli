@@ -28,10 +28,6 @@ export function useStockList() {
     intervalMs: pollIntervalMs,
   })
 
-  const adjustPollInterval = (direction: 1 | -1) => {
-    useSettingsStore.getState().adjustNumericSetting('quotePollIntervalMs', direction)
-  }
-
   useInput(
     (input, key) => {
       if (key.ctrl) return
@@ -46,10 +42,6 @@ export function useStockList() {
         if (row) useStockDetailStore.getState().open(row.code, row.name)
       } else if (input === 'r') {
         refresh()
-      } else if (input === '-') {
-        adjustPollInterval(-1)
-      } else if (input === '+') {
-        adjustPollInterval(1)
       }
     },
     { isActive: !overlayOpen },

@@ -18,10 +18,10 @@ type ScreenDefinition = {
 export const SCREEN_REGISTRY = {
   ['stock-list']: {
     Component: StockList,
-    title: '股票自选股看板',
-    description: '股票自选股看板 (默认, 自动刷新)',
-    hint: '菜单(esc)   刷新(r)   选择(↑/↓)   详情(enter)   间隔(-/+)   退出(q)',
-    menuLabel: '股票自选股看板',
+    title: '自选股票看板',
+    description: '自选股票看板 (默认, 自动刷新)',
+    hint: '菜单(esc)   刷新(r)   选择(↑/↓)   详情(enter)   退出(q)',
+    menuLabel: '自选股票看板',
   },
   ['add-stock']: {
     Component: AddStock,

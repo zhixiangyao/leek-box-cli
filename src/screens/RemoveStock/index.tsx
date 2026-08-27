@@ -38,11 +38,7 @@ export default function RemoveStock({ title, hint }: Props) {
           ))}
           {indexInput.error && <Text color="red">{indexInput.error}</Text>}
           <Newline />
-          <TextInput
-            key={`index-${indexInput.resetToken}`}
-            prompt="请输入要删除的序号: "
-            onSubmit={handleChoice}
-          />
+          <TextInput key={`index-${indexInput.resetToken}`} prompt="请输入要删除的序号: " onSubmit={handleChoice} />
         </>
       )
       break
@@ -55,11 +51,7 @@ export default function RemoveStock({ title, hint }: Props) {
             确定删除 {step.entry.name} ({step.entry.code})?
           </Text>
           {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
-          <TextInput
-            key={`confirm-${confirmInput.resetToken}`}
-            prompt="确认删除? (y/n): "
-            onSubmit={handleConfirm}
-          />
+          <TextInput key={`confirm-${confirmInput.resetToken}`} prompt="确认删除? (y/n): " onSubmit={handleConfirm} />
         </>
       )
       break

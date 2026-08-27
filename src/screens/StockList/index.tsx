@@ -9,7 +9,6 @@ import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { STOCK_LIST_COLUMNS } from '../../lib/stockTable.ts'
-import StockListUpdatedAt from './components/StockListUpdatedAt.tsx'
 import { useStockList } from './hooks/useStockList.ts'
 
 type Props = {
@@ -75,7 +74,6 @@ export default function StockList({ title, hint }: Props) {
       fullScreen
       bright={!overlayOpen}
       title={<Text color={theme.primary}>{title}</Text>}
-      extra={<StockListUpdatedAt />}
       footer={<StatusBar hint={hint} bright={!overlayOpen} />}
     >
       {content}
