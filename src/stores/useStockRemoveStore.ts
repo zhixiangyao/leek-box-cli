@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 
 import { errorMessage } from '../lib/error.ts'
-import { loadStocks, removeStock, type StockEntry } from '../lib/settings.ts'
+import { loadStocks, stockRemove, type StockEntry } from '../lib/settings.ts'
 import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
 
-export type RemoveStockStep =
+export type StockRemoveStep =
   | { type: 'loading' }
   | { type: 'select'; entries: StockEntry[] }
   | { type: 'confirm'; entry: StockEntry }
@@ -14,8 +14,8 @@ export type RemoveStockStep =
 
 type InputState = { error: string | undefined; resetToken: number }
 
-type RemoveStockState = {
-  step: RemoveStockStep
+type StockRemoveState = {
+  step: StockRemoveStep
   indexInput: InputState
   confirmInput: InputState
   loadEntries: () => Promise<void>
@@ -23,19 +23,19 @@ type RemoveStockState = {
   handleConfirm: (answer: string) => Promise<void>
 }
 
-export type RemoveStockDependencies = {
+export type StockRemoveDependencies = {
   loadStocks: () => Promise<StockEntry[]>
-  removeStock: (code: string) => Promise<StockEntry | undefined>
+  stockRemove: (code: string) => Promise<StockEntry | undefined>
 }
 
-const defaultDependencies: RemoveStockDependencies = { loadStocks, removeStock }
+const defaultDependencies: StockRemoveDependencies = { loadStocks, stockRemove }
 const FRESH_INPUT: InputState = { error: undefined, resetToken: 0 }
 
-export function createRemoveStockStore(dependencies: RemoveStockDependencies = defaultDependencies) {
+export function createStockRemoveStore(dependencies: StockRemoveDependencies = defaultDependencies) {
   let generation = 0
   const isStale = (value: number) => value !== generation
 
-  return create<RemoveStockState>()((set, get) => ({
+  return create<StockRemoveState>()((set, get) => ({
     step: { type: 'loading' },
     indexInput: FRESH_INPUT,
     confirmInput: FRESH_INPUT,
@@ -93,7 +93,7 @@ export function createRemoveStockStore(dependencies: RemoveStockDependencies = d
       if (current.type !== 'confirm') return
       set({ step: { type: 'removing', entry: current.entry } })
       try {
-        const removed = await dependencies.removeStock(current.entry.code)
+        const removed = await dependencies.stockRemove(current.entry.code)
         if (isStale(currentGeneration)) return
         set({
           step: removed
@@ -109,4 +109,4 @@ export function createRemoveStockStore(dependencies: RemoveStockDependencies = d
   }))
 }
 
-export const useRemoveStockStore = createRemoveStockStore()
+export const useStockRemoveStore = createStockRemoveStore()

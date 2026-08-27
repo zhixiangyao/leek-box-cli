@@ -17,7 +17,7 @@ const MENU_ITEMS: MenuItem[] = [
 
 const MENU_WIDTH = 45
 
-export function useMenuDialog() {
+export function useDialogMenu() {
   const goTo = useRouterStore((state) => state.goTo)
   const closeMenu = useMenuStore((state) => state.close)
   const { exit } = useApp()

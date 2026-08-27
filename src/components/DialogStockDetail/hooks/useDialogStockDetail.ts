@@ -16,7 +16,7 @@ export const CHART_PERIOD_OPTIONS = [
   { key: '6', value: 'year', label: '年K' },
 ] as const satisfies readonly { key: string; value: ChartPeriod; label: string }[]
 
-export function useStockDetailDialog() {
+export function useDialogStockDetail() {
   const stock = useStockDetailStore((state) => state.stock)
   const period = useStockDetailStore((state) => state.period)
   const status = useStockDetailStore((state) => state.status)

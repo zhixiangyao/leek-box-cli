@@ -1,9 +1,9 @@
 import type { ComponentType } from 'react'
 
-import AddStock from '../screens/AddStock/index.tsx'
-import RemoveStock from '../screens/RemoveStock/index.tsx'
 import Settings from '../screens/Settings/index.tsx'
+import StockAdd from '../screens/StockAdd/index.tsx'
 import StockList from '../screens/StockList/index.tsx'
+import StockRemove from '../screens/StockRemove/index.tsx'
 
 type ScreenComponentProps = { title: string; hint: string }
 
@@ -23,15 +23,15 @@ export const SCREEN_REGISTRY = {
     hint: '菜单(esc)   刷新(r)   选择(↑/↓)   详情(enter)   退出(q)',
     menuLabel: '自选股票看板',
   },
-  ['add-stock']: {
-    Component: AddStock,
+  ['stock-add']: {
+    Component: StockAdd,
     title: '添加自选股',
     description: '添加自选股',
     hint: '菜单(esc)   退出(q)',
     menuLabel: '添加自选股',
   },
-  ['remove-stock']: {
-    Component: RemoveStock,
+  ['stock-remove']: {
+    Component: StockRemove,
     title: '删除自选股',
     description: '删除自选股',
     hint: '菜单(esc)   退出(q)',

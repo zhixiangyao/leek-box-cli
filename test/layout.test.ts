@@ -22,17 +22,17 @@ const [
 ])
 
 const [
-  { useAddStockStore },
+  { useStockAddStore },
   { useMenuStore },
-  { useRemoveStockStore },
+  { useStockRemoveStore },
   { useRouterStore },
   { useSettingsStore },
   { useStockDetailStore },
   { useStockListStore },
 ] = await Promise.all([
-  import('../src/stores/useAddStockStore.ts'),
+  import('../src/stores/useStockAddStore.ts'),
   import('../src/stores/useMenuStore.ts'),
-  import('../src/stores/useRemoveStockStore.ts'),
+  import('../src/stores/useStockRemoveStore.ts'),
   import('../src/stores/useRouterStore.ts'),
   import('../src/stores/useSettingsStore.ts'),
   import('../src/stores/useStockDetailStore.ts'),
@@ -97,9 +97,9 @@ const assertFrameSize = (frame: string, columns: number, rows: number) => {
 }
 
 const resetStores = () => {
-  useAddStockStore.setState(useAddStockStore.getInitialState(), true)
+  useStockAddStore.setState(useStockAddStore.getInitialState(), true)
   useMenuStore.setState(useMenuStore.getInitialState(), true)
-  useRemoveStockStore.setState(useRemoveStockStore.getInitialState(), true)
+  useStockRemoveStore.setState(useStockRemoveStore.getInitialState(), true)
   useRouterStore.setState(useRouterStore.getInitialState(), true)
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
   useStockDetailStore.setState(useStockDetailStore.getInitialState(), true)
@@ -153,9 +153,9 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
       })
     },
   })
-  useRemoveStockStore.setState({
+  useStockRemoveStore.setState({
     loadEntries: async () => {
-      useRemoveStockStore.setState({ step: { type: 'error', message: '测试自选股为空' } })
+      useStockRemoveStore.setState({ step: { type: 'error', message: '测试自选股为空' } })
     },
   })
 
@@ -179,21 +179,21 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
     assertFrameSize(stockFrame, columns, rows)
 
     let after = output.frames.length
-    useRouterStore.setState({ screen: 'add-stock' })
+    useRouterStore.setState({ screen: 'stock-add' })
     const addFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
     expect(plain(addFrame)).not.toMatch(/15:00 \(5000ms\)/)
     expect(plain(addFrame)).toMatch(/请输入股票代码/)
     assertFrameSize(addFrame, columns, rows)
 
     after = output.frames.length
-    useRouterStore.setState({ screen: 'remove-stock' })
+    useRouterStore.setState({ screen: 'stock-remove' })
     const removeFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
     expect(plain(removeFrame)).not.toMatch(/15:00 \(5000ms\)/)
     expect(plain(removeFrame)).toMatch(/测试自选股为空/)
     assertFrameSize(removeFrame, columns, rows)
 
     after = output.frames.length
-    useRouterStore.setState({ screen: 'add-stock' })
+    useRouterStore.setState({ screen: 'stock-add' })
     const brightFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
     expect(brightFrame).not.toContain('\u001B[2m')
 

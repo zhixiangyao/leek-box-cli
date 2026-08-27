@@ -10,19 +10,19 @@ import QuoteRow from '../QuoteRow.tsx'
 import StockChart, { STOCK_CHART_HEIGHT } from '../StockChart/index.tsx'
 import StockLogo from '../StockLogo.tsx'
 import Text from '../Text.tsx'
-import { CHART_PERIOD_OPTIONS, useStockDetailDialog } from './hooks/useStockDetailDialog.ts'
+import { CHART_PERIOD_OPTIONS, useDialogStockDetail } from './hooks/useDialogStockDetail.ts'
 
 /** 弹窗宽度 = 详情表格总宽 + DIALOG_CHROME + 冗余 4 */
 const STOCK_DETAIL_WIDTH = stockDetailColumnsWidth() + DIALOG_CHROME + 6
 const CONTENT_WIDTH = STOCK_DETAIL_WIDTH - DIALOG_CHROME
 
-export default function StockDetailDialog() {
+export default function DialogStockDetail() {
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
-  const stockDetailDialog = useStockDetailDialog()
+  const dialogStockDetail = useDialogStockDetail()
 
-  if (!stockDetailDialog) return undefined
+  if (!dialogStockDetail) return undefined
 
-  const { stock, quote, suspended, period, status, points, errorMessage } = stockDetailDialog
+  const { stock, quote, suspended, period, status, points, errorMessage } = dialogStockDetail
   const periodLabel = CHART_PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? ''
 
   return (

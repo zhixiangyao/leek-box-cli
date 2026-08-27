@@ -2,10 +2,10 @@ import { create } from 'zustand'
 
 import { fetchQuotes, normalizeCode, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
-import { addStock, loadStocks, type StockEntry } from '../lib/settings.ts'
+import { stockAdd, loadStocks, type StockEntry } from '../lib/settings.ts'
 import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
 
-export type AddStockStep =
+export type StockAddStep =
   | { type: 'input-code' }
   | { type: 'checking'; code: string }
   | { type: 'confirm'; code: string; name: string; current: number }
@@ -16,8 +16,8 @@ export type AddStockStep =
 
 type InputState = { error: string | undefined; resetToken: number }
 
-type AddStockState = {
-  step: AddStockStep
+type StockAddState = {
+  step: StockAddStep
   codeInput: InputState
   confirmInput: InputState
   reset: () => void
@@ -25,16 +25,16 @@ type AddStockState = {
   handleConfirm: (answer: string) => Promise<void>
 }
 
-export type AddStockDependencies = {
-  addStock: (entry: StockEntry) => Promise<{ status: 'added' | 'duplicate' }>
+export type StockAddDependencies = {
+  stockAdd: (entry: StockEntry) => Promise<{ status: 'added' | 'duplicate' }>
   fetchQuotes: (codes: string[]) => Promise<Quote[]>
   loadStocks: () => Promise<StockEntry[]>
   normalizeCode: (input: string) => string | undefined
   now: () => string
 }
 
-const defaultDependencies: AddStockDependencies = {
-  addStock,
+const defaultDependencies: StockAddDependencies = {
+  stockAdd,
   fetchQuotes,
   loadStocks,
   normalizeCode,
@@ -43,11 +43,11 @@ const defaultDependencies: AddStockDependencies = {
 
 const FRESH_INPUT: InputState = { error: undefined, resetToken: 0 }
 
-export function createAddStockStore(dependencies: AddStockDependencies = defaultDependencies) {
+export function createStockAddStore(dependencies: StockAddDependencies = defaultDependencies) {
   let generation = 0
   const isStale = (value: number) => value !== generation
 
-  return create<AddStockState>()((set, get) => ({
+  return create<StockAddState>()((set, get) => ({
     step: { type: 'input-code' },
     codeInput: FRESH_INPUT,
     confirmInput: FRESH_INPUT,
@@ -106,7 +106,7 @@ export function createAddStockStore(dependencies: AddStockDependencies = default
       if (current.type !== 'confirm') return
       set({ step: { type: 'saving', code: current.code, name: current.name } })
       try {
-        const result = await dependencies.addStock({
+        const result = await dependencies.stockAdd({
           code: current.code,
           name: current.name,
           addedAt: dependencies.now(),
@@ -127,4 +127,4 @@ export function createAddStockStore(dependencies: AddStockDependencies = default
   }))
 }
 
-export const useAddStockStore = createAddStockStore()
+export const useStockAddStore = createStockAddStore()

@@ -23,7 +23,7 @@ src/cli.tsx
   meow 参数解析, 初始路由, Ink render 和 settings persistence start/stop
 
 src/app.tsx
-  全局 esc/q 输入, 当前 screen 装配, MenuDialog 和 StockDetailDialog 绘制顺序
+  全局 esc/q 输入, 当前 screen 装配, DialogMenu 和 DialogStockDetail 绘制顺序
 
 src/lib/registry.ts
   页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单
@@ -103,13 +103,13 @@ await settingsPersistence.stop()
 - `hint`
 - `menuLabel`
 
-`Screen`, `SCREEN_LIST`, `isScreen()` 和 `toScreen()` 均从注册表派生. 新增页面只修改注册表, 不在 App, CLI help 或 MenuDialog 维护第二份映射.
+`Screen`, `SCREEN_LIST`, `isScreen()` 和 `toScreen()` 均从注册表派生. 新增页面只修改注册表, 不在 App, CLI help 或 DialogMenu 维护第二份映射.
 
 当前页面:
 
 - `stock-list`
-- `add-stock`
-- `remove-stock`
+- `stock-add`
+- `stock-remove`
 - `settings`
 
 无 command 或非法 command 进入 `stock-list`.
@@ -155,8 +155,8 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 - `esc`: 详情打开时先关闭详情, 否则切换菜单.
 - `q`: 仅在没有 overlay 时退出.
 - 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen }`.
-- MenuDialog 自己处理上下键, Enter 和数字快捷键.
-- StockDetailDialog 仅在详情打开且菜单关闭时处理周期数字键.
+- DialogMenu 自己处理上下键, Enter 和数字快捷键.
+- DialogStockDetail 仅在详情打开且菜单关闭时处理周期数字键.
 
 详情周期快捷键:
 
@@ -286,7 +286,7 @@ $XDG_CONFIG_HOME/leek-box-cli/settings.json
 - `StockEntry` 为 `{code, name, addedAt}`.
 - `parseStocks()` 校验 code, name, addedAt 和重复 code.
 - `patchSettings()` 只合并变化的 settings 字段, 保留锁内读取到的最新 stocks.
-- `addStock()`, `addStocks()`, `removeStock()` 在锁内读取最新文档后修改.
+- `stockAdd()`, `stocksAdd()`, `stockRemove()` 在锁内读取最新文档后修改.
 - `replaceStocks()` 表示明确的整表替换, 当前仅用于 mock reset.
 
 写入流程:
@@ -355,7 +355,7 @@ StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, �
 
 ## Card, Dialog 和 Text
 
-每个 screen 自己渲染 full-screen Card 和 StatusBar. App 只渲染当前 screen, 然后按顺序渲染 MenuDialog 和 StockDetailDialog.
+每个 screen 自己渲染 full-screen Card 和 StatusBar. App 只渲染当前 screen, 然后按顺序渲染 DialogMenu 和 DialogStockDetail.
 
 Card 负责:
 

@@ -8,17 +8,17 @@ import Text from '../../components/Text.tsx'
 import TextInput from '../../components/TextInput.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
-import { useRemoveStock } from './hooks/useRemoveStock.ts'
+import { useStockRemove } from './hooks/useStockRemove.ts'
 
 type Props = {
   title: string
   hint: string
 }
 
-export default function RemoveStock({ title, hint }: Props) {
+export default function StockRemove({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
-  const { step, indexInput, confirmInput, handleChoice, handleConfirm } = useRemoveStock()
+  const { step, indexInput, confirmInput, handleChoice, handleConfirm } = useStockRemove()
   let content: ReactNode
 
   switch (step.type) {

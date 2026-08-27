@@ -14,7 +14,7 @@
 
 ### 菜单
 
-![菜单对话框](scrennshots/menu-dialog.png)
+![菜单对话框](scrennshots/dialog-menu.png)
 
 ### 股票详情
 
@@ -24,24 +24,24 @@
     <td align="center"><strong>五日</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/stock-detail-dialog-intraday.png" alt="分时走势图"></td>
-    <td><img src="scrennshots/stock-detail-dialog-five-day.png" alt="五日走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-intraday.png" alt="分时走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-five-day.png" alt="五日走势图"></td>
   </tr>
   <tr>
     <td align="center"><strong>日 K</strong></td>
     <td align="center"><strong>周 K</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/stock-detail-dialog-day.png" alt="日 K 走势图"></td>
-    <td><img src="scrennshots/stock-detail-dialog-week.png" alt="周 K 走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-day.png" alt="日 K 走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-week.png" alt="周 K 走势图"></td>
   </tr>
   <tr>
     <td align="center"><strong>月 K</strong></td>
     <td align="center"><strong>年 K</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/stock-detail-dialog-month.png" alt="月 K 走势图"></td>
-    <td><img src="scrennshots/stock-detail-dialog-year.png" alt="年 K 走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-month.png" alt="月 K 走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-year.png" alt="年 K 走势图"></td>
   </tr>
 </table>
 
@@ -102,8 +102,8 @@ pnpm bundle
 ```bash
 leek-box-cli               # 自选股票看板
 leek-box-cli stock-list    # 同上
-leek-box-cli add-stock     # 添加自选股
-leek-box-cli remove-stock  # 删除自选股
+leek-box-cli stock-add     # 添加自选股
+leek-box-cli stock-remove  # 删除自选股
 leek-box-cli -v            # 查看版本
 leek-box-cli -h            # 查看帮助
 ```

@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import { addStocks, loadStocks, replaceStocks, settingsPath } from '../src/lib/settings.ts'
+import { stocksAdd, loadStocks, replaceStocks, settingsPath } from '../src/lib/settings.ts'
 
 const MOCK_STOCKS = [
   { code: 'sh600584', name: '长电科技' },
@@ -41,7 +41,7 @@ const main = async () => {
   const reset = process.argv.includes('--reset')
   const addedAt = new Date().toISOString()
   const candidates = MOCK_STOCKS.map((stock) => ({ ...stock, addedAt }))
-  const added = reset ? candidates.length : await addStocks(candidates)
+  const added = reset ? candidates.length : await stocksAdd(candidates)
   if (reset) await replaceStocks(candidates)
 
   const entries = await loadStocks()

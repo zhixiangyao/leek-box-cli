@@ -14,7 +14,7 @@
 
 ### Menu
 
-![Menu dialog](scrennshots/menu-dialog.png)
+![Menu dialog](scrennshots/dialog-menu.png)
 
 ### Stock Details
 
@@ -24,24 +24,24 @@
     <td align="center"><strong>Five-day</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/stock-detail-dialog-intraday.png" alt="Intraday stock chart"></td>
-    <td><img src="scrennshots/stock-detail-dialog-five-day.png" alt="Five-day stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-intraday.png" alt="Intraday stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-five-day.png" alt="Five-day stock chart"></td>
   </tr>
   <tr>
     <td align="center"><strong>Daily</strong></td>
     <td align="center"><strong>Weekly</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/stock-detail-dialog-day.png" alt="Daily stock chart"></td>
-    <td><img src="scrennshots/stock-detail-dialog-week.png" alt="Weekly stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-day.png" alt="Daily stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-week.png" alt="Weekly stock chart"></td>
   </tr>
   <tr>
     <td align="center"><strong>Monthly</strong></td>
     <td align="center"><strong>Yearly</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/stock-detail-dialog-month.png" alt="Monthly stock chart"></td>
-    <td><img src="scrennshots/stock-detail-dialog-year.png" alt="Yearly stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-month.png" alt="Monthly stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-year.png" alt="Yearly stock chart"></td>
   </tr>
 </table>
 
@@ -102,8 +102,8 @@ You can also select the initial page with a subcommand:
 ```bash
 leek-box-cli               # Stock watchlist dashboard
 leek-box-cli stock-list    # Same as above
-leek-box-cli add-stock     # Add a stock to the watchlist
-leek-box-cli remove-stock  # Remove a stock from the watchlist
+leek-box-cli stock-add     # Add a stock to the watchlist
+leek-box-cli stock-remove  # Remove a stock from the watchlist
 leek-box-cli -v            # Show version information
 leek-box-cli -h            # Show help
 ```

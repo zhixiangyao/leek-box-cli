@@ -1,10 +1,10 @@
 import { useTheme } from '../../hooks/useTheme.ts'
 import Dialog from '../Dialog.tsx'
 import Text from '../Text.tsx'
-import { useMenuDialog } from './hooks/useMenuDialog.ts'
+import { useDialogMenu } from './hooks/useDialogMenu.ts'
 
-export default function MenuDialog() {
-  const { highlight, width, menuItems } = useMenuDialog()
+export default function DialogMenu() {
+  const { highlight, width, menuItems } = useDialogMenu()
   const theme = useTheme()
 
   return (

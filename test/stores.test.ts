@@ -2,10 +2,10 @@ import { expect, test } from 'vitest'
 
 import type { IntradayPoint, Quote } from '../src/api/types.ts'
 import type { StockEntry } from '../src/lib/settings.ts'
-import { createAddStockStore } from '../src/stores/useAddStockStore.ts'
-import { createRemoveStockStore } from '../src/stores/useRemoveStockStore.ts'
+import { createStockAddStore } from '../src/stores/useStockAddStore.ts'
 import { createStockDetailStore } from '../src/stores/useStockDetailStore.ts'
 import { createStockListStore } from '../src/stores/useStockListStore.ts'
+import { createStockRemoveStore } from '../src/stores/useStockRemoveStore.ts'
 
 const entry = (code: string, name = code): StockEntry => ({
   code,
@@ -33,8 +33,8 @@ const quote = (code: string, name = code): Quote => ({
 })
 
 test('添加股票时报告最终加锁写入发现的重复项', async () => {
-  const store = createAddStockStore({
-    addStock: async () => ({ status: 'duplicate' }),
+  const store = createStockAddStore({
+    stockAdd: async () => ({ status: 'duplicate' }),
     fetchQuotes: async () => [quote('sh600000', '浦发银行')],
     loadStocks: async () => [],
     normalizeCode: () => 'sh600000',
@@ -49,9 +49,9 @@ test('添加股票时报告最终加锁写入发现的重复项', async () => {
 
 test('删除股票时报告已被其他进程删除的条目', async () => {
   const target = entry('sz000001', '平安银行')
-  const store = createRemoveStockStore({
+  const store = createStockRemoveStore({
     loadStocks: async () => [target],
-    removeStock: async () => undefined,
+    stockRemove: async () => undefined,
   })
 
   await store.getState().loadEntries()

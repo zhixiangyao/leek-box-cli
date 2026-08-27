@@ -8,17 +8,17 @@ import TextInput from '../../components/TextInput.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { formatPrice } from '../../lib/format.ts'
-import { useAddStock } from './hooks/useAddStock.ts'
+import { useStockAdd } from './hooks/useStockAdd.ts'
 
 type Props = {
   title: string
   hint: string
 }
 
-export default function AddStock({ title, hint }: Props) {
+export default function StockAdd({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
-  const { step, codeInput, confirmInput, handleCodeInput, handleConfirm } = useAddStock()
+  const { step, codeInput, confirmInput, handleCodeInput, handleConfirm } = useStockAdd()
   let content: ReactNode
 
   switch (step.type) {

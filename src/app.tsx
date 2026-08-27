@@ -1,7 +1,7 @@
 import { useApp, useInput } from 'ink'
 
-import MenuDialog from './components/MenuDialog/index.tsx'
-import StockDetailDialog from './components/StockDetailDialog/index.tsx'
+import DialogMenu from './components/DialogMenu/index.tsx'
+import DialogStockDetail from './components/DialogStockDetail/index.tsx'
 import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from './hooks/useOverlayOpen.ts'
 import { SCREEN_REGISTRY } from './lib/registry.ts'
@@ -33,8 +33,8 @@ export default function App() {
     <WindowSizeGuard>
       <ScreenDefinition.Component title={ScreenDefinition.title} hint={ScreenDefinition.hint} />
 
-      {menuOpen && <MenuDialog />}
-      {detailStock && <StockDetailDialog />}
+      {menuOpen && <DialogMenu />}
+      {detailStock && <DialogStockDetail />}
     </WindowSizeGuard>
   )
 }

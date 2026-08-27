@@ -361,7 +361,7 @@ export async function replaceStocks(stocks: StockEntry[]): Promise<void> {
   })
 }
 
-export async function addStocks(entries: StockEntry[]): Promise<number> {
+export async function stocksAdd(entries: StockEntry[]): Promise<number> {
   const normalized = parseStocks(entries)
   return withSettingsLock(async () => {
     const current = await initializeUnlocked()
@@ -374,11 +374,11 @@ export async function addStocks(entries: StockEntry[]): Promise<number> {
   })
 }
 
-export async function addStock(entry: StockEntry): Promise<{ status: 'added' | 'duplicate' }> {
-  return (await addStocks([entry])) === 1 ? { status: 'added' } : { status: 'duplicate' }
+export async function stockAdd(entry: StockEntry): Promise<{ status: 'added' | 'duplicate' }> {
+  return (await stocksAdd([entry])) === 1 ? { status: 'added' } : { status: 'duplicate' }
 }
 
-export async function removeStock(code: string): Promise<StockEntry | undefined> {
+export async function stockRemove(code: string): Promise<StockEntry | undefined> {
   return withSettingsLock(async () => {
     const current = await initializeUnlocked()
     const index = current.stocks.findIndex((item) => item.code === code)
