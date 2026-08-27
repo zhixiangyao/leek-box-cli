@@ -10,12 +10,13 @@ import {
   formatVolume,
   trendColor,
 } from './format.ts'
+import { displayWidth } from './layout.ts'
 
 type TextColor = 'red' | 'green' | 'gray'
 
 type ColumnKind = 'code' | 'name' | 'changePercent' | 'value'
 
-type Column = {
+export type Column = {
   key: keyof Quote
   kind: ColumnKind
   title: string
@@ -26,10 +27,6 @@ type Column = {
 }
 
 export type Row = { text: string; color?: TextColor }[]
-
-/** CJK 字符按宽度 2 计算的显示宽度 */
-const displayWidth = (value: string) =>
-  [...value].reduce((width, ch) => width + (ch.codePointAt(0)! > 0x2e80 ? 2 : 1), 0)
 
 const cell = (text: string, column: Column) => text + ' '.repeat(Math.max(0, column.width - displayWidth(text)))
 
@@ -150,6 +147,8 @@ export const COLUMNS: readonly Column[] = [
     render: (q) => formatMarketCap(q.marketCap),
   },
 ]
+
+export const COLUMNS_BY_KEY = new Map(COLUMNS.map((column) => [column.key, column]))
 
 /** 表头行 */
 export const headerRow = (columns: readonly Column[]): Row =>

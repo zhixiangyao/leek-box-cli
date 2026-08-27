@@ -2,12 +2,18 @@ import { Box } from 'ink'
 
 import { headerRow, missingRow, quoteRow } from '../../lib/columns.ts'
 import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
+import { DIALOG_CHROME } from '../../lib/layout.ts'
+import { STOCK_DETAIL_COLUMNS, stockDetailColumnsWidth } from '../../lib/stockTable.ts'
 import Dialog from '../Dialog.tsx'
 import QuoteRow from '../QuoteRow.tsx'
 import StockChart, { STOCK_CHART_HEIGHT } from '../StockChart/index.tsx'
+import StockLogo from '../StockLogo.tsx'
 import Text from '../Text.tsx'
 import { CHART_PERIOD_OPTIONS, useStockDetailDialog } from './hooks/useStockDetailDialog.ts'
-import { CONTENT_WIDTH, DETAIL_COLUMNS, STOCK_DETAIL_WIDTH } from './lib.ts'
+
+/** 弹窗宽度 = 详情表格总宽 + DIALOG_CHROME + 冗余 4 */
+const STOCK_DETAIL_WIDTH = stockDetailColumnsWidth() + DIALOG_CHROME + 6
+const CONTENT_WIDTH = STOCK_DETAIL_WIDTH - DIALOG_CHROME
 
 export default function StockDetailDialog() {
   const stockDetailDialog = useStockDetailDialog()
@@ -21,6 +27,8 @@ export default function StockDetailDialog() {
     <Dialog
       title={
         <Text bright>
+          <StockLogo code={stock.code} bright />
+          <Text> </Text>
           <Text bright>{stock.name}</Text>
           <Text> </Text>
           <Text bright color="gray">
@@ -52,10 +60,12 @@ export default function StockDetailDialog() {
       width={STOCK_DETAIL_WIDTH}
     >
       <Box flexDirection="column">
-        <QuoteRow bright segments={headerRow(DETAIL_COLUMNS)} />
+        <QuoteRow bright segments={headerRow(STOCK_DETAIL_COLUMNS)} />
         <QuoteRow
           bright
-          segments={quote ? quoteRow(DETAIL_COLUMNS, quote) : missingRow(DETAIL_COLUMNS, stock.code, stock.name)}
+          segments={
+            quote ? quoteRow(STOCK_DETAIL_COLUMNS, quote) : missingRow(STOCK_DETAIL_COLUMNS, stock.code, stock.name)
+          }
         />
       </Box>
 

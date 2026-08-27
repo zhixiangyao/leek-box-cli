@@ -7,14 +7,19 @@ import { expect, test } from 'vitest'
 
 process.env['FORCE_COLOR'] = '1'
 
-const [{ render, Text: InkText }, { default: App }, { default: Card }, { MIN_TERMINAL_ROWS }, { stockTableWidth }] =
-  await Promise.all([
-    import('ink'),
-    import('../src/app.tsx'),
-    import('../src/components/Card.tsx'),
-    import('../src/lib/layout.ts'),
-    import('../src/lib/stockTable.ts'),
-  ])
+const [
+  { render, Text: InkText },
+  { default: App },
+  { default: Card },
+  { MIN_TERMINAL_ROWS },
+  { stockListColumnsWidth },
+] = await Promise.all([
+  import('ink'),
+  import('../src/app.tsx'),
+  import('../src/components/Card.tsx'),
+  import('../src/lib/layout.ts'),
+  import('../src/lib/stockTable.ts'),
+])
 
 const [
   { useAddStockStore },
@@ -136,7 +141,7 @@ test('Card fullScreen 使用终端尺寸而非显式尺寸', async () => {
 })
 
 test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 chrome 正确', async () => {
-  const columns = stockTableWidth() + 10
+  const columns = stockListColumnsWidth() + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
 
