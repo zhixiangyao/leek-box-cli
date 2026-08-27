@@ -18,7 +18,7 @@ type Props = {
 export default function StockAdd({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
-  const { step, codeInput, confirmInput, handleCodeInput, handleConfirm } = useStockAdd()
+  const { step, codeInput, confirmInput, handleCodeInput, handleConfirm, reset } = useStockAdd()
   let content: ReactNode
 
   switch (step.type) {
@@ -28,8 +28,8 @@ export default function StockAdd({ title, hint }: Props) {
           {codeInput.error && <Text color="red">{codeInput.error}</Text>}
           <TextInput
             key={`code-${codeInput.resetToken}`}
-            prompt="请输入股票代码: "
-            placeholder={<Text color="gray">支持 600000 / sh600000 / 600000.SH 等写法</Text>}
+            prompt="请输入股票代码, 用英文逗号分隔: "
+            placeholder={<Text color="gray">支持 600000, sh600000, 600000.SH 等写法</Text>}
             onSubmit={handleCodeInput}
           />
         </>
@@ -38,16 +38,19 @@ export default function StockAdd({ title, hint }: Props) {
     }
 
     case 'checking': {
-      content = <Text color="cyan">正在验证股票代码 {step.code}...</Text>
+      content = <Text color="cyan">正在验证股票代码: {step.codes.join(', ')}...</Text>
       break
     }
 
     case 'confirm': {
       content = (
         <>
-          <Text color="cyan">
-            找到: {step.name} ({step.code}), 现价 {formatPrice(step.current)}
-          </Text>
+          <Text color="cyan">找到以下股票:</Text>
+          {step.entries.map((entry) => (
+            <Text key={entry.code}>
+              {entry.name} ({entry.code}), 现价 {formatPrice(entry.current)}
+            </Text>
+          ))}
           {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
           <TextInput
             key={`confirm-${confirmInput.resetToken}`}
@@ -60,26 +63,29 @@ export default function StockAdd({ title, hint }: Props) {
     }
 
     case 'saving': {
-      content = (
-        <Text color="cyan">
-          正在添加 {step.name} ({step.code})...
-        </Text>
-      )
+      content = <Text color="cyan">正在添加 {step.entries.length} 个股票...</Text>
       break
     }
 
     case 'already-exists': {
-      content = <ActionResult tone="warning" msg={`${step.name} (${step.code}) 已在自选股中.`} />
+      content = (
+        <ActionResult
+          tone="warning"
+          msg={`${step.entries.map((entry) => `${entry.name} (${entry.code})`).join(', ')} 已在自选股中.`}
+          to="stock-add"
+          onReturn={reset}
+        />
+      )
       break
     }
 
     case 'done': {
-      content = <ActionResult tone="success" msg={step.message} />
+      content = <ActionResult tone="success" msg={step.message} to="stock-add" onReturn={reset} />
       break
     }
 
     case 'error': {
-      content = <ActionResult tone="error" msg={step.message} />
+      content = <ActionResult tone="error" msg={step.message} to="stock-add" onReturn={reset} />
       break
     }
   }

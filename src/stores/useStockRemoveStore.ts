@@ -1,14 +1,14 @@
 import { create } from 'zustand'
 
 import { errorMessage } from '../lib/error.ts'
-import { loadStocks, stockRemove, type StockEntry } from '../lib/settings.ts'
+import { loadStocks, stocksRemove, type StockEntry } from '../lib/settings.ts'
 import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
 
 export type StockRemoveStep =
   | { type: 'loading' }
   | { type: 'select'; entries: StockEntry[] }
-  | { type: 'confirm'; entry: StockEntry }
-  | { type: 'removing'; entry: StockEntry }
+  | { type: 'confirm'; entries: StockEntry[] }
+  | { type: 'removing'; entries: StockEntry[] }
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
@@ -25,10 +25,10 @@ type StockRemoveState = {
 
 export type StockRemoveDependencies = {
   loadStocks: () => Promise<StockEntry[]>
-  stockRemove: (code: string) => Promise<StockEntry | undefined>
+  stocksRemove: (codes: string[]) => Promise<number>
 }
 
-const defaultDependencies: StockRemoveDependencies = { loadStocks, stockRemove }
+const defaultDependencies: StockRemoveDependencies = { loadStocks, stocksRemove }
 const FRESH_INPUT: InputState = { error: undefined, resetToken: 0 }
 
 export function createStockRemoveStore(dependencies: StockRemoveDependencies = defaultDependencies) {
@@ -60,18 +60,27 @@ export function createStockRemoveStore(dependencies: StockRemoveDependencies = d
     handleChoice: (choice: string) => {
       const current = get().step
       if (current.type !== 'select') return
-      const index = Number(choice.trim())
-      if (!Number.isInteger(index) || index < 1 || index > current.entries.length) {
+
+      const rawIndexes = choice.split(',').map((value) => value.trim())
+      const indexes = rawIndexes.map((value) => Number(value))
+      if (
+        rawIndexes.length === 0 ||
+        rawIndexes.some((value) => value === '') ||
+        indexes.some((index) => !Number.isInteger(index) || index < 1 || index > current.entries.length)
+      ) {
         set((state) => ({
           indexInput: {
-            error: `无效的序号, 请输入 1-${current.entries.length}`,
+            error: `无效的序号, 请输入 1-${current.entries.length}, 用英文逗号分隔.`,
             resetToken: state.indexInput.resetToken + 1,
           },
         }))
         return
       }
+
+      const selectedIndexes = [...new Set(indexes)]
+      const entries = selectedIndexes.map((index) => current.entries[index - 1]!)
       set((state) => ({ indexInput: { error: undefined, resetToken: state.indexInput.resetToken + 1 } }))
-      set({ step: { type: 'confirm', entry: current.entries[index - 1]! } })
+      set({ step: { type: 'confirm', entries } })
     },
 
     handleConfirm: async (answer: string) => {
@@ -91,14 +100,21 @@ export function createStockRemoveStore(dependencies: StockRemoveDependencies = d
       const currentGeneration = generation
       const current = get().step
       if (current.type !== 'confirm') return
-      set({ step: { type: 'removing', entry: current.entry } })
+      set({ step: { type: 'removing', entries: current.entries } })
       try {
-        const removed = await dependencies.stockRemove(current.entry.code)
+        const removedCount = await dependencies.stocksRemove(current.entries.map((entry) => entry.code))
         if (isStale(currentGeneration)) return
+        if (removedCount === 0) {
+          set({ step: { type: 'error', message: `所选 ${current.entries.length} 个条目已不在自选股中.` } })
+          return
+        }
+
+        const missingCount = current.entries.length - removedCount
         set({
-          step: removed
-            ? { type: 'done', message: `已删除 ${current.entry.name} (${current.entry.code}).` }
-            : { type: 'error', message: `${current.entry.name} (${current.entry.code}) 已不在自选股中.` },
+          step: {
+            type: 'done',
+            message: `已删除 ${removedCount} 个股票, ${missingCount} 个条目已不在自选股中.`,
+          },
         })
       } catch (error) {
         if (!isStale(currentGeneration)) {

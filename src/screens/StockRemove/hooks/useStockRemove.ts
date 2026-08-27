@@ -20,5 +20,6 @@ export function useStockRemove() {
     confirmInput,
     handleChoice,
     handleConfirm,
+    loadEntries,
   }
 }

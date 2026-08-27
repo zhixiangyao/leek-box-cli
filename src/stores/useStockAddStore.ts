@@ -2,15 +2,17 @@ import { create } from 'zustand'
 
 import { fetchQuotes, normalizeCode, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
-import { stockAdd, loadStocks, type StockEntry } from '../lib/settings.ts'
+import { stocksAdd, type StockEntry } from '../lib/settings.ts'
 import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
+
+type StockCandidate = Pick<StockEntry, 'code' | 'name'> & { current: number }
 
 export type StockAddStep =
   | { type: 'input-code' }
-  | { type: 'checking'; code: string }
-  | { type: 'confirm'; code: string; name: string; current: number }
-  | { type: 'saving'; code: string; name: string }
-  | { type: 'already-exists'; code: string; name: string }
+  | { type: 'checking'; codes: string[] }
+  | { type: 'confirm'; entries: StockCandidate[] }
+  | { type: 'saving'; entries: StockCandidate[] }
+  | { type: 'already-exists'; entries: StockCandidate[] }
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
@@ -26,22 +28,31 @@ type StockAddState = {
 }
 
 export type StockAddDependencies = {
-  stockAdd: (entry: StockEntry) => Promise<{ status: 'added' | 'duplicate' }>
+  stocksAdd: (entries: StockEntry[]) => Promise<number>
   fetchQuotes: (codes: string[]) => Promise<Quote[]>
-  loadStocks: () => Promise<StockEntry[]>
   normalizeCode: (input: string) => string | undefined
   now: () => string
 }
 
 const defaultDependencies: StockAddDependencies = {
-  stockAdd,
+  stocksAdd,
   fetchQuotes,
-  loadStocks,
   normalizeCode,
   now: () => new Date().toISOString(),
 }
 
 const FRESH_INPUT: InputState = { error: undefined, resetToken: 0 }
+
+const invalidCodeInput = (
+  set: (partial: Partial<StockAddState> | ((state: StockAddState) => Partial<StockAddState>)) => void,
+) => {
+  set((state) => ({
+    codeInput: {
+      error: '无法识别股票代码, 请用英文逗号分隔 6 位股票代码.',
+      resetToken: state.codeInput.resetToken + 1,
+    },
+  }))
+}
 
 export function createStockAddStore(dependencies: StockAddDependencies = defaultDependencies) {
   let generation = 0
@@ -59,29 +70,37 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
 
     handleCodeInput: async (input: string) => {
       const currentGeneration = generation
-      const code = dependencies.normalizeCode(input)
-      if (!code) {
-        set((state) => ({
-          codeInput: {
-            error: '无法识别股票代码, 请输入 6 位数字 (如 600000 或 sh600000).',
-            resetToken: state.codeInput.resetToken + 1,
-          },
-        }))
+      const rawCodes = input.split(',').map((value) => value.trim())
+      if (rawCodes.length === 0 || rawCodes.some((value) => value === '')) {
+        invalidCodeInput(set)
         return
       }
+
+      const normalizedCodes = rawCodes.map((value) => dependencies.normalizeCode(value))
+      if (normalizedCodes.some((code) => code === undefined)) {
+        invalidCodeInput(set)
+        return
+      }
+      const codes = [...new Set(normalizedCodes)] as string[]
+
       set((state) => ({ codeInput: { error: undefined, resetToken: state.codeInput.resetToken + 1 } }))
-      set({ step: { type: 'checking', code } })
+      set({ step: { type: 'checking', codes } })
 
       try {
-        const existing = (await dependencies.loadStocks()).find((entry) => entry.code === code)
+        const quotes = await dependencies.fetchQuotes(codes)
         if (isStale(currentGeneration)) return
-        if (existing) {
-          set({ step: { type: 'already-exists', code, name: existing.name } })
+        const quotesByCode = new Map(quotes.map((quote) => [quote.code, quote]))
+        const missingCodes = codes.filter((code) => !quotesByCode.has(code))
+        if (missingCodes.length > 0) {
+          set({ step: { type: 'error', message: `未找到股票代码: ${missingCodes.join(', ')}.` } })
           return
         }
-        const quote = (await dependencies.fetchQuotes([code]))[0]!
-        if (isStale(currentGeneration)) return
-        set({ step: { type: 'confirm', code, name: quote.name, current: quote.current } })
+
+        const entries = codes.map((code) => {
+          const quote = quotesByCode.get(code)!
+          return { code, name: quote.name, current: quote.current }
+        })
+        set({ step: { type: 'confirm', entries } })
       } catch (error) {
         if (!isStale(currentGeneration)) set({ step: { type: 'error', message: errorMessage(error) } })
       }
@@ -104,19 +123,28 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
       const currentGeneration = generation
       const current = get().step
       if (current.type !== 'confirm') return
-      set({ step: { type: 'saving', code: current.code, name: current.name } })
+      set({ step: { type: 'saving', entries: current.entries } })
       try {
-        const result = await dependencies.stockAdd({
-          code: current.code,
-          name: current.name,
-          addedAt: dependencies.now(),
-        })
+        const addedAt = dependencies.now()
+        const addedCount = await dependencies.stocksAdd(
+          current.entries.map((entry) => ({
+            code: entry.code,
+            name: entry.name,
+            addedAt,
+          })),
+        )
         if (isStale(currentGeneration)) return
+        if (addedCount === 0) {
+          set({ step: { type: 'already-exists', entries: current.entries } })
+          return
+        }
+
+        const existingCount = current.entries.length - addedCount
         set({
-          step:
-            result.status === 'duplicate'
-              ? { type: 'already-exists', code: current.code, name: current.name }
-              : { type: 'done', message: `已添加 ${current.name} (${current.code}) 到自选股.` },
+          step: {
+            type: 'done',
+            message: `已添加 ${addedCount} 个股票, ${existingCount} 个已在自选股中.`,
+          },
         })
       } catch (error) {
         if (!isStale(currentGeneration)) {

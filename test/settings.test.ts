@@ -5,7 +5,7 @@ import process from 'node:process'
 
 import { expect, test } from 'vitest'
 
-import { stockAdd, loadStocks, parseStocks } from '../src/lib/settings.ts'
+import { loadStocks, parseStocks, stocksAdd } from '../src/lib/settings.ts'
 
 const validStock = { code: 'sh600000', name: '浦发银行', addedAt: '2026-08-20T00:00:00.000Z' }
 
@@ -29,8 +29,8 @@ test('并发更新自选股时保留两个条目', async () => {
 
   try {
     await Promise.all([
-      stockAdd(validStock),
-      stockAdd({ code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }),
+      stocksAdd([validStock]),
+      stocksAdd([{ code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }]),
     ])
     const entries = await loadStocks()
     expect(entries.map((entry) => entry.code).sort()).toStrictEqual(['sh600000', 'sz000001'])

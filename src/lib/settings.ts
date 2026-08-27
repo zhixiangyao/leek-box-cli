@@ -27,6 +27,7 @@ export type StockEntry = {
 
 const WATCH_CODE_PATTERN = /^(?:sh|sz|bj)\d{6}$/
 
+/** 解析并验证单个股票条目 */
 const parseStock = (value: unknown, index: number): StockEntry => {
   if (typeof value !== 'object' || value === null) throw new Error(`第 ${index + 1} 项不是对象`)
   const entry = value as Record<string, unknown>
@@ -42,6 +43,7 @@ const parseStock = (value: unknown, index: number): StockEntry => {
   return { code: entry['code'], name: entry['name'], addedAt: entry['addedAt'] }
 }
 
+/** 解析并验证股票条目列表 */
 export function parseStocks(value: unknown): StockEntry[] {
   if (!Array.isArray(value)) throw new Error('stocks 不是数组')
   const entries = value.map(parseStock)
@@ -73,9 +75,11 @@ export type SettingsDocument = {
   stocks: StockEntry[]
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+/** 判断值是否为普通对象 */
+const isNormalObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
+/** 验证主题预设名称 */
 const parseThemePreset = (value: unknown): ThemePreset => {
   if (typeof value !== 'string' || !THEME_PRESET_NAMES.includes(value as ThemePreset)) {
     throw new Error('theme.preset 无效')
@@ -83,6 +87,7 @@ const parseThemePreset = (value: unknown): ThemePreset => {
   return value as ThemePreset
 }
 
+/** 验证涨跌颜色模式 */
 const parseTrendColorMode = (value: unknown): TrendColorMode => {
   if (value === undefined) return DEFAULT_TREND_COLOR_MODE
   if (typeof value !== 'string' || !TREND_COLOR_MODES.includes(value as TrendColorMode)) {
@@ -91,6 +96,7 @@ const parseTrendColorMode = (value: unknown): TrendColorMode => {
   return value as TrendColorMode
 }
 
+/** 验证范围内的整数配置值 */
 const parseInteger = (value: unknown, name: string, limits: { min: number; max: number }) => {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < limits.min || value > limits.max) {
     throw new Error(`${name} 无效`)
@@ -98,18 +104,19 @@ const parseInteger = (value: unknown, name: string, limits: { min: number; max: 
   return value
 }
 
+/** 解析并验证完整设置文档 */
 export function parseSettingsDocument(value: unknown): SettingsDocument {
-  if (!isRecord(value)) throw new Error('顶层数据不是对象')
+  if (!isNormalObject(value)) throw new Error('顶层数据不是对象')
 
   const theme = value['theme']
-  if (!isRecord(theme)) throw new Error('theme 无效')
+  if (!isNormalObject(theme)) throw new Error('theme 无效')
   const borderStyle = theme['borderStyle']
   if (typeof borderStyle !== 'string' || !BORDER_STYLES.includes(borderStyle as Settings['borderStyle'])) {
     throw new Error('theme.borderStyle 无效')
   }
 
   const request = value['request']
-  if (!isRecord(request)) throw new Error('request 无效')
+  if (!isNormalObject(request)) throw new Error('request 无效')
   const timeoutMs = parseInteger(request['timeoutMs'], 'request.timeoutMs', SETTING_LIMITS.requestTimeoutMs)
   const minimumDurationMs = parseInteger(
     request['minimumDurationMs'],
@@ -147,6 +154,7 @@ export function parseSettingsDocument(value: unknown): SettingsDocument {
   }
 }
 
+/** 将设置文档转换为应用设置 */
 export function settingsFromDocument(document: SettingsDocument): Settings {
   return {
     themePreset: document.theme.preset,
@@ -160,6 +168,7 @@ export function settingsFromDocument(document: SettingsDocument): Settings {
   }
 }
 
+/** 组合应用设置和股票条目为持久化文档 */
 const createDocument = (settings: Settings, stocks: StockEntry[]): SettingsDocument => ({
   theme: {
     preset: settings.themePreset,
@@ -176,15 +185,18 @@ const createDocument = (settings: Settings, stocks: StockEntry[]): SettingsDocum
   stocks,
 })
 
+/** 返回应用配置目录 */
 const configDirectory = () => {
   const configHome = process.env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config')
   return join(configHome, 'leek-box-cli')
 }
 
+/** 返回设置文件路径 */
 export function settingsPath(): string {
   return join(configDirectory(), 'settings.json')
 }
 
+/** 读取 JSON 文件, 不存在时返回 undefined */
 const readJsonFile = async (path: string): Promise<unknown | undefined> => {
   try {
     return JSON.parse(await readFile(path, 'utf8')) as unknown
@@ -194,6 +206,7 @@ const readJsonFile = async (path: string): Promise<unknown | undefined> => {
   }
 }
 
+/** 读取并验证设置文件 */
 const readSettingsFile = async (): Promise<SettingsDocument | undefined> => {
   const path = settingsPath()
   try {
@@ -205,6 +218,7 @@ const readSettingsFile = async (): Promise<SettingsDocument | undefined> => {
   }
 }
 
+/** 原子写入已验证的设置文档 */
 const writeSettingsFile = async (document: SettingsDocument): Promise<void> => {
   const normalized = parseSettingsDocument(document)
   const path = settingsPath()
@@ -218,8 +232,10 @@ const writeSettingsFile = async (document: SettingsDocument): Promise<void> => {
   }
 }
 
+/** 等待指定毫秒数 */
 const sleep = (durationMs: number) => new Promise((resolve) => setTimeout(resolve, durationMs))
 
+/** 判断指定进程是否仍在运行 */
 const isProcessAlive = (pid: number) => {
   try {
     process.kill(pid, 0)
@@ -229,6 +245,7 @@ const isProcessAlive = (pid: number) => {
   }
 }
 
+/** 尝试清理过期的设置锁 */
 const tryRemoveStaleLock = async (lockPath: string): Promise<boolean> => {
   let contents: string
   try {
@@ -242,7 +259,7 @@ const tryRemoveStaleLock = async (lockPath: string): Promise<boolean> => {
   try {
     const metadata = JSON.parse(contents) as unknown
     if (
-      !isRecord(metadata) ||
+      !isNormalObject(metadata) ||
       typeof metadata['token'] !== 'string' ||
       typeof metadata['pid'] !== 'number' ||
       !Number.isInteger(metadata['pid']) ||
@@ -274,6 +291,7 @@ const tryRemoveStaleLock = async (lockPath: string): Promise<boolean> => {
   }
 }
 
+/** 发布新的跨进程设置锁 */
 const publishLock = async (lockPath: string, contents: string) => {
   const temporaryPath = `${lockPath}.${process.pid}.${randomUUID()}.tmp`
   try {
@@ -284,6 +302,7 @@ const publishLock = async (lockPath: string, contents: string) => {
   }
 }
 
+/** 在设置锁保护下执行异步操作 */
 async function withSettingsLock<Result>(operation: () => Promise<Result>): Promise<Result> {
   const path = settingsPath()
   const lockPath = `${path}.lock`
@@ -326,6 +345,7 @@ async function withSettingsLock<Result>(operation: () => Promise<Result>): Promi
   return outcome.value
 }
 
+/** 在锁内创建默认设置文档 */
 const initializeUnlocked = async (): Promise<SettingsDocument> => {
   const existing = await readSettingsFile()
   if (existing) return existing
@@ -335,12 +355,15 @@ const initializeUnlocked = async (): Promise<SettingsDocument> => {
   return document
 }
 
+/** 初始化并返回设置文档 */
 export async function initializeSettings(): Promise<SettingsDocument> {
   return (await readSettingsFile()) ?? withSettingsLock(initializeUnlocked)
 }
 
+/** 加载完整设置文档 */
 export const loadSettingsDocument = initializeSettings
 
+/** 在锁内更新部分应用设置 */
 export async function patchSettings(patch: Partial<Settings>): Promise<void> {
   await withSettingsLock(async () => {
     const current = await initializeUnlocked()
@@ -349,10 +372,12 @@ export async function patchSettings(patch: Partial<Settings>): Promise<void> {
   })
 }
 
+/** 加载当前自选股列表 */
 export async function loadStocks(): Promise<StockEntry[]> {
   return (await loadSettingsDocument()).stocks
 }
 
+/** 使用完整列表替换全部自选股 */
 export async function replaceStocks(stocks: StockEntry[]): Promise<void> {
   const normalized = parseStocks(stocks)
   await withSettingsLock(async () => {
@@ -361,6 +386,7 @@ export async function replaceStocks(stocks: StockEntry[]): Promise<void> {
   })
 }
 
+/** 批量添加不存在的自选股, 返回新增数量 */
 export async function stocksAdd(entries: StockEntry[]): Promise<number> {
   const normalized = parseStocks(entries)
   return withSettingsLock(async () => {
@@ -374,18 +400,16 @@ export async function stocksAdd(entries: StockEntry[]): Promise<number> {
   })
 }
 
-export async function stockAdd(entry: StockEntry): Promise<{ status: 'added' | 'duplicate' }> {
-  return (await stocksAdd([entry])) === 1 ? { status: 'added' } : { status: 'duplicate' }
-}
+/** 批量删除匹配代码的自选股, 返回删除数量 */
+export async function stocksRemove(codes: string[]): Promise<number> {
+  const codesToRemove = new Set(codes)
+  if (codesToRemove.size === 0) return 0
 
-export async function stockRemove(code: string): Promise<StockEntry | undefined> {
   return withSettingsLock(async () => {
     const current = await initializeUnlocked()
-    const index = current.stocks.findIndex((item) => item.code === code)
-    if (index < 0) return undefined
-    const stocks = [...current.stocks]
-    const [removed] = stocks.splice(index, 1)
-    await writeSettingsFile({ ...current, stocks })
-    return removed
+    const stocks = current.stocks.filter((entry) => !codesToRemove.has(entry.code))
+    const removedCount = current.stocks.length - stocks.length
+    if (removedCount > 0) await writeSettingsFile({ ...current, stocks })
+    return removedCount
   })
 }

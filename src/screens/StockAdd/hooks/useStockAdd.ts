@@ -20,5 +20,6 @@ export function useStockAdd() {
     confirmInput,
     handleCodeInput,
     handleConfirm,
+    reset,
   }
 }

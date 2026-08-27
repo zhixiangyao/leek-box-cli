@@ -32,34 +32,46 @@ const quote = (code: string, name = code): Quote => ({
   volumeRatio: 1.2,
 })
 
-test('添加股票时报告最终加锁写入发现的重复项', async () => {
+test('添加股票时批量报告最终加锁写入发现的重复项', async () => {
+  const entries: StockEntry[][] = []
   const store = createStockAddStore({
-    stockAdd: async () => ({ status: 'duplicate' }),
-    fetchQuotes: async () => [quote('sh600000', '浦发银行')],
-    loadStocks: async () => [],
-    normalizeCode: () => 'sh600000',
+    stocksAdd: async (stocks) => {
+      entries.push(stocks)
+      return 1
+    },
+    fetchQuotes: async (codes) => codes.map((code) => quote(code, code === 'sh600000' ? '浦发银行' : '平安银行')),
+    normalizeCode: (input) => (input === '600000' ? 'sh600000' : input === '000001' ? 'sz000001' : undefined),
     now: () => '2026-08-20T00:00:00.000Z',
   })
 
-  await store.getState().handleCodeInput('600000')
+  await store.getState().handleCodeInput('600000, 000001')
   expect(store.getState().step.type).toBe('confirm')
   await store.getState().handleConfirm('y')
-  expect(store.getState().step).toStrictEqual({ type: 'already-exists', code: 'sh600000', name: '浦发银行' })
+  expect(entries).toStrictEqual([[entry('sh600000', '浦发银行'), entry('sz000001', '平安银行')]])
+  expect(store.getState().step).toStrictEqual({
+    type: 'done',
+    message: '已添加 1 个股票, 1 个已在自选股中.',
+  })
 })
 
-test('删除股票时报告已被其他进程删除的条目', async () => {
-  const target = entry('sz000001', '平安银行')
+test('删除股票时批量报告已被其他进程删除的条目', async () => {
+  const targets = [entry('sz000001', '平安银行'), entry('sh600000', '浦发银行')]
+  const calls: string[][] = []
   const store = createStockRemoveStore({
-    loadStocks: async () => [target],
-    stockRemove: async () => undefined,
+    loadStocks: async () => targets,
+    stocksRemove: async (codes) => {
+      calls.push(codes)
+      return 0
+    },
   })
 
   await store.getState().loadEntries()
-  store.getState().handleChoice('1')
+  store.getState().handleChoice('1, 2')
   await store.getState().handleConfirm('y')
+  expect(calls).toStrictEqual([['sz000001', 'sh600000']])
   expect(store.getState().step).toStrictEqual({
     type: 'error',
-    message: '平安银行 (sz000001) 已不在自选股中.',
+    message: '所选 2 个条目已不在自选股中.',
   })
 })
 

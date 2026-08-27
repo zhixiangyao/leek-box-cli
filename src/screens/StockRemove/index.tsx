@@ -18,7 +18,7 @@ type Props = {
 export default function StockRemove({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
-  const { step, indexInput, confirmInput, handleChoice, handleConfirm } = useStockRemove()
+  const { step, indexInput, confirmInput, handleChoice, handleConfirm, loadEntries } = useStockRemove()
   let content: ReactNode
 
   switch (step.type) {
@@ -38,7 +38,7 @@ export default function StockRemove({ title, hint }: Props) {
           ))}
           {indexInput.error && <Text color="red">{indexInput.error}</Text>}
           <Newline />
-          <TextInput key={`index-${indexInput.resetToken}`} prompt="请输入要删除的序号: " onSubmit={handleChoice} />
+          <TextInput prompt="请输入要删除的序号, 用英文逗号分隔: " onSubmit={handleChoice} />
         </>
       )
       break
@@ -47,9 +47,12 @@ export default function StockRemove({ title, hint }: Props) {
     case 'confirm': {
       content = (
         <>
-          <Text color="yellow">
-            确定删除 {step.entry.name} ({step.entry.code})?
-          </Text>
+          <Text color="yellow">确定删除以下股票?</Text>
+          {step.entries.map((entry) => (
+            <Text key={entry.code}>
+              {entry.name} ({entry.code})
+            </Text>
+          ))}
           {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
           <TextInput key={`confirm-${confirmInput.resetToken}`} prompt="确认删除? (y/n): " onSubmit={handleConfirm} />
         </>
@@ -58,21 +61,17 @@ export default function StockRemove({ title, hint }: Props) {
     }
 
     case 'removing': {
-      content = (
-        <Text color="cyan">
-          正在删除 {step.entry.name} ({step.entry.code})...
-        </Text>
-      )
+      content = <Text color="cyan">正在删除 {step.entries.length} 个股票...</Text>
       break
     }
 
     case 'done': {
-      content = <ActionResult tone="success" msg={step.message} />
+      content = <ActionResult tone="success" msg={step.message} to="stock-remove" onReturn={loadEntries} />
       break
     }
 
     case 'error': {
-      content = <ActionResult tone="error" msg={step.message} />
+      content = <ActionResult tone="error" msg={step.message} to="stock-remove" onReturn={loadEntries} />
       break
     }
   }
