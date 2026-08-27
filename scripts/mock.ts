@@ -24,6 +24,17 @@ const MOCK_STOCKS = [
   { code: 'sz000858', name: '五粮液' },
   { code: 'sz002594', name: '比亚迪' },
   { code: 'sz300750', name: '宁德时代' },
+  { code: 'sh600036', name: '招商银行' },
+  { code: 'sz002415', name: '海康威视' },
+  { code: 'sh601398', name: '工商银行' },
+  { code: 'sh601288', name: '农业银行' },
+  { code: 'sz000002', name: '万科A' },
+  { code: 'sh600276', name: '恒瑞医药' },
+  { code: 'sz300059', name: '东方财富' },
+  { code: 'sh601012', name: '隆基绿能' },
+  { code: 'sh603501', name: '韦尔股份' },
+  { code: 'sz000063', name: '中兴通讯' },
+  { code: 'sh600309', name: '万华化学' },
 ]
 
 const main = async () => {
