@@ -36,6 +36,8 @@
     "dev": "tsx src/cli.tsx",
     "mock": "tsx scripts/mock.ts",
     "preview": "node dist/cli.mjs",
+    "------------- TOOLS -------------": "",
+    "release": "tsx scripts/release.tsx",
     "test": "vitest run --reporter=verbose",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fmt": "oxfmt",
