@@ -132,23 +132,37 @@ leek-box-cli -v            # Show version information
 leek-box-cli -h            # Show help
 ```
 
-## Watchlist Storage
+## Settings and Watchlist Storage
 
-The watchlist is stored at `$XDG_CONFIG_HOME/leek-box-cli/watchlist.json`. If `XDG_CONFIG_HOME` is not set, `~/.config/leek-box-cli/watchlist.json` is used.
+Settings and the watchlist are stored together at `$XDG_CONFIG_HOME/leek-box-cli/settings.json`. If `XDG_CONFIG_HOME` is not set, `~/.config/leek-box-cli/settings.json` is used.
 
 File structure:
 
 ```json
-[
-  {
-    "code": "sh600000",
-    "name": "浦发银行",
-    "addedAt": "2026-08-20T00:00:00.000Z"
-  }
-]
+{
+  "theme": {
+    "preset": "classic",
+    "trendColorMode": "red-up",
+    "borderStyle": "round"
+  },
+  "request": {
+    "timeoutMs": 8000,
+    "minimumDurationMs": 0,
+    "quotePollIntervalMs": 5000,
+    "minuteChartPollIntervalMs": 30000,
+    "klinePollIntervalMs": 300000
+  },
+  "stocks": [
+    {
+      "code": "sh600000",
+      "name": "浦发银行",
+      "addedAt": "2026-08-20T00:00:00.000Z"
+    }
+  ]
+}
 ```
 
-The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates `code`, `name`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
+The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates the `theme` and `request` fields, as well as each stock's `code`, `name`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
 
 ## Development Scripts
 

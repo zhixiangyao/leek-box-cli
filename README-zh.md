@@ -132,23 +132,37 @@ leek-box-cli -v            # 查看版本
 leek-box-cli -h            # 查看帮助
 ```
 
-## 自选股存储
+## 设置与自选股存储
 
-自选股保存在 `$XDG_CONFIG_HOME/leek-box-cli/watchlist.json`; 未设置 `XDG_CONFIG_HOME` 时使用 `~/.config/leek-box-cli/watchlist.json`.
+设置与自选股一起保存在 `$XDG_CONFIG_HOME/leek-box-cli/settings.json`; 未设置 `XDG_CONFIG_HOME` 时使用 `~/.config/leek-box-cli/settings.json`.
 
 文件结构为:
 
 ```json
-[
-  {
-    "code": "sh600000",
-    "name": "浦发银行",
-    "addedAt": "2026-08-20T00:00:00.000Z"
-  }
-]
+{
+  "theme": {
+    "preset": "classic",
+    "trendColorMode": "red-up",
+    "borderStyle": "round"
+  },
+  "request": {
+    "timeoutMs": 8000,
+    "minimumDurationMs": 0,
+    "quotePollIntervalMs": 5000,
+    "minuteChartPollIntervalMs": 30000,
+    "klinePollIntervalMs": 300000
+  },
+  "stocks": [
+    {
+      "code": "sh600000",
+      "name": "浦发银行",
+      "addedAt": "2026-08-20T00:00:00.000Z"
+    }
+  ]
+}
 ```
 
-程序每次刷新看板都会重新读取文件, 因此合法的外部编辑会在下一轮刷新生效. 读取时会完整校验 `code`, `name`, `addedAt` 和重复代码; 写入使用进程间锁与临时文件原子替换, 避免并发读改写丢失和半截 JSON.
+程序每次刷新看板都会重新读取文件, 因此合法的外部编辑会在下一轮刷新生效. 读取时会校验 `theme`, `request` 以及每只股票的 `code`, `name`, `addedAt` 和重复代码; 写入使用进程间锁与临时文件原子替换, 避免并发读改写丢失和半截 JSON.
 
 ## 开发脚本
 
