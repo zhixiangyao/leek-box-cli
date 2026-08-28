@@ -1,3 +1,5 @@
+import stringWidth from 'string-width'
+
 import type { Quote } from '../api/types.ts'
 import { DEFAULT_TREND_COLOR_MODE, type TrendColorMode } from '../stores/useSettingsStore.ts'
 import {
@@ -11,7 +13,6 @@ import {
   formatVolume,
   trendColor,
 } from './format.ts'
-import { displayWidth } from './layout.ts'
 
 type TextColor = 'red' | 'green' | 'gray'
 
@@ -29,7 +30,7 @@ export type Column = {
 
 export type Row = { text: string; color?: TextColor }[]
 
-const cell = (text: string, column: Column) => text + ' '.repeat(Math.max(0, column.width - displayWidth(text)))
+const cell = (text: string, column: Column) => text + ' '.repeat(Math.max(0, column.width - stringWidth(text)))
 
 const withSeparators = (segments: Row): Row =>
   segments.map((segment, index) => ({

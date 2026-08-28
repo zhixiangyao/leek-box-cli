@@ -41,6 +41,7 @@
     "meow": "14.1.0",
     "react": "19.2.8",
     "react-devtools-core": "7.0.1",
+    "string-width": "8.2.2",
     "zustand": "5.0.15"
   },
   "devDependencies": {

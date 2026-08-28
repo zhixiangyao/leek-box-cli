@@ -1,8 +1,9 @@
 import { expect, test } from 'vitest'
 
+import stringWidth from 'string-width'
+
 import type { Quote } from '../src/api/types.ts'
 import { COLUMNS_BY_KEY, headerRow, missingRow, quoteRow } from '../src/lib/columns.ts'
-import { displayWidth } from '../src/lib/layout.ts'
 
 const quote = (patch: Partial<Quote> = {}): Quote => ({
   code: 'sh600000',
@@ -27,11 +28,11 @@ const quote = (patch: Partial<Quote> = {}): Quote => ({
 const codeColumn = COLUMNS_BY_KEY.get('code')!
 const percentColumn = COLUMNS_BY_KEY.get('changePercent')!
 
-test('displayWidth 将 CJK 字符按两列计算', () => {
-  expect(displayWidth('abc')).toBe(3)
-  expect(displayWidth('代码')).toBe(4)
-  expect(displayWidth('浦发A')).toBe(5)
-  expect(displayWidth('')).toBe(0)
+test('stringWidth 将 CJK 字符按两列计算', () => {
+  expect(stringWidth('abc')).toBe(3)
+  expect(stringWidth('代码')).toBe(4)
+  expect(stringWidth('浦发A')).toBe(5)
+  expect(stringWidth('')).toBe(0)
 })
 
 test('headerRow 补齐列宽并在列间插入分隔空格', () => {
@@ -41,8 +42,8 @@ test('headerRow 补齐列宽并在列间插入分隔空格', () => {
   expect(first!.text.startsWith('代码')).toBe(true)
   expect(second!.text.startsWith('涨跌幅')).toBe(true)
   // 首列宽度 9 + 分隔 1, 末列宽度 9 无分隔
-  expect(displayWidth(first!.text)).toBe(codeColumn.width + 1)
-  expect(displayWidth(second!.text)).toBe(percentColumn.width)
+  expect(stringWidth(first!.text)).toBe(codeColumn.width + 1)
+  expect(stringWidth(second!.text)).toBe(percentColumn.width)
 })
 
 test('quoteRow 按涨跌方向着色, 代码列保持灰色', () => {

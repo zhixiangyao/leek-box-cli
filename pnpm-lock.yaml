@@ -20,6 +20,9 @@ importers:
       react-devtools-core:
         specifier: 7.0.1
         version: 7.0.1
+      string-width:
+        specifier: 8.2.2
+        version: 8.2.2
       zustand:
         specifier: 5.0.15
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)
