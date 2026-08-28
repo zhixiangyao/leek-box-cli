@@ -1,166 +1,166 @@
 <p align="right">
-  <strong>English</strong> | <a href="README-zh.md">中文</a>
+  <strong>中文</strong> | <a href="README-en.md">English</a>
 </p>
 
 # leek-box-cli(韭菜盒子)
 
-> An interactive terminal stock watchlist dashboard built with [Ink](https://github.com/vadimdemedes/ink).
+> 基于 [Ink](https://github.com/vadimdemedes/ink) 的交互式终端自选股票看板.
 
-## Screenshots
+## 截图
 
-### Stock Watchlist
+### 自选股票看板
 
 <p align="center">
-  <img src="scrennshots/stock-list.png" alt="Stock watchlist dashboard" width="100%">
+  <img src="scrennshots/stock-list.png" alt="自选股票看板" width="100%">
 </p>
 
-### Menu & Settings
+### 菜单与设置
 
 <table>
   <tr>
-    <td align="center" width="50%"><strong>Menu</strong></td>
-    <td align="center" width="50%"><strong>Settings</strong></td>
+    <td align="center" width="50%"><strong>菜单</strong></td>
+    <td align="center" width="50%"><strong>设置</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/dialog-menu.png" alt="Menu dialog"></td>
-    <td><img src="scrennshots/settings.png" alt="Settings screen"></td>
+    <td><img src="scrennshots/dialog-menu.png" alt="菜单对话框"></td>
+    <td><img src="scrennshots/settings.png" alt="设置界面"></td>
   </tr>
 </table>
 
-### Manage Watchlist
+### 自选股管理
 
 <table>
   <tr>
-    <td align="center" width="50%"><strong>Add Stock</strong></td>
-    <td align="center" width="50%"><strong>Remove Stock</strong></td>
+    <td align="center" width="50%"><strong>添加自选股</strong></td>
+    <td align="center" width="50%"><strong>删除自选股</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/stock-add.png" alt="Add a stock to the watchlist"></td>
-    <td><img src="scrennshots/stock-remove.png" alt="Remove a stock from the watchlist"></td>
+    <td><img src="scrennshots/stock-add.png" alt="添加自选股界面"></td>
+    <td><img src="scrennshots/stock-remove.png" alt="删除自选股界面"></td>
   </tr>
 </table>
 
-### Stock Details
+### 股票详情
 
 <table>
   <tr>
-    <td align="center" width="50%"><strong>Intraday</strong></td>
-    <td align="center" width="50%"><strong>Five-day</strong></td>
+    <td align="center" width="50%"><strong>分时</strong></td>
+    <td align="center" width="50%"><strong>五日</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/dialog-stock-detail-intraday.png" alt="Intraday stock chart"></td>
-    <td><img src="scrennshots/dialog-stock-detail-five-day.png" alt="Five-day stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-intraday.png" alt="分时走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-five-day.png" alt="五日走势图"></td>
   </tr>
   <tr>
-    <td align="center" width="50%"><strong>Daily</strong></td>
-    <td align="center" width="50%"><strong>Weekly</strong></td>
+    <td align="center" width="50%"><strong>日 K</strong></td>
+    <td align="center" width="50%"><strong>周 K</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/dialog-stock-detail-day.png" alt="Daily stock chart"></td>
-    <td><img src="scrennshots/dialog-stock-detail-week.png" alt="Weekly stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-day.png" alt="日 K 走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-week.png" alt="周 K 走势图"></td>
   </tr>
   <tr>
-    <td align="center" width="50%"><strong>Monthly</strong></td>
-    <td align="center" width="50%"><strong>Yearly</strong></td>
+    <td align="center" width="50%"><strong>月 K</strong></td>
+    <td align="center" width="50%"><strong>年 K</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/dialog-stock-detail-month.png" alt="Monthly stock chart"></td>
-    <td><img src="scrennshots/dialog-stock-detail-year.png" alt="Yearly stock chart"></td>
+    <td><img src="scrennshots/dialog-stock-detail-month.png" alt="月 K 走势图"></td>
+    <td><img src="scrennshots/dialog-stock-detail-year.png" alt="年 K 走势图"></td>
   </tr>
 </table>
 
-## Features
+## 功能
 
-- **Real-time dashboard**: Displays the latest price, percentage change, price change, open, high, low, volume, turnover, turnover rate, and total market capitalization for every stock in your watchlist. Refreshes every 5 seconds by default.
-- **Row selection and details**: Use `↑`/`↓` to select a stock and `enter` to open its quote details and trend chart. Press `1`-`6` to switch between intraday, five-day, daily, weekly, monthly, and yearly views.
-- **Multiple time frames**: Intraday and five-day minute charts refresh every 30 seconds. Daily, weekly, monthly, and yearly charts refresh every 5 minutes.
-- **Refresh controls**: Press `r` to refresh immediately. Configure the automatic refresh interval in Settings in 500 ms increments, from 1 to 60 seconds.
-- **Watchlist management**: Add or remove Shanghai, Shenzhen, and Beijing A-shares and ETFs. Stock codes can be entered as `600000`, `sh600000`, `600000.SH`, and other common formats.
-- **Resilient display**: Suspended stocks, incomplete quotes, and refresh failures each have a dedicated state. The display recovers automatically after a later poll succeeds.
+- **实时看板**: 启动即展示自选股的现价, 涨跌幅, 涨跌额, 今开, 最高, 最低, 成交量, 成交额, 换手率和总市值; 默认每 5 秒刷新.
+- **行选择与详情**: `↑`/`↓` 选择股票, `enter` 打开基础行情和趋势图; 数字键 `1`-`6` 切换分时, 五日, 日 K, 周 K, 月 K 和年 K.
+- **多周期行情**: 分时与五日分钟走势每 30 秒刷新; 日 K, 周 K, 月 K 和年 K 每 5 分钟刷新.
+- **刷新控制**: `r` 立即刷新; 在设置页以 500 ms 步进调整自动刷新间隔, 范围为 1-60 秒.
+- **自选股管理**: 支持添加, 删除沪深北 A 股与 ETF; 股票代码可写为 `600000`, `sh600000`, `600000.SH` 等形式.
+- **容错展示**: 停牌, 部分行情缺失和刷新失败均有独立状态; 后续轮询成功后自动恢复.
 
-## Controls
+## 交互方式
 
-- `esc`: Open the menu. If stock details are open, close them first; if the menu is open, close it.
-- In the menu, use `↑`/`↓`, `enter`, or a number key to select a page.
-- In the dashboard, use `↑`/`↓`, `enter`, and `r`.
-- In Settings, use `↑`/`↓` to select an item and `←`/`→` or `enter` to adjust it.
-- In stock details, press `1`-`6` to switch between `Intraday`, `Five-day`, `Daily`, `Weekly`, `Monthly`, and `Yearly`.
-- `q`: Exit when no menu or stock details overlay is open. It does nothing while an overlay is open to prevent accidental exits.
-- The right side of the status bar displays `YYYY-MM-DD HH:MM:SS` in the Asia/Shanghai time zone.
+- `esc`: 打开菜单; 详情已打开时优先关闭详情, 菜单已打开时关闭菜单.
+- 菜单内使用 `↑`/`↓`, `enter` 或数字键选择页面.
+- 看板内使用 `↑`/`↓`, `enter`, `r`.
+- 设置页使用 `↑`/`↓` 选择配置, 使用 `←`/`→` 或 `enter` 调整.
+- 股票详情内使用 `1`-`6` 切换 `分时`, `五日`, `日 K`, `周 K`, `月 K`, `年 K`.
+- `q`: 没有菜单或详情浮层时退出; 浮层打开时不退出, 避免误触.
+- 状态栏右侧显示 Asia/Shanghai 时区的 `YYYY-MM-DD HH:MM:SS`.
 
-## Requirements
+## 环境要求
 
-- [Node.js](https://nodejs.org/) >= 22.19.0 (or >= 24)
+- [Node.js](https://nodejs.org/) >= 22.19.0 (或 >= 24)
 - [pnpm](https://pnpm.io/) >= 11.0.0
 
-Market data is retrieved with the native Node.js `fetch` API, with no external runtime dependency such as curl.
+行情通过 Node.js 原生 `fetch` 获取, 无 curl 等外部运行工具依赖.
 
-## Market Data Sources
+## 行情数据源
 
-- Real-time quotes: Tencent quote API at `https://qt.gtimg.cn/q=...`; GBK-encoded and requires no authentication.
-- Intraday data: Tencent minute API at `https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=...`.
-- Five-day data: Tencent multi-day minute API at `https://web.ifzq.gtimg.cn/appstock/app/day/query?code=...`.
-- Daily, weekly, and monthly data: Tencent forward-adjusted K-line API at `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=...`.
-- Yearly data: Aggregated locally by year from backward-adjusted monthly data returned by the same API.
-- Data timeliness and availability depend on the upstream APIs. This project is intended for personal display purposes only.
+- 实时行情: 腾讯行情接口 `https://qt.gtimg.cn/q=...`, GBK 编码, 无需鉴权.
+- 当日分时: 腾讯分时接口 `https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=...`.
+- 五日分时: 腾讯多日分时接口 `https://web.ifzq.gtimg.cn/appstock/app/day/query?code=...`.
+- 日 K, 周 K, 月 K: 腾讯前复权 K 线接口 `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=...`.
+- 年 K: 使用同一接口的后复权月 K, 在本地按年份聚合.
+- 数据实时性和可用性以接口实际返回为准, 仅用于个人展示用途.
 
-## Installation and Usage
+## 安装与运行
 
-### Install globally (recommended)
+### 全局安装 (推荐)
 
 ```bash
 npm install -g leek-box-cli
-# or
+# 或
 pnpm add -g leek-box-cli
-# or
+# 或
 yarn global add leek-box-cli
 ```
 
-Then run it from anywhere:
+之后即可在任意目录运行:
 
 ```bash
 leek-box-cli
 ```
 
-> Requires Node.js 22.19+ (or 24+) on the machine that runs the command.
+> 运行命令的机器需要 Node.js 22.19+ (或 24+).
 
-Alternatively, run it once without installing:
+也可以免安装直接运行一次:
 
 ```bash
 npx leek-box-cli
-# or
+# 或
 pnpm dlx leek-box-cli
 ```
 
-### Run from source
+### 从源码运行
 
 ```bash
 pnpm install
 
-# Development mode
+# 开发模式
 pnpm dev
 
-# Build and run
+# 构建并运行
 pnpm build
 pnpm preview
 ```
 
-You can also select the initial page with a subcommand:
+也可以通过子命令指定初始页面:
 
 ```bash
-leek-box-cli               # Stock watchlist dashboard
-leek-box-cli stock-list    # Same as above
-leek-box-cli stock-add     # Add a stock to the watchlist
-leek-box-cli stock-remove  # Remove a stock from the watchlist
-leek-box-cli -v            # Show version information
-leek-box-cli -h            # Show help
+leek-box-cli               # 自选股票看板
+leek-box-cli stock-list    # 同上
+leek-box-cli stock-add     # 添加自选股
+leek-box-cli stock-remove  # 删除自选股
+leek-box-cli -v            # 查看版本
+leek-box-cli -h            # 查看帮助
 ```
 
-## Settings and Watchlist Storage
+## 设置与自选股存储
 
-Settings and the watchlist are stored together at `$XDG_CONFIG_HOME/leek-box-cli/settings.json`. If `XDG_CONFIG_HOME` is not set, `~/.config/leek-box-cli/settings.json` is used.
+设置与自选股一起保存在 `$XDG_CONFIG_HOME/leek-box-cli/settings.json`; 未设置 `XDG_CONFIG_HOME` 时使用 `~/.config/leek-box-cli/settings.json`.
 
-File structure:
+文件结构为:
 
 ```json
 {
@@ -186,23 +186,23 @@ File structure:
 }
 ```
 
-The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates the `theme` and `request` fields, as well as each stock's `code`, `name`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
+程序每次刷新看板都会重新读取文件, 因此合法的外部编辑会在下一轮刷新生效. 读取时会校验 `theme`, `request` 以及每只股票的 `code`, `name`, `addedAt` 和重复代码; 写入使用进程间锁与临时文件原子替换, 避免并发读改写丢失和半截 JSON.
 
-## Development Scripts
+## 开发脚本
 
-| Command           | Description                              |
-| ----------------- | ---------------------------------------- |
-| `pnpm dev`        | Run the source code with tsx             |
-| `pnpm build`      | Build `dist/cli.mjs` with Vite           |
-| `pnpm preview`    | Run the build output                     |
-| `pnpm test`       | Run tests with Vitest                    |
-| `pnpm typecheck`  | Run TypeScript type checking             |
-| `pnpm lint`       | Run the linter and apply automatic fixes |
-| `pnpm lint:check` | Run the linter without modifying files   |
-| `pnpm fmt`        | Format the code                          |
-| `pnpm fmt:check`  | Check code formatting                    |
+| 命令              | 说明                          |
+| ----------------- | ----------------------------- |
+| `pnpm dev`        | 使用 tsx 运行源码             |
+| `pnpm build`      | 使用 Vite 构建 `dist/cli.mjs` |
+| `pnpm preview`    | 运行构建产物                  |
+| `pnpm test`       | 使用 Vitest 运行测试          |
+| `pnpm typecheck`  | TypeScript 类型检查           |
+| `pnpm lint`       | Lint 并自动修复               |
+| `pnpm lint:check` | 仅检查 Lint                   |
+| `pnpm fmt`        | 格式化代码                    |
+| `pnpm fmt:check`  | 检查格式                      |
 
-## Tech Stack
+## 技术栈
 
 - TypeScript / ESM
 - Ink 7 + React 19
