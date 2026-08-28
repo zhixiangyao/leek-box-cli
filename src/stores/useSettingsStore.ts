@@ -1,3 +1,4 @@
+import { TextProps } from 'ink'
 import { create } from 'zustand'
 
 export const BORDER_STYLES = [
@@ -24,13 +25,24 @@ export const TREND_COLOR_MODE_LABELS: Record<TrendColorMode, string> = {
 
 export const DEFAULT_TREND_COLOR_MODE: TrendColorMode = 'red-up'
 
+export type Color = TextProps['color']
+
+export type ThemePreset = 'classic' | 'gray' | 'ocean' | 'forest' | 'sunset'
+
+export type ThemePalette = {
+  label: string
+  primary: Color
+  accent: Color
+  highlight: Color
+  foreground: Color
+}
+
 export const THEME_PRESETS = {
   classic: {
     label: '经典紫蓝',
     primary: 'magenta',
     accent: 'blue',
     highlight: 'cyan',
-    background: 'black',
     foreground: 'white',
   },
   ocean: {
@@ -38,7 +50,6 @@ export const THEME_PRESETS = {
     primary: 'cyan',
     accent: 'blue',
     highlight: 'cyan',
-    background: 'black',
     foreground: 'white',
   },
   forest: {
@@ -46,7 +57,6 @@ export const THEME_PRESETS = {
     primary: 'green',
     accent: 'green',
     highlight: 'green',
-    background: 'black',
     foreground: 'white',
   },
   sunset: {
@@ -54,7 +64,6 @@ export const THEME_PRESETS = {
     primary: 'yellow',
     accent: 'red',
     highlight: 'yellow',
-    background: 'black',
     foreground: 'white',
   },
   gray: {
@@ -62,13 +71,9 @@ export const THEME_PRESETS = {
     primary: 'gray',
     accent: 'gray',
     highlight: 'gray',
-    background: 'black',
     foreground: 'white',
   },
-} as const
-
-export type ThemePreset = keyof typeof THEME_PRESETS
-export type ThemePalette = (typeof THEME_PRESETS)[ThemePreset]
+} satisfies Record<ThemePreset, ThemePalette>
 
 export const THEME_PRESET_NAMES = Object.keys(THEME_PRESETS) as ThemePreset[]
 

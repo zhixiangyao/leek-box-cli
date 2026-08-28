@@ -2,10 +2,8 @@ import type { ChartPeriod, ChartPoint, FiveDayPoint, HistoricalPoint, IntradayPo
 import { trendColor, type TrendColor } from '../../lib/format.ts'
 import { DEFAULT_TREND_COLOR_MODE, type TrendColorMode } from '../../stores/useSettingsStore.ts'
 
-type TextColor = TrendColor
-
 /** 图表单元格: 字符 + 可选颜色, 行渲染时相邻同色合并 */
-export type ChartCell = { ch: string; color?: TextColor }
+export type ChartCell = { ch: string; color?: TrendColor }
 
 /** 桶: 一列内的聚合值; 空桶 (无数据) 各字段为 0 */
 type Bucket = {
@@ -222,13 +220,13 @@ export const buildChartRows = (params: {
   const subRows = priceHeight * 4
   const subCols = width * 2
   const yOf = (price: number) => Math.round(((rangeMax - price) / (rangeMax - rangeMin)) * (subRows - 1))
-  const compareColor = (price: number, baseline: number | undefined): TextColor =>
+  const compareColor = (price: number, baseline: number | undefined): TrendColor =>
     baseline === undefined ? 'gray' : trendColor(price - baseline, trendColorMode)
 
   // 当日分时沿用整线相对昨收的颜色; 五日与 K 线按每段价格方向着色.
   const filledLastPrices = buckets.map((b) => b.lastPrice).filter((price) => price > 0)
   const intradayLineColor = compareColor(filledLastPrices.at(-1) ?? 0, referencePrice)
-  const lineColors = buckets.map((bucket, col): TextColor => {
+  const lineColors = buckets.map<TrendColor>((bucket, col) => {
     if (intradayChart) return intradayLineColor
     if (bucket.lastPrice <= 0) return 'gray'
 
@@ -323,7 +321,7 @@ export const buildChartRows = (params: {
 
   // 组装成交量区单元格: 由各子行位掩码合成 Braille 字符; 颜色按该桶相对上一桶涨跌
   // (分钟方向, 同股票软件红绿交替), 首桶回退昨收, 平盘灰
-  const barColor: (TextColor | undefined)[] = Array.from({ length: width }, () => undefined)
+  const barColor: (TrendColor | undefined)[] = Array.from({ length: width }, () => undefined)
   let prevBarPrice: number | undefined = referencePrice
   for (let col = 0; col < width; col++) {
     const bucket = buckets[col]!

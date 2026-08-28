@@ -4,21 +4,15 @@ import Card from '../../components/Card.tsx'
 import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useTheme } from '../../hooks/useTheme.ts'
-import { useSettings } from './hooks/useSettings.ts'
+import { type ThemePalette } from '../../stores/useSettingsStore.ts'
+import { type SettingRow, useSettings } from './hooks/useSettings.ts'
 
 type Props = {
   title: string
   hint: string
 }
 
-type SettingRow = {
-  label: string
-  description: string
-  value: string
-  selected: boolean
-}
-
-function SettingRows({ rows, highlight }: { rows: SettingRow[]; highlight: string }) {
+function SettingRows({ rows, highlight }: { rows: SettingRow[]; highlight: ThemePalette['highlight'] }) {
   return rows.map((row) => (
     <Box key={row.label} justifyContent="space-between">
       <Text color={row.selected ? 'black' : undefined} backgroundColor={row.selected ? highlight : undefined}>
@@ -35,7 +29,7 @@ function SettingRows({ rows, highlight }: { rows: SettingRow[]; highlight: strin
 
 export default function Settings({ title, hint }: Props) {
   const theme = useTheme()
-  const { overlayOpen, appearanceItems, requestItems } = useSettings()
+  const { overlayOpen, appearanceRows, requestRows } = useSettings()
 
   return (
     <Card
@@ -45,11 +39,11 @@ export default function Settings({ title, hint }: Props) {
       footer={<StatusBar hint={hint} bright={!overlayOpen} />}
     >
       <Text color={theme.primary}>外观</Text>
-      <SettingRows rows={appearanceItems} highlight={theme.highlight} />
+      <SettingRows rows={appearanceRows} highlight={theme.highlight} />
 
       <Box marginTop={1} flexDirection="column">
         <Text color={theme.primary}>请求与刷新</Text>
-        <SettingRows rows={requestItems} highlight={theme.highlight} />
+        <SettingRows rows={requestRows} highlight={theme.highlight} />
       </Box>
 
       <Box marginTop={1} flexDirection="column">

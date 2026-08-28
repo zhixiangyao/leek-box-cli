@@ -221,7 +221,7 @@ Border style:
 
 主题应用规则:
 
-- Card 使用全局 `borderStyle`, `primary` border 和主题 background.
+- Card 使用全局 `borderStyle` 和 `primary` border; 内容区默认透明, 仅在调用方显式传入 `backgroundColor` 时绘制背景.
 - Text 在未显式传 color 时使用主题 foreground.
 - StatusBar bright 状态使用主题 accent.
 - Menu 选中项使用主题 highlight.
@@ -363,10 +363,10 @@ Card 负责:
 - 主题 border style 和 border color
 - 左上 title
 - 右上 extra
-- 内容 padding 和 background
+- 内容 padding 和可选 `backgroundColor` (省略时透明)
 - footer
 
-Dialog 使用 absolute full-screen Box 居中 Card. Dialog 外层保持透明, 让底层 screen 的 dim 状态可见. Dialog 内容背景由 Card 主题处理.
+Dialog 使用 absolute full-screen Box 居中 Card. Dialog 外层保持透明, 让底层 screen 的 dim 状态可见.
 
 本地 `src/components/Text.tsx` 是项目文字入口. 它负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
 

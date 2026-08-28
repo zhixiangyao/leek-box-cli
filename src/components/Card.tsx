@@ -33,7 +33,7 @@ export default function Card(props: Props) {
       {title ? <BorderTitle title={title} bright={bright} top={-1} left={1} /> : undefined}
       {extra ? <BorderTitle title={extra} bright={bright} top={-1} right={1} /> : undefined}
 
-      <Box flexGrow={1} flexDirection="column" padding={1} backgroundColor={backgroundColor ?? theme.background}>
+      <Box flexGrow={1} flexDirection="column" padding={1} backgroundColor={backgroundColor}>
         {children}
       </Box>
 

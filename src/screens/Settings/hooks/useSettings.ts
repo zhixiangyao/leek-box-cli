@@ -12,6 +12,13 @@ import {
   useSettingsStore,
 } from '../../../stores/useSettingsStore.ts'
 
+export type SettingRow = {
+  label: SettingItem['label']
+  description: SettingItem['description']
+  value: string
+  selected: boolean
+}
+
 type SettingItem =
   | { type: 'theme'; label: string; description: string }
   | { type: 'trendColor'; label: string; description: string }
@@ -96,7 +103,7 @@ export function useSettings() {
     { isActive: !overlayOpen },
   )
 
-  const rows = SETTING_ITEMS.map((item, index) => ({
+  const rows = SETTING_ITEMS.map<SettingRow>((item, index) => ({
     label: item.label,
     description: item.description,
     selected: index === selectedIndex,
@@ -112,7 +119,7 @@ export function useSettings() {
 
   return {
     overlayOpen,
-    appearanceItems: rows.slice(0, 3),
-    requestItems: rows.slice(3),
+    appearanceRows: rows.slice(0, 3),
+    requestRows: rows.slice(3),
   }
 }
