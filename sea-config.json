@@ -1,7 +1,0 @@
-{
-  "main": "dist/cli.mjs",
-  "mainFormat": "module",
-  "output": "dist/leek-box-cli",
-  "disableExperimentalSEAWarning": true,
-  "useCodeCache": true
-}

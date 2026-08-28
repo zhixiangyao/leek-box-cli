@@ -90,8 +90,8 @@
 
 ## Requirements
 
-- [Node.js](https://nodejs.org/) >= 26.7.0
-- [pnpm](https://pnpm.io/) >= 10.0.0
+- [Node.js](https://nodejs.org/) >= 22.19.0 (or >= 24)
+- [pnpm](https://pnpm.io/) >= 11.0.0
 
 Market data is retrieved with the native Node.js `fetch` API, with no external runtime dependency such as curl.
 
@@ -106,6 +106,34 @@ Market data is retrieved with the native Node.js `fetch` API, with no external r
 
 ## Installation and Usage
 
+### Install globally (recommended)
+
+```bash
+npm install -g leek-box-cli
+# or
+pnpm add -g leek-box-cli
+# or
+yarn global add leek-box-cli
+```
+
+Then run it from anywhere:
+
+```bash
+leek-box-cli
+```
+
+> Requires Node.js 22.19+ (or 24+) on the machine that runs the command.
+
+Alternatively, run it once without installing:
+
+```bash
+npx leek-box-cli
+# or
+pnpm dlx leek-box-cli
+```
+
+### Run from source
+
 ```bash
 pnpm install
 
@@ -115,10 +143,6 @@ pnpm dev
 # Build and run
 pnpm build
 pnpm preview
-
-# Build a standalone Node.js SEA executable
-pnpm bundle
-./dist/leek-box-cli
 ```
 
 You can also select the initial page with a subcommand:
@@ -166,19 +190,17 @@ The application reloads the file every time it refreshes the dashboard, so valid
 
 ## Development Scripts
 
-| Command           | Description                                      |
-| ----------------- | ------------------------------------------------ |
-| `pnpm dev`        | Run the source code with tsx                     |
-| `pnpm build`      | Build `dist/cli.mjs` with Vite                   |
-| `pnpm preview`    | Run the build output                             |
-| `pnpm test`       | Run tests with Vitest                            |
-| `pnpm typecheck`  | Run TypeScript type checking                     |
-| `pnpm lint`       | Run the linter and apply automatic fixes         |
-| `pnpm lint:check` | Run the linter without modifying files           |
-| `pnpm fmt`        | Format the code                                  |
-| `pnpm fmt:check`  | Check code formatting                            |
-| `pnpm bundle`     | Build and package a standalone Node.js SEA file  |
-| `pnpm sea`        | Package SEA only; requires existing build output |
+| Command           | Description                              |
+| ----------------- | ---------------------------------------- |
+| `pnpm dev`        | Run the source code with tsx             |
+| `pnpm build`      | Build `dist/cli.mjs` with Vite           |
+| `pnpm preview`    | Run the build output                     |
+| `pnpm test`       | Run tests with Vitest                    |
+| `pnpm typecheck`  | Run TypeScript type checking             |
+| `pnpm lint`       | Run the linter and apply automatic fixes |
+| `pnpm lint:check` | Run the linter without modifying files   |
+| `pnpm fmt`        | Format the code                          |
+| `pnpm fmt:check`  | Check code formatting                    |
 
 ## Tech Stack
 

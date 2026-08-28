@@ -90,8 +90,8 @@
 
 ## 环境要求
 
-- [Node.js](https://nodejs.org/) >= 26.7.0
-- [pnpm](https://pnpm.io/) >= 10.0.0
+- [Node.js](https://nodejs.org/) >= 22.19.0 (或 >= 24)
+- [pnpm](https://pnpm.io/) >= 11.0.0
 
 行情通过 Node.js 原生 `fetch` 获取, 无 curl 等外部运行工具依赖.
 
@@ -106,6 +106,34 @@
 
 ## 安装与运行
 
+### 全局安装 (推荐)
+
+```bash
+npm install -g leek-box-cli
+# 或
+pnpm add -g leek-box-cli
+# 或
+yarn global add leek-box-cli
+```
+
+之后即可在任意目录运行:
+
+```bash
+leek-box-cli
+```
+
+> 运行命令的机器需要 Node.js 22.19+ (或 24+).
+
+也可以免安装直接运行一次:
+
+```bash
+npx leek-box-cli
+# 或
+pnpm dlx leek-box-cli
+```
+
+### 从源码运行
+
 ```bash
 pnpm install
 
@@ -115,10 +143,6 @@ pnpm dev
 # 构建并运行
 pnpm build
 pnpm preview
-
-# 构建 Node.js SEA 单文件产物
-pnpm bundle
-./dist/leek-box-cli
 ```
 
 也可以通过子命令指定初始页面:
@@ -166,19 +190,17 @@ leek-box-cli -h            # 查看帮助
 
 ## 开发脚本
 
-| 命令              | 说明                              |
-| ----------------- | --------------------------------- |
-| `pnpm dev`        | 使用 tsx 运行源码                 |
-| `pnpm build`      | 使用 Vite 构建 `dist/cli.mjs`     |
-| `pnpm preview`    | 运行构建产物                      |
-| `pnpm test`       | 使用 Vitest 运行测试              |
-| `pnpm typecheck`  | TypeScript 类型检查               |
-| `pnpm lint`       | Lint 并自动修复                   |
-| `pnpm lint:check` | 仅检查 Lint                       |
-| `pnpm fmt`        | 格式化代码                        |
-| `pnpm fmt:check`  | 检查格式                          |
-| `pnpm bundle`     | 构建并打包 Node.js SEA 单文件     |
-| `pnpm sea`        | 仅执行 SEA 打包, 要求已有构建产物 |
+| 命令              | 说明                          |
+| ----------------- | ----------------------------- |
+| `pnpm dev`        | 使用 tsx 运行源码             |
+| `pnpm build`      | 使用 Vite 构建 `dist/cli.mjs` |
+| `pnpm preview`    | 运行构建产物                  |
+| `pnpm test`       | 使用 Vitest 运行测试          |
+| `pnpm typecheck`  | TypeScript 类型检查           |
+| `pnpm lint`       | Lint 并自动修复               |
+| `pnpm lint:check` | 仅检查 Lint                   |
+| `pnpm fmt`        | 格式化代码                    |
+| `pnpm fmt:check`  | 检查格式                      |
 
 ## 技术栈
 

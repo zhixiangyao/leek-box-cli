@@ -7,6 +7,9 @@ on:
 
 permissions:
   contents: write
+  # Required so `npm publish --provenance` can request a short-lived OIDC token
+  # and attach a signed provenance statement to the published package.
+  id-token: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -14,7 +17,7 @@ concurrency:
 
 jobs:
   release:
-    name: Build and release Linux x64
+    name: Build, release, and publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -25,7 +28,6 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
           run_install: false
 
       - name: Set up Node.js
@@ -37,6 +39,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify tag matches package version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pkg_version="$(node -p "require('./package.json').version")"
+          tag_version="${GITHUB_REF_NAME#v}"
+
+          if [ "$pkg_version" != "$tag_version" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${pkg_version}. Bump the version and retag."
+            exit 1
+          fi
+          echo "Releasing leek-box-cli@${pkg_version}"
+
       - name: Run quality checks
         run: |
           pnpm fmt:check
@@ -44,11 +60,11 @@ jobs:
           pnpm typecheck
           pnpm test
 
-      - name: Build standalone executable
-        run: pnpm bundle
+      - name: Build
+        run: pnpm build
 
-      - name: Smoke test executable
-        run: ./dist/leek-box-cli --version
+      - name: Smoke test build
+        run: node dist/cli.mjs --version
 
       - name: Package release assets
         shell: bash
@@ -56,15 +72,13 @@ jobs:
           set -euo pipefail
 
           asset_tag="${GITHUB_REF_NAME//\//-}"
-          archive="leek-box-cli-${asset_tag}-linux-x64.tar.gz"
           script="leek-box-cli-${asset_tag}.mjs"
 
           mkdir -p release
-          tar -C dist -czf "release/${archive}" leek-box-cli
           cp dist/cli.mjs "release/${script}"
           (
             cd release
-            sha256sum "${archive}" "${script}" > SHA256SUMS
+            sha256sum "${script}" > SHA256SUMS
           )
 
       - name: Create GitHub Release
@@ -81,4 +95,49 @@ jobs:
               --verify-tag \
               --generate-notes \
               --title "$GITHUB_REF_NAME"
+          fi
+
+      - name: Check for npm token
+        id: npm_token
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::NPM_TOKEN secret is not set; skipping npm publish. Add it under Settings → Secrets and variables → Actions to enable publishing."
+          fi
+
+      # A second setup-node writes an .npmrc with the registry + auth mapping only
+      # for the publish steps, keeping the earlier `pnpm install` free of any auth
+      # config. The publish itself uses `npm` (pnpm 10 delegates publishing to the
+      # npm CLI anyway), which avoids pnpm's stricter .npmrc env-expansion rules.
+      - name: Set up Node.js for the npm registry
+        if: steps.npm_token.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26.7.0'
+          registry-url: 'https://registry.npmjs.org'
+          always-auth: true
+
+      - name: Publish to npm
+        if: steps.npm_token.outputs.present == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="$(node -p "require('./package.json').version")"
+          published="$(npm view "leek-box-cli@${version}" version 2>/dev/null || true)"
+
+          if [ -n "$published" ]; then
+            echo "leek-box-cli@${version} is already published; skipping."
+          else
+            npm publish --provenance --access public
+            echo "Published leek-box-cli@${version} to npm."
           fi
