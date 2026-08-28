@@ -247,11 +247,19 @@ d             恢复默认值
 $XDG_CONFIG_HOME/leek-box-cli/settings.json
 ```
 
-未设置 `XDG_CONFIG_HOME` 时:
+未设置 `XDG_CONFIG_HOME` 时, Linux 和 macOS 使用:
 
 ```text
 ~/.config/leek-box-cli/settings.json
 ```
+
+Windows 使用 `%APPDATA%` (Roaming):
+
+```text
+%APPDATA%\leek-box-cli\settings.json
+```
+
+`configDirectory()` 优先级: 非空 `XDG_CONFIG_HOME` > Windows 的 `%APPDATA%` > `~/.config`. 空字符串的 `XDG_CONFIG_HOME` 按未设置处理.
 
 当前格式没有 legacy migration 和 schemaVersion:
 
@@ -282,6 +290,7 @@ $XDG_CONFIG_HOME/leek-box-cli/settings.json
 
 - 文件不存在时使用默认 settings 和空 stocks 创建.
 - 文件存在时严格校验 theme, request 和 stocks.
+- 读取时先去除 UTF-8 BOM (`stripBom`), 兼容 Windows 记事本或 PowerShell 重定向写入的配置.
 - 损坏文件直接报错, 不静默丢弃字段, 不 fallback 到旧格式.
 - `StockEntry` 为 `{code, name, addedAt}`.
 - `parseStocks()` 校验 code, name, addedAt 和重复 code.

@@ -158,7 +158,9 @@ leek-box-cli -h            # Show help
 
 ## Settings and Watchlist Storage
 
-Settings and the watchlist are stored together at `$XDG_CONFIG_HOME/leek-box-cli/settings.json`. If `XDG_CONFIG_HOME` is not set, `~/.config/leek-box-cli/settings.json` is used.
+Settings and the watchlist are stored together at `$XDG_CONFIG_HOME/leek-box-cli/settings.json`. If `XDG_CONFIG_HOME` is not set, Linux and macOS use `~/.config/leek-box-cli/settings.json`, while Windows uses `%APPDATA%\leek-box-cli\settings.json`.
+
+Windows note: a UTF-8 BOM written by editors such as Notepad is stripped automatically when the config is read, so hand-editing settings.json will not break parsing because of a BOM.
 
 File structure:
 

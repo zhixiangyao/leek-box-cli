@@ -158,7 +158,9 @@ leek-box-cli -h            # 查看帮助
 
 ## 设置与自选股存储
 
-设置与自选股一起保存在 `$XDG_CONFIG_HOME/leek-box-cli/settings.json`; 未设置 `XDG_CONFIG_HOME` 时使用 `~/.config/leek-box-cli/settings.json`.
+设置与自选股一起保存在 `$XDG_CONFIG_HOME/leek-box-cli/settings.json`; 未设置 `XDG_CONFIG_HOME` 时, Linux 和 macOS 使用 `~/.config/leek-box-cli/settings.json`, Windows 使用 `%APPDATA%\leek-box-cli\settings.json`.
+
+Windows 兼容说明: 读取配置时会自动去除记事本等编辑器写入的 UTF-8 BOM, 因此手动编辑 settings.json 后不会因 BOM 导致解析失败.
 
 文件结构为:
 

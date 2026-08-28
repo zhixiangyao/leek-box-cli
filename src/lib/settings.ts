@@ -200,8 +200,15 @@ const createDocument = (settings: Settings, stocks: StockEntry[]): SettingsDocum
 
 /** 返回应用配置目录 */
 const configDirectory = () => {
-  const configHome = process.env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config')
-  return join(configHome, 'leek-box-cli')
+  // 显式设置的 XDG_CONFIG_HOME 优先, 空字符串按未设置处理(遵循 XDG 规范).
+  const explicitConfigHome = process.env['XDG_CONFIG_HOME']
+  if (explicitConfigHome) return join(explicitConfigHome, 'leek-box-cli')
+  // Windows 使用 %APPDATA% (Roaming), 缺失时回退到用户目录下的 .config.
+  if (process.platform === 'win32') {
+    const appData = process.env['APPDATA']
+    if (appData) return join(appData, 'leek-box-cli')
+  }
+  return join(homedir(), '.config', 'leek-box-cli')
 }
 
 /** 返回设置文件路径 */
@@ -209,10 +216,13 @@ export function settingsPath(): string {
   return join(configDirectory(), 'settings.json')
 }
 
+/** 去除 UTF-8 BOM, 兼容 Windows 编辑器(如记事本, PowerShell 重定向)写入的配置文件 */
+const stripBom = (text: string): string => (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text)
+
 /** 读取 JSON 文件, 不存在时返回 undefined */
 const readJsonFile = async (path: string): Promise<unknown | undefined> => {
   try {
-    return JSON.parse(await readFile(path, 'utf8')) as unknown
+    return JSON.parse(stripBom(await readFile(path, 'utf8'))) as unknown
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw error
