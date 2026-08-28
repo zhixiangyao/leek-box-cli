@@ -3,7 +3,7 @@ name: leek-box-cli
 description: leek-box-cli 项目架构, 开发规范和真实实现约束. 当任务涉及本项目的页面, 组件, hooks, stores, 行情接口, settings 持久化, 主题, 轮询或测试时使用. Ink 通用 API 参考 ink skill.
 ---
 
-# leek-box-cli 项目规范
+# leek-box-cli(韭菜盒子) 项目规范
 
 交互式终端股票自选股看板. 技术栈为 `ink@7.1.1`, `react@19.2.8`, `zustand@5`, `meow@14`, TypeScript ESM 和 Vite. 开发使用 `tsx`, 行情请求使用 Node.js 原生 `fetch`.
 

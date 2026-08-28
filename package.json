@@ -1,7 +1,7 @@
 {
   "name": "leek-box-cli",
   "version": "0.1.0",
-  "description": "终端股票自选股看板, 基于 Ink 构建的交互式 CLI 工具",
+  "description": "韭菜盒子, 终端股票自选股看板, 基于 Ink 构建的交互式 CLI 工具",
   "keywords": [
     "a股",
     "cli",
@@ -9,7 +9,7 @@
     "quote",
     "stock",
     "tui",
-    "watchlist"
+    "韭菜盒子"
   ],
   "homepage": "https://github.com/zhixiangyao/leek-box-cli#readme",
   "bugs": {

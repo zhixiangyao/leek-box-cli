@@ -2,7 +2,7 @@
   <a href="README.md">English</a> | <strong>中文</strong>
 </p>
 
-# leek-box-cli
+# leek-box-cli(韭菜盒子)
 
 > 基于 [Ink](https://github.com/vadimdemedes/ink) 的交互式终端自选股票看板.
 

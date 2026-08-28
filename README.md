@@ -2,7 +2,7 @@
   <strong>English</strong> | <a href="README-zh.md">中文</a>
 </p>
 
-# leek-box-cli
+# leek-box-cli(韭菜盒子)
 
 > An interactive terminal stock watchlist dashboard built with [Ink](https://github.com/vadimdemedes/ink).
 
