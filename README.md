@@ -197,12 +197,37 @@ Windows 兼容说明: 读取配置时会自动去除记事本等编辑器写入�
 | `pnpm dev`        | 使用 tsx 运行源码             |
 | `pnpm build`      | 使用 Vite 构建 `dist/cli.mjs` |
 | `pnpm preview`    | 运行构建产物                  |
+| `pnpm mock`       | 写入示例自选股, --reset 覆盖  |
 | `pnpm test`       | 使用 Vitest 运行测试          |
 | `pnpm typecheck`  | TypeScript 类型检查           |
 | `pnpm lint`       | Lint 并自动修复               |
 | `pnpm lint:check` | 仅检查 Lint                   |
 | `pnpm fmt`        | 格式化代码                    |
 | `pnpm fmt:check`  | 检查格式                      |
+| `pnpm release`    | 交互式发布 (递增版本 + tag)   |
+
+## 发布
+
+发布通过 `pnpm release` 完成, 这是基于 Ink 的交互式命令, 负责递增版本, 创建 release commit 和 tag:
+
+```bash
+pnpm release
+```
+
+执行流程:
+
+1. 校验 `package.json` 无未提交改动, 并读取当前版本.
+2. 选择发布类型: `patch` (0.0.x), `minor` (0.x.0) 或 `major` (x.0.0); 使用 `↑`/`↓` + `enter`, 或直接按 `1`/`2`/`3`.
+3. 自动更新 `package.json` 的 `version`, 创建提交 `chore(release): vX.Y.Z` 和标签 `vX.Y.Z` (仅本地).
+4. 选择是否推送到远端: 默认为 `否, 仅保留本地`, 防止误推送; 选择 `是` 会把当前分支和标签一并推送到 `origin`.
+
+若此处未推送, 之后可手动推送:
+
+```bash
+git push && git push origin vX.Y.Z
+```
+
+推送 `v*` 标签会触发 GitHub Actions (`.github/workflows/release.yml`): 校验标签与 `package.json` 版本一致, 依次执行 `fmt:check`, `lint:check`, `typecheck`, `test` 和 `build`, 创建 GitHub Release, 并在仓库配置了 `NPM_TOKEN` 时发布到 npm.
 
 ## 技术栈
 

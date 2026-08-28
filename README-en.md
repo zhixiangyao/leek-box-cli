@@ -197,12 +197,37 @@ The application reloads the file every time it refreshes the dashboard, so valid
 | `pnpm dev`        | Run the source code with tsx             |
 | `pnpm build`      | Build `dist/cli.mjs` with Vite           |
 | `pnpm preview`    | Run the build output                     |
+| `pnpm mock`       | Seed sample watchlist stocks (`--reset`) |
 | `pnpm test`       | Run tests with Vitest                    |
 | `pnpm typecheck`  | Run TypeScript type checking             |
 | `pnpm lint`       | Run the linter and apply automatic fixes |
 | `pnpm lint:check` | Run the linter without modifying files   |
 | `pnpm fmt`        | Format the code                          |
 | `pnpm fmt:check`  | Check code formatting                    |
+| `pnpm release`    | Interactive release (bump version + tag) |
+
+## Release
+
+Releases are handled by `pnpm release`, an interactive Ink command that bumps the version and creates a release commit and tag:
+
+```bash
+pnpm release
+```
+
+The flow is:
+
+1. Verifies `package.json` has no uncommitted changes and reads the current version.
+2. Select the release type: `patch` (0.0.x), `minor` (0.x.0), or `major` (x.0.0); use `↑`/`↓` + `enter`, or press `1`/`2`/`3` directly.
+3. Updates the `version` field in `package.json`, then creates a commit `chore(release): vX.Y.Z` and a tag `vX.Y.Z` (local only).
+4. Choose whether to push to the remote: the default is `No, keep local only` to prevent accidental pushes; choosing `Yes` pushes the current branch and the tag to `origin`.
+
+If you skip pushing here, you can push manually later:
+
+```bash
+git push && git push origin vX.Y.Z
+```
+
+Pushing a `v*` tag triggers GitHub Actions (`.github/workflows/release.yml`): it verifies the tag matches the `package.json` version, runs `fmt:check`, `lint:check`, `typecheck`, `test`, and `build`, creates a GitHub Release, and publishes to npm when `NPM_TOKEN` is configured in the repository.
 
 ## Tech Stack
 
