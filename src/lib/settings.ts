@@ -168,6 +168,19 @@ export function settingsFromDocument(document: SettingsDocument): Settings {
   }
 }
 
+/** 首次使用时预置的默认自选股 */
+const DEFAULT_STOCKS: ReadonlyArray<Pick<StockEntry, 'code' | 'name'>> = [
+  { code: 'sz002156', name: '富通微电' },
+  { code: 'sh600584', name: '长电科技' },
+  { code: 'sh688825', name: '长鑫科技' },
+]
+
+/** 构造默认自选股列表, 使用当前时间作为添加时间 */
+const createDefaultStocks = (): StockEntry[] => {
+  const addedAt = new Date().toISOString()
+  return DEFAULT_STOCKS.map((stock) => ({ ...stock, addedAt }))
+}
+
 /** 组合应用设置和股票条目为持久化文档 */
 const createDocument = (settings: Settings, stocks: StockEntry[]): SettingsDocument => ({
   theme: {
@@ -350,7 +363,7 @@ const initializeUnlocked = async (): Promise<SettingsDocument> => {
   const existing = await readSettingsFile()
   if (existing) return existing
 
-  const document = createDocument(DEFAULT_SETTINGS, [])
+  const document = createDocument(DEFAULT_SETTINGS, createDefaultStocks())
   await writeSettingsFile(document)
   return document
 }

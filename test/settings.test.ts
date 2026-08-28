@@ -33,7 +33,9 @@ test('并发更新自选股时保留两个条目', async () => {
       stocksAdd([{ code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }]),
     ])
     const entries = await loadStocks()
-    expect(entries.map((entry) => entry.code).sort()).toStrictEqual(['sh600000', 'sz000001'])
+    const codes = entries.map((entry) => entry.code)
+    expect(codes).toContain('sh600000')
+    expect(codes).toContain('sz000001')
   } finally {
     if (previousConfigHome === undefined) delete process.env['XDG_CONFIG_HOME']
     else process.env['XDG_CONFIG_HOME'] = previousConfigHome
