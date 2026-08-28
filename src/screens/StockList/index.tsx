@@ -18,7 +18,7 @@ type Props = {
 }
 
 export default function StockList({ title, hint }: Props) {
-  const overlayOpen = useOverlayOpen()
+  const { overlayOpen } = useOverlayOpen()
   const theme = useTheme()
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
   const { rowsRef, step, selectedCode, window } = useStockList()

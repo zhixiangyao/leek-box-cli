@@ -23,7 +23,7 @@ src/cli.tsx
   meow 参数解析, 初始路由, Ink render 和 settings persistence start/stop
 
 src/app.tsx
-  全局 esc/q 输入, 当前 screen 装配, DialogMenu 和 DialogStockDetail 绘制顺序
+  全局 esc/q 输入, 当前 screen 装配, 三个 Dialog 浮层的绘制顺序
 
 src/lib/registry.ts
   页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单
@@ -35,7 +35,7 @@ src/screens/<Feature>/hooks/
   Zustand 订阅, 页面生命周期, Ink 输入, 测量和轮询接线
 
 src/components/
-  Card, Dialog, Text, StatusBar, TextInput 和复合弹窗
+  Card, Dialog, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm)
 
 src/hooks/
   usePolling, useOverlayOpen, useClock, useTheme
@@ -140,6 +140,8 @@ useFeatureStore.ts
 
 Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器.
 
+删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅重置勾选.
+
 Settings 的规则:
 
 - `src/screens/Settings/index.tsx` 只负责分组渲染.
@@ -150,13 +152,14 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 
 ## 全局输入和 overlay
 
-共享 overlay 包含菜单和股票详情.
+共享 overlay 包含菜单, 股票详情和删除确认.
 
-- `esc`: 详情打开时先关闭详情, 否则切换菜单.
+- `esc` 优先级: 详情弹窗 > 删除确认弹窗 (confirm 取消, done/error 关闭) > 菜单; 删除进行中忽略.
 - `q`: 仅在没有 overlay 时退出.
 - 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen }`.
 - DialogMenu 自己处理上下键, Enter 和数字快捷键.
 - DialogStockDetail 仅在详情打开且菜单关闭时处理周期数字键.
+- DialogRemoveConfirm 仅在 confirm 阶段接受 y/n. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
 
 详情周期快捷键:
 
@@ -169,7 +172,7 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 6 年 K
 ```
 
-`useOverlayOpen()` 只派生 menu open 和 detail stock 两个布尔状态. 不新增重复的 overlay Context.
+`useOverlayOpen()` 是唯一的浮层状态聚合点, 返回 `{ overlayOpen, dialogMenuOpen, dialogStockDetailOpen, dialogRemoveConfirmOpen }`. App 解构全部字段决定浮层渲染, 其余组件只取 `overlayOpen`. 不新增重复的 overlay Context.
 
 ## Settings 和主题
 
@@ -364,7 +367,7 @@ StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, �
 
 ## Card, Dialog 和 Text
 
-每个 screen 自己渲染 full-screen Card 和 StatusBar. App 只渲染当前 screen, 然后按顺序渲染 DialogMenu 和 DialogStockDetail.
+每个 screen 自己渲染 full-screen Card 和 StatusBar. App 只渲染当前 screen, 然后按顺序渲染 DialogMenu, DialogStockDetail 和 DialogRemoveConfirm.
 
 Card 负责:
 
@@ -375,9 +378,11 @@ Card 负责:
 - 内容 padding 和可选 `backgroundColor` (省略时透明)
 - footer
 
-Dialog 使用 absolute full-screen Box 居中 Card. Dialog 外层保持透明, 让底层 screen 的 dim 状态可见.
+Dialog 支持 `title`, `extra`, `hint` 和 `width`, footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见.
 
 本地 `src/components/Text.tsx` 是项目文字入口. 它负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
+
+CheckboxGrid 是多选网格: 方向键移动, 空格勾选, 回车提交勾选项 (至少一个才触发). 内部处理光标滚动窗口, `isActive` 控制输入, 外部通过 key 重挂载 (resetToken 变化) 清空勾选.
 
 ## TextInput 协议
 
@@ -416,6 +421,7 @@ A 股颜色为涨红, 跌绿, 平灰. 停牌显示 `--` 和 `停牌`. 接口缺�
 - `test/settings.test.ts`
 - `test/stores.test.ts`
 - `test/layout.test.ts`
+- `test/checkboxGrid.test.tsx`
 
 测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在布局测试之间使用 `getInitialState()` 恢复.
 

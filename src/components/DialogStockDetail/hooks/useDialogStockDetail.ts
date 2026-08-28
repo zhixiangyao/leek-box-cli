@@ -2,9 +2,9 @@ import { useInput } from 'ink'
 
 import type { ChartPeriod } from '../../../api/types.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
-import { useMenuStore } from '../../../stores/useMenuStore.ts'
+import { useDialogMenuStore } from '../../../stores/useDialogMenuStore.ts'
+import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
-import { useStockDetailStore } from '../../../stores/useStockDetailStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
 
 export const CHART_PERIOD_OPTIONS = [
@@ -17,14 +17,14 @@ export const CHART_PERIOD_OPTIONS = [
 ] as const satisfies readonly { key: string; value: ChartPeriod; label: string }[]
 
 export function useDialogStockDetail() {
-  const stock = useStockDetailStore((state) => state.stock)
-  const period = useStockDetailStore((state) => state.period)
-  const status = useStockDetailStore((state) => state.status)
-  const points = useStockDetailStore((state) => state.points)
-  const detailError = useStockDetailStore((state) => state.errorMessage)
+  const stock = useDialogStockDetailStore((state) => state.stock)
+  const period = useDialogStockDetailStore((state) => state.period)
+  const status = useDialogStockDetailStore((state) => state.status)
+  const points = useDialogStockDetailStore((state) => state.points)
+  const detailError = useDialogStockDetailStore((state) => state.errorMessage)
   const minuteChartPollIntervalMs = useSettingsStore((state) => state.minuteChartPollIntervalMs)
   const klinePollIntervalMs = useSettingsStore((state) => state.klinePollIntervalMs)
-  const menuOpen = useMenuStore((state) => state.open)
+  const menuOpen = useDialogMenuStore((state) => state.open)
   const quote = useStockListStore((state) => {
     if (state.step.type !== 'table') return undefined
     const row = state.step.rows.find((item) => item.code === stock?.code)
@@ -35,14 +35,14 @@ export function useDialogStockDetail() {
     (input, key) => {
       if (key.ctrl) return
       const option = CHART_PERIOD_OPTIONS.find((item) => item.key === input)
-      if (option) useStockDetailStore.getState().setPeriod(option.value)
+      if (option) useDialogStockDetailStore.getState().setPeriod(option.value)
     },
     { isActive: stock !== undefined && !menuOpen },
   )
 
   usePolling(
     async (signal) => {
-      if (stock) await useStockDetailStore.getState().refreshChart(stock.code, period, signal)
+      if (stock) await useDialogStockDetailStore.getState().refreshChart(stock.code, period, signal)
     },
     {
       enabled: stock !== undefined,

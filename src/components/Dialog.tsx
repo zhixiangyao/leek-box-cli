@@ -7,12 +7,13 @@ import StatusBar from './StatusBar.tsx'
 type Props = {
   title?: ReactNode
   extra?: ReactNode
+  hint?: string
   width: number
   children: ReactNode
 }
 
 export default function Dialog(props: Props) {
-  const { title, extra, width, children } = props
+  const { title, extra, hint, width, children } = props
   const { rows, columns } = useWindowSize()
 
   return (
@@ -26,7 +27,14 @@ export default function Dialog(props: Props) {
       alignItems="center"
       justifyContent="center"
     >
-      <Card bright title={title} extra={extra} width={width} backgroundColor="black" footer={<StatusBar bright />}>
+      <Card
+        bright
+        title={title}
+        extra={extra}
+        width={width}
+        backgroundColor="black"
+        footer={<StatusBar hint={hint} bright />}
+      >
         {children}
       </Card>
     </Box>

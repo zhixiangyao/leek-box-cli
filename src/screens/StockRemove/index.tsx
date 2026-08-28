@@ -1,13 +1,12 @@
-import { Newline } from 'ink'
 import { type ReactNode } from 'react'
 
-import ActionResult from '../../components/ActionResult.tsx'
 import Card from '../../components/Card.tsx'
+import CheckboxGrid from '../../components/CheckboxGrid/index.tsx'
 import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
-import TextInput from '../../components/TextInput.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
+import type { StockEntry } from '../../lib/settings.ts'
 import { useStockRemove } from './hooks/useStockRemove.ts'
 
 type Props = {
@@ -16,64 +15,31 @@ type Props = {
 }
 
 export default function StockRemove({ title, hint }: Props) {
-  const overlayOpen = useOverlayOpen()
+  const { overlayOpen } = useOverlayOpen()
   const theme = useTheme()
-  const { step, indexInput, confirmInput, handleChoice, handleConfirm, loadEntries } = useStockRemove()
+  const { entries, errorMessage, resetToken, open } = useStockRemove()
   let content: ReactNode
 
-  switch (step.type) {
-    case 'loading': {
-      content = <Text color="cyan">正在加载自选股...</Text>
-      break
-    }
-
-    case 'select': {
-      content = (
-        <>
-          <Text color="gray">自选股列表:</Text>
-          {step.entries.map((entry, index) => (
-            <Text key={entry.code}>
-              {index + 1}) {entry.name} ({entry.code}) <Text color="gray">({entry.addedAt.slice(0, 10)})</Text>
-            </Text>
-          ))}
-          {indexInput.error && <Text color="red">{indexInput.error}</Text>}
-          <Newline />
-          <TextInput prompt="请输入要删除的序号, 用英文逗号分隔: " onSubmit={handleChoice} />
-        </>
-      )
-      break
-    }
-
-    case 'confirm': {
-      content = (
-        <>
-          <Text color="yellow">确定删除以下股票?</Text>
-          {step.entries.map((entry) => (
-            <Text key={entry.code}>
-              {entry.name} ({entry.code})
-            </Text>
-          ))}
-          {confirmInput.error && <Text color="red">{confirmInput.error}</Text>}
-          <TextInput key={`confirm-${confirmInput.resetToken}`} prompt="确认删除? (y/n): " onSubmit={handleConfirm} />
-        </>
-      )
-      break
-    }
-
-    case 'removing': {
-      content = <Text color="cyan">正在删除 {step.entries.length} 个股票...</Text>
-      break
-    }
-
-    case 'done': {
-      content = <ActionResult tone="success" msg={step.message} to="stock-remove" onReturn={loadEntries} />
-      break
-    }
-
-    case 'error': {
-      content = <ActionResult tone="error" msg={step.message} to="stock-remove" onReturn={loadEntries} />
-      break
-    }
+  if (entries.length === 0) {
+    content = errorMessage ? (
+      <Text color="red">{errorMessage}</Text>
+    ) : (
+      <Text color="yellow">自选股为空, 按 esc 打开菜单添加自选股.</Text>
+    )
+  } else {
+    // 网格常驻: 无浮层时可交互, 确认/删除阶段作为底层被弹窗覆盖并变暗.
+    // key 绑定 resetToken: 取消或删除后网格重新挂载, 清空已勾选的股票.
+    content = (
+      <CheckboxGrid<StockEntry>
+        key={resetToken}
+        items={entries}
+        getKey={(entry) => entry.code}
+        getLabel={(entry) => entry.name}
+        getHint={(entry) => entry.code}
+        isActive={!overlayOpen}
+        onSubmit={open}
+      />
+    )
   }
 
   return (

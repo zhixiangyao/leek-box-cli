@@ -34,7 +34,7 @@ export const SCREEN_REGISTRY = {
     Component: StockRemove,
     title: '删除自选股',
     description: '删除自选股',
-    hint: '菜单(esc)   退出(q)',
+    hint: '菜单(esc)   移动(↑/↓/←/→)   选择(空格)   删除(enter)   退出(q)',
     menuLabel: '删除自选股',
   },
   settings: {

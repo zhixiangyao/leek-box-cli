@@ -8,7 +8,7 @@ type Props = {
 } & Omit<TextProps, 'dimColor'>
 
 export default function Text({ bright = false, color, ...props }: Props) {
-  const overlayOpen = useOverlayOpen()
+  const { overlayOpen } = useOverlayOpen()
   const theme = useTheme()
   const dimColor = bright ? false : overlayOpen
 

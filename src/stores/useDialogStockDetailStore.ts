@@ -24,7 +24,7 @@ const KLINE_REQUEST_BY_PERIOD: Record<KlinePeriod, Omit<HistoricalRequest, 'peri
 const DEFAULT_PERIOD: ChartPeriod = 'intraday'
 const isKlinePeriod = (period: ChartPeriod): period is KlinePeriod => period !== 'intraday' && period !== 'five-day'
 
-type StockDetailState = {
+type DialogStockDetailState = {
   stock: { code: string; name: string } | undefined
   period: ChartPeriod
   status: 'loading' | 'ready' | 'error'
@@ -36,16 +36,16 @@ type StockDetailState = {
   refreshChart: (code: string, period: ChartPeriod, signal?: AbortSignal) => Promise<void>
 }
 
-export type StockDetailDependencies = {
+export type DialogStockDetailDependencies = {
   fetchIntraday: (code: string, signal?: AbortSignal) => Promise<IntradayPoint[]>
   fetchFiveDay?: (code: string, signal?: AbortSignal) => Promise<FiveDayPoint[]>
   fetchHistorical?: (code: string, request: HistoricalRequest) => Promise<HistoricalPoint[]>
 }
 
-const defaultDependencies: StockDetailDependencies = { fetchIntraday, fetchFiveDay, fetchHistorical }
+const defaultDependencies: DialogStockDetailDependencies = { fetchIntraday, fetchFiveDay, fetchHistorical }
 
-export function createStockDetailStore(dependencies: StockDetailDependencies = defaultDependencies) {
-  return create<StockDetailState>()((set, get) => {
+export function createDialogStockDetailStore(dependencies: DialogStockDetailDependencies = defaultDependencies) {
+  return create<DialogStockDetailState>()((set, get) => {
     const refreshChart = async (code: string, period: ChartPeriod, signal?: AbortSignal) => {
       try {
         let points: ChartPoint[] | undefined
@@ -89,4 +89,4 @@ export function createStockDetailStore(dependencies: StockDetailDependencies = d
   })
 }
 
-export const useStockDetailStore = createStockDetailStore()
+export const useDialogStockDetailStore = createDialogStockDetailStore()

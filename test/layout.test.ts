@@ -23,19 +23,21 @@ const [
 
 const [
   { useStockAddStore },
-  { useMenuStore },
   { useStockRemoveStore },
+  { useDialogMenuStore },
+  { useDialogRemoveConfirmStore },
   { useRouterStore },
   { useSettingsStore },
-  { useStockDetailStore },
+  { useDialogStockDetailStore },
   { useStockListStore },
 ] = await Promise.all([
   import('../src/stores/useStockAddStore.ts'),
-  import('../src/stores/useMenuStore.ts'),
   import('../src/stores/useStockRemoveStore.ts'),
+  import('../src/stores/useDialogMenuStore.ts'),
+  import('../src/stores/useDialogRemoveConfirmStore.ts'),
   import('../src/stores/useRouterStore.ts'),
   import('../src/stores/useSettingsStore.ts'),
-  import('../src/stores/useStockDetailStore.ts'),
+  import('../src/stores/useDialogStockDetailStore.ts'),
   import('../src/stores/useStockListStore.ts'),
 ])
 
@@ -98,11 +100,11 @@ const assertFrameSize = (frame: string, columns: number, rows: number) => {
 
 const resetStores = () => {
   useStockAddStore.setState(useStockAddStore.getInitialState(), true)
-  useMenuStore.setState(useMenuStore.getInitialState(), true)
-  useStockRemoveStore.setState(useStockRemoveStore.getInitialState(), true)
+  useDialogMenuStore.setState(useDialogMenuStore.getInitialState(), true)
+  useDialogRemoveConfirmStore.setState(useDialogRemoveConfirmStore.getInitialState(), true)
   useRouterStore.setState(useRouterStore.getInitialState(), true)
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
-  useStockDetailStore.setState(useStockDetailStore.getInitialState(), true)
+  useDialogStockDetailStore.setState(useDialogStockDetailStore.getInitialState(), true)
   useStockListStore.setState(useStockListStore.getInitialState(), true)
 }
 
@@ -155,7 +157,9 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
   })
   useStockRemoveStore.setState({
     loadEntries: async () => {
-      useStockRemoveStore.setState({ step: { type: 'error', message: '测试自选股为空' } })
+      useStockRemoveStore.setState({
+        entries: [{ code: 'sh600000', name: '删除测试股', addedAt: '2026-08-20T00:00:00.000Z' }],
+      })
     },
   })
 
@@ -189,7 +193,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
     useRouterStore.setState({ screen: 'stock-remove' })
     const removeFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
     expect(plain(removeFrame)).not.toMatch(/15:00 \(5000ms\)/)
-    expect(plain(removeFrame)).toMatch(/测试自选股为空/)
+    expect(plain(removeFrame)).toMatch(/删除测试股/)
     assertFrameSize(removeFrame, columns, rows)
 
     after = output.frames.length
@@ -198,13 +202,143 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
     expect(brightFrame).not.toContain('\u001B[2m')
 
     after = output.frames.length
-    useMenuStore.setState({ open: true })
+    useDialogMenuStore.setState({ open: true })
     const dimmedFrame = await waitForFrame(output, after, (candidate) => {
       const text = plain(candidate)
       return text.includes('添加自选股') && text.includes('自选股票看板') && candidate.includes('\u001B[2m')
     })
     expect(plain(dimmedFrame)).toMatch(/菜单/)
     assertFrameSize(dimmedFrame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async () => {
+  const columns = stockListColumnsWidth() + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockRemoveStore.setState({
+    loadEntries: async () => {
+      useStockRemoveStore.setState({
+        entries: [
+          { code: 'sh600000', name: '浦发银行', addedAt: '2026-08-20T00:00:00.000Z' },
+          { code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:00.000Z' },
+        ],
+      })
+    },
+  })
+
+  const instance = render(createElement(App), {
+    stdout: output as unknown as NodeJS.WriteStream,
+    stdin: input as unknown as NodeJS.ReadStream,
+    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
+    debug: true,
+    interactive: false,
+    patchConsole: false,
+  })
+
+  try {
+    let after = output.frames.length
+    useRouterStore.setState({ screen: 'stock-remove' })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('浦发银行'))
+
+    const dialogStore = useDialogRemoveConfirmStore
+    const targets = [
+      { code: 'sh600000', name: '浦发银行', addedAt: '2026-08-20T00:00:00.000Z' },
+      { code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:00.000Z' },
+    ]
+
+    // confirm 阶段 esc 取消: 弹窗关闭并重置网格勾选
+    dialogStore.getState().open(targets)
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
+    const token = useStockRemoveStore.getState().resetToken
+    input.write('')
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确定删除选中的'))
+    expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
+    expect(useStockRemoveStore.getState().resetToken).toBe(token + 1)
+
+    // removing 阶段 esc 被忽略
+    dialogStore.setState({ step: { type: 'removing' }, targets })
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('正在删除'))
+    input.write('')
+    await delay(100)
+    expect(dialogStore.getState().step.type).toBe('removing')
+
+    // error 阶段 esc 关闭
+    dialogStore.setState({ step: { type: 'error', message: '删除失败: 锁超时' }, targets })
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除失败'))
+    input.write('')
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除失败'))
+    expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
+
+    // done 阶段 esc 关闭
+    dialogStore.setState({ step: { type: 'done', message: '已删除 1 个股票, 1 个条目已不在自选股中.' }, targets: [] })
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除完成'))
+    input.write('')
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除完成'))
+    expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的 esc 接线: 菜单开关切换', async () => {
+  const columns = stockListColumnsWidth() + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({
+        step: { type: 'table', rows: [] },
+      })
+    },
+  })
+
+  const instance = render(createElement(App), {
+    stdout: output as unknown as NodeJS.WriteStream,
+    stdin: input as unknown as NodeJS.ReadStream,
+    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
+    debug: true,
+    interactive: false,
+    patchConsole: false,
+  })
+
+  try {
+    let after = output.frames.length
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('自选股票看板'))
+
+    // esc 打开菜单: 背景变暗
+    after = output.frames.length
+    input.write('')
+    await waitForFrame(output, after, (candidate) => candidate.includes('[2m'))
+    expect(useDialogMenuStore.getState().open).toBe(true)
+
+    // esc 再次按下关闭菜单: 背景恢复
+    after = output.frames.length
+    input.write('')
+    await waitForFrame(output, after, (candidate) => !candidate.includes('[2m'))
+    expect(useDialogMenuStore.getState().open).toBe(false)
   } finally {
     instance.unmount()
     await instance.waitUntilExit()

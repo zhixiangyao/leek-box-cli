@@ -2,7 +2,7 @@ import { useApp, useInput } from 'ink'
 import { useState } from 'react'
 
 import { SCREEN_REGISTRY, type Screen } from '../../../lib/registry.ts'
-import { useMenuStore } from '../../../stores/useMenuStore.ts'
+import { useDialogMenuStore } from '../../../stores/useDialogMenuStore.ts'
 import { useRouterStore } from '../../../stores/useRouterStore.ts'
 
 type MenuItem = { label: string; screen: Screen | undefined }
@@ -19,7 +19,7 @@ const MENU_WIDTH = 45
 
 export function useDialogMenu() {
   const goTo = useRouterStore((state) => state.goTo)
-  const closeMenu = useMenuStore((state) => state.close)
+  const closeMenu = useDialogMenuStore((state) => state.close)
   const { exit } = useApp()
   const [highlight, setHighlight] = useState(0)
 

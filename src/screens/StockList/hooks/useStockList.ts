@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react'
 
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
+import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
-import { useStockDetailStore } from '../../../stores/useStockDetailStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
 import { visibleWindow } from '../lib.ts'
 
@@ -16,7 +16,7 @@ export function useStockList() {
   const scrollOffset = useStockListStore((state) => state.scrollOffset)
   const pollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
   const moveSelection = useStockListStore((state) => state.moveSelection)
-  const overlayOpen = useOverlayOpen()
+  const { overlayOpen } = useOverlayOpen()
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
   const window = step.type === 'table' ? visibleWindow(step.rows.length, scrollOffset, visible) : { start: 0, end: 0 }
 
@@ -39,7 +39,7 @@ export function useStockList() {
         const current = useStockListStore.getState()
         if (current.step.type !== 'table' || !current.selectedCode) return
         const row = current.step.rows.find((item) => item.code === current.selectedCode)
-        if (row) useStockDetailStore.getState().open(row.code, row.name)
+        if (row) useDialogStockDetailStore.getState().open(row.code, row.name)
       } else if (input === 'r') {
         refresh()
       }
