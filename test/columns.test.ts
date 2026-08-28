@@ -1,6 +1,5 @@
-import { expect, test } from 'vitest'
-
 import stringWidth from 'string-width'
+import { expect, test } from 'vitest'
 
 import type { Quote } from '../src/api/types.ts'
 import { COLUMNS_BY_KEY, headerRow, missingRow, quoteRow } from '../src/lib/columns.ts'

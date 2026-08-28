@@ -78,9 +78,7 @@ test('parseHistoricalResponse 解析复权 K 线并过滤非法行', () => {
     'sh600000',
   )
 
-  expect(points).toStrictEqual([
-    { date: '2026-08-18', open: 10, close: 10.2, high: 10.3, low: 9.9, volume: 12_345 },
-  ])
+  expect(points).toStrictEqual([{ date: '2026-08-18', open: 10, close: 10.2, high: 10.3, low: 9.9, volume: 12_345 }])
 })
 
 test('parseHistoricalResponse 在复权数据为空时回退到原始粒度数据', () => {
