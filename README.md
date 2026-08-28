@@ -10,34 +10,58 @@
 
 ### Stock Watchlist
 
-![Stock watchlist dashboard](scrennshots/stock-list.png)
+<p align="center">
+  <img src="scrennshots/stock-list.png" alt="Stock watchlist dashboard" width="100%">
+</p>
 
-### Menu
+### Menu & Settings
 
-![Menu dialog](scrennshots/dialog-menu.png)
+<table>
+  <tr>
+    <td align="center" width="50%"><strong>Menu</strong></td>
+    <td align="center" width="50%"><strong>Settings</strong></td>
+  </tr>
+  <tr>
+    <td><img src="scrennshots/dialog-menu.png" alt="Menu dialog"></td>
+    <td><img src="scrennshots/settings.png" alt="Settings screen"></td>
+  </tr>
+</table>
+
+### Manage Watchlist
+
+<table>
+  <tr>
+    <td align="center" width="50%"><strong>Add Stock</strong></td>
+    <td align="center" width="50%"><strong>Remove Stock</strong></td>
+  </tr>
+  <tr>
+    <td><img src="scrennshots/stock-add.png" alt="Add a stock to the watchlist"></td>
+    <td><img src="scrennshots/stock-remove.png" alt="Remove a stock from the watchlist"></td>
+  </tr>
+</table>
 
 ### Stock Details
 
 <table>
   <tr>
-    <td align="center"><strong>Intraday</strong></td>
-    <td align="center"><strong>Five-day</strong></td>
+    <td align="center" width="50%"><strong>Intraday</strong></td>
+    <td align="center" width="50%"><strong>Five-day</strong></td>
   </tr>
   <tr>
     <td><img src="scrennshots/dialog-stock-detail-intraday.png" alt="Intraday stock chart"></td>
     <td><img src="scrennshots/dialog-stock-detail-five-day.png" alt="Five-day stock chart"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Daily</strong></td>
-    <td align="center"><strong>Weekly</strong></td>
+    <td align="center" width="50%"><strong>Daily</strong></td>
+    <td align="center" width="50%"><strong>Weekly</strong></td>
   </tr>
   <tr>
     <td><img src="scrennshots/dialog-stock-detail-day.png" alt="Daily stock chart"></td>
     <td><img src="scrennshots/dialog-stock-detail-week.png" alt="Weekly stock chart"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Monthly</strong></td>
-    <td align="center"><strong>Yearly</strong></td>
+    <td align="center" width="50%"><strong>Monthly</strong></td>
+    <td align="center" width="50%"><strong>Yearly</strong></td>
   </tr>
   <tr>
     <td><img src="scrennshots/dialog-stock-detail-month.png" alt="Monthly stock chart"></td>
