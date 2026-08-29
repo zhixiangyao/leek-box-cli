@@ -1,6 +1,6 @@
 {
   "name": "leek-box-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "韭菜盒子, 终端股票自选股看板, 基于 Ink 构建的交互式 CLI 工具",
   "keywords": [
     "a股",
