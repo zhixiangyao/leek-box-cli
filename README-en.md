@@ -4,7 +4,15 @@
 
 # leek-box-cli(韭菜盒子)
 
-> An interactive terminal stock watchlist dashboard built with [Ink](https://github.com/vadimdemedes/ink).
+> An interactive terminal stock watchlist dashboard built with [Ink](https://github.com/vadimdemedes/ink). Works on Linux, macOS, and Windows.
+
+[![npm version](https://img.shields.io/npm/v/leek-box-cli)](https://www.npmjs.com/package/leek-box-cli)
+[![Downloads per Month](https://img.shields.io/npm/dm/leek-box-cli)](https://npm-stat.com/charts.html?package=leek-box-cli)
+[![Downloads per Year](https://img.shields.io/npm/dy/leek-box-cli)](https://npm-stat.com/charts.html?package=leek-box-cli)
+[![GitHub stars](https://img.shields.io/github/stars/zhixiangyao/leek-box-cli)](https://github.com/zhixiangyao/leek-box-cli)
+[![Node.js](https://img.shields.io/node/v/leek-box-cli)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/github/package-json/packageManager/zhixiangyao/leek-box-cli)](https://pnpm.io/)
+[![License: MIT](https://img.shields.io/github/license/zhixiangyao/leek-box-cli)](https://github.com/zhixiangyao/leek-box-cli)
 
 ## Screenshots
 
