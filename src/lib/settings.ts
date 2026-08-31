@@ -15,6 +15,7 @@ import {
   type TrendColorMode,
   THEME_PRESET_NAMES,
 } from '../stores/useSettingsStore.ts'
+import { isWindows } from './env.ts'
 
 export type StockEntry = {
   /** 股票代码 */
@@ -204,7 +205,7 @@ const configDirectory = () => {
   const explicitConfigHome = process.env['XDG_CONFIG_HOME']
   if (explicitConfigHome) return join(explicitConfigHome, 'leek-box-cli')
   // Windows 使用 %APPDATA% (Roaming), 缺失时回退到用户目录下的 .config.
-  if (process.platform === 'win32') {
+  if (isWindows) {
     const appData = process.env['APPDATA']
     if (appData) return join(appData, 'leek-box-cli')
   }
