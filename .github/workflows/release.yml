@@ -64,7 +64,7 @@ jobs:
         run: pnpm build
 
       - name: Smoke test build
-        run: node dist/cli.mjs --version
+        run: node dist/main.mjs --version
 
       - name: Package release assets
         shell: bash
@@ -75,7 +75,7 @@ jobs:
           script="leek-box-cli-${asset_tag}.mjs"
 
           mkdir -p release
-          cp dist/cli.mjs "release/${script}"
+          cp dist/main.mjs "release/${script}"
           (
             cd release
             sha256sum "${script}" > SHA256SUMS

@@ -160,6 +160,7 @@ leek-box-cli               # Stock watchlist dashboard
 leek-box-cli stock-list    # Same as above
 leek-box-cli stock-add     # Add a stock to the watchlist
 leek-box-cli stock-remove  # Remove a stock from the watchlist
+leek-box-cli settings      # Configure theme and request parameters
 leek-box-cli -v            # Show version information
 leek-box-cli -h            # Show help
 ```
@@ -203,7 +204,7 @@ The application reloads the file every time it refreshes the dashboard, so valid
 | Command           | Description                              |
 | ----------------- | ---------------------------------------- |
 | `pnpm dev`        | Run the source code with tsx             |
-| `pnpm build`      | Build `dist/cli.mjs` with Vite           |
+| `pnpm build`      | Build `dist/main.mjs` with Vite          |
 | `pnpm preview`    | Run the build output                     |
 | `pnpm mock`       | Seed sample watchlist stocks (`--reset`) |
 | `pnpm test`       | Run tests with Vitest                    |

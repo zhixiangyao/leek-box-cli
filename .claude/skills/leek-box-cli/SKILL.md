@@ -19,14 +19,17 @@ description: leek-box-cli 项目架构, 开发规范和真实实现约束. 当�
 ## 目录和职责
 
 ```text
-src/cli.tsx
-  meow 参数解析, 初始路由, Ink render 和 settings persistence start/stop
+src/main.tsx
+  初始路由, Ink render 和 settings persistence start/stop
 
 src/app.tsx
   全局 esc/q 输入, 当前 screen 装配, 三个 Dialog 浮层的绘制顺序
 
 src/lib/registry.ts
   页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单
+
+src/lib/meow.ts
+  meow 参数解析, 从 registry 生成 help 和 -h 处理
 
 src/screens/<Feature>/index.tsx
   页面渲染, 只消费对应 feature hook 返回的状态和视图模型
@@ -63,16 +66,16 @@ test/*.test.ts
 
 ```text
 screens/components -> hooks/stores -> api/lib
-cli -> registry/settingsPersistence -> settings/store
+main -> registry/settingsPersistence -> settings/store
 ```
 
 中性组件不得导入具体 screen. React 生命周期, `useInput`, Ink ref 和布局测量不得进入 store 或 `src/lib`.
 
 ## CLI 启动和退出
 
-`src/cli.tsx` 只保留以下职责:
+`src/main.tsx` 只保留以下职责:
 
-1. 使用 meow 解析 command 和 flags.
+1. 从 `src/lib/meow.ts` 读取 command 和 flags.
 2. 调用 `startSettingsPersistence()`.
 3. 在 `render()` 前写入 router 初始 screen.
 4. 使用 alternate screen 启动 Ink.

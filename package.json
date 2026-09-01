@@ -22,10 +22,10 @@
     "url": "git+https://github.com/zhixiangyao/leek-box-cli.git"
   },
   "bin": {
-    "leek-box-cli": "dist/cli.mjs"
+    "leek-box-cli": "dist/main.mjs"
   },
   "files": [
-    "dist/cli.mjs"
+    "dist/main.mjs"
   ],
   "type": "module",
   "publishConfig": {
@@ -33,9 +33,9 @@
   },
   "scripts": {
     "build": "vite build",
-    "dev": "tsx src/cli.tsx",
+    "dev": "tsx src/main.tsx",
     "mock": "tsx scripts/mock.ts",
-    "preview": "node dist/cli.mjs",
+    "preview": "node dist/main.mjs",
     "------------- TOOLS -------------": "",
     "release": "tsx scripts/release.tsx",
     "test": "vitest run --reporter=verbose",

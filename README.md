@@ -160,6 +160,7 @@ leek-box-cli               # 自选股票看板
 leek-box-cli stock-list    # 同上
 leek-box-cli stock-add     # 添加自选股
 leek-box-cli stock-remove  # 删除自选股
+leek-box-cli settings      # 设置主题与请求参数
 leek-box-cli -v            # 查看版本
 leek-box-cli -h            # 查看帮助
 ```
@@ -200,19 +201,19 @@ Windows 兼容说明: 读取配置时会自动去除记事本等编辑器写入�
 
 ## 开发脚本
 
-| 命令              | 说明                          |
-| ----------------- | ----------------------------- |
-| `pnpm dev`        | 使用 tsx 运行源码             |
-| `pnpm build`      | 使用 Vite 构建 `dist/cli.mjs` |
-| `pnpm preview`    | 运行构建产物                  |
-| `pnpm mock`       | 写入示例自选股, --reset 覆盖  |
-| `pnpm test`       | 使用 Vitest 运行测试          |
-| `pnpm typecheck`  | TypeScript 类型检查           |
-| `pnpm lint`       | Lint 并自动修复               |
-| `pnpm lint:check` | 仅检查 Lint                   |
-| `pnpm fmt`        | 格式化代码                    |
-| `pnpm fmt:check`  | 检查格式                      |
-| `pnpm release`    | 交互式发布 (递增版本 + tag)   |
+| 命令              | 说明                           |
+| ----------------- | ------------------------------ |
+| `pnpm dev`        | 使用 tsx 运行源码              |
+| `pnpm build`      | 使用 Vite 构建 `dist/main.mjs` |
+| `pnpm preview`    | 运行构建产物                   |
+| `pnpm mock`       | 写入示例自选股, --reset 覆盖   |
+| `pnpm test`       | 使用 Vitest 运行测试           |
+| `pnpm typecheck`  | TypeScript 类型检查            |
+| `pnpm lint`       | Lint 并自动修复                |
+| `pnpm lint:check` | 仅检查 Lint                    |
+| `pnpm fmt`        | 格式化代码                     |
+| `pnpm fmt:check`  | 检查格式                       |
+| `pnpm release`    | 交互式发布 (递增版本 + tag)    |
 
 ## 发布
 

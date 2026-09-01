@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 
 const outDir = 'dist'
-const outFileName = 'cli.mjs'
+const outFileName = 'main.mjs'
 
 export default defineConfig({
   resolve: {
@@ -18,7 +18,7 @@ export default defineConfig({
      */
     conditions: ['module', 'node', 'development|production'],
   },
-  input: resolve(import.meta.dirname, 'src/cli.tsx'),
+  input: resolve(import.meta.dirname, 'src/main.tsx'),
   build: {
     outDir,
     reportCompressedSize: false,
