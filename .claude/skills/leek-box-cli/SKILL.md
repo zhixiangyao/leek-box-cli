@@ -193,6 +193,7 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 ```ts
 type Settings = {
   themePreset: ThemePreset
+  trendColorMode: TrendColorMode
   borderStyle: BorderStyle
   requestTimeoutMs: number
   minimumRequestDurationMs: number
@@ -206,6 +207,7 @@ type Settings = {
 
 ```text
 themePreset                 classic
+trendColorMode              red-up
 borderStyle                 round
 requestTimeoutMs            8000
 minimumRequestDurationMs    0
@@ -220,6 +222,7 @@ klinePollIntervalMs         300000
 - `ocean`
 - `forest`
 - `sunset`
+- `gray`
 
 Border style:
 
@@ -282,6 +285,7 @@ Windows 使用 `%APPDATA%` (Roaming):
 {
   "theme": {
     "preset": "classic",
+    "trendColorMode": "red-up",
     "borderStyle": "round"
   },
   "request": {
@@ -303,8 +307,8 @@ Windows 使用 `%APPDATA%` (Roaming):
 
 规则:
 
-- 文件不存在时使用默认 settings 和空 stocks 创建.
-- 文件存在时严格校验 theme, request 和 stocks.
+- 文件不存在时使用默认 settings 和预置默认自选股 (DEFAULT_STOCKS: 富通微电, 长电科技, 长鑫科技) 创建, addedAt 为创建时间.
+- 文件存在时严格校验 theme, request 和 stocks; theme.trendColorMode 缺失时按默认 red-up 接受.
 - 读取时先去除 UTF-8 BOM (`stripBom`), 兼容 Windows 记事本或 PowerShell 重定向写入的配置.
 - 损坏文件直接报错, 不静默丢弃字段, 不 fallback 到旧格式.
 - `StockEntry` 为 `{code, name, addedAt}`.
@@ -413,7 +417,7 @@ TextInput 和全局快捷键没有事件冒泡停止机制. 新增自由文本�
 
 ## 行情解析和显示
 
-A 股颜色为涨红, 跌绿, 平灰. 停牌显示 `--` 和 `停牌`. 接口缺失显示 `--` 和 `无数据`.
+A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 停牌显示 `--` 和 `停牌`. 接口缺失显示 `--` 和 `无数据`.
 
 `src/api/parsers.ts` 是纯解析层:
 
