@@ -16,7 +16,12 @@ const main = async (command: string | undefined) => {
 
   try {
     useRouterStore.setState({ screen: toScreen(command) })
-    const instance = render(<App />, { alternateScreen: true, concurrent: true })
+    const instance = render(<App />, {
+      alternateScreen: true,
+      concurrent: true,
+      incrementalRendering: true,
+      maxFps: 45,
+    })
     await instance.waitUntilExit()
   } finally {
     const persisted = await settingsPersistence.stop()

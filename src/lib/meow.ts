@@ -2,7 +2,9 @@ import meow from 'meow'
 
 import { SCREEN_LIST, SCREEN_REGISTRY } from './registry.ts'
 
-const commandHelp = Object.entries(SCREEN_REGISTRY).map(([command, definition]) => `  ${command.padEnd(13)}${definition.description}`).join('\n')
+const commandHelp = Object.entries(SCREEN_REGISTRY)
+  .map(([command, definition]) => `  ${command.padEnd(13)}${definition.description}`)
+  .join('\n')
 
 const helpMessage = `用法
   $ leek-box-cli [command]
