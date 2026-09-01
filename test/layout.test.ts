@@ -12,13 +12,13 @@ const [
   { default: App },
   { default: Card },
   { MIN_TERMINAL_ROWS },
-  { stockListColumnsWidth },
+  { STOCK_LIST_COLUMNS, tableWidth },
 ] = await Promise.all([
   import('ink'),
   import('../src/app.tsx'),
   import('../src/components/Card.tsx'),
-  import('../src/lib/layout.ts'),
-  import('../src/lib/stockTable.ts'),
+  import('../src/components/WindowSizeGuard.tsx'),
+  import('../src/lib/quoteTable.ts'),
 ])
 
 const [
@@ -143,7 +143,7 @@ test('Card fullScreen 使用终端尺寸而非显式尺寸', async () => {
 })
 
 test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 chrome 正确', async () => {
-  const columns = stockListColumnsWidth() + 10
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
 
@@ -218,7 +218,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
 })
 
 test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async () => {
-  const columns = stockListColumnsWidth() + 10
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
   const input = createInput()
@@ -301,7 +301,7 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
 })
 
 test('App 的 esc 接线: 菜单开关切换', async () => {
-  const columns = stockListColumnsWidth() + 10
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
   const input = createInput()

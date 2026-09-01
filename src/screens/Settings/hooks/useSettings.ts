@@ -2,15 +2,9 @@ import { useInput } from 'ink'
 import { useState } from 'react'
 
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
-import {
-  BORDER_STYLES,
-  type NumericSettingKey,
-  TREND_COLOR_MODE_LABELS,
-  TREND_COLOR_MODES,
-  THEME_PRESET_NAMES,
-  THEME_PRESETS,
-  useSettingsStore,
-} from '../../../stores/useSettingsStore.ts'
+import { TREND_COLOR_MODE_LABELS, TREND_COLOR_MODES } from '../../../lib/format.ts'
+import { BORDER_STYLES, type NumericSettingKey, THEME_PRESET_NAMES, THEME_PRESETS } from '../../../settings/schema.ts'
+import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 
 export type SettingRow = {
   label: SettingItem['label']

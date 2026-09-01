@@ -1,5 +1,6 @@
-import { settingsEqual, settingsPatch, type Settings, useSettingsStore } from '../stores/useSettingsStore.ts'
-import { initializeSettings, patchSettings, settingsFromDocument } from './settings.ts'
+import { settingsEqual, settingsPatch, useSettingsStore } from '../stores/useSettingsStore.ts'
+import { initializeSettings, patchSettings } from './file.ts'
+import { type Settings, settingsFromDocument } from './schema.ts'
 
 const SAVE_DEBOUNCE_MS = 100
 

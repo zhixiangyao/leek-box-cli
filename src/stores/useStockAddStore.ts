@@ -2,8 +2,9 @@ import { create } from 'zustand'
 
 import { fetchQuotes, normalizeCode, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
-import { stocksAdd, type StockEntry } from '../lib/settings.ts'
-import { parseYn, YN_ERROR_MESSAGE } from '../lib/yn.ts'
+import { parseYesNo, YES_NO_ERROR_MESSAGE } from '../lib/yesNo.ts'
+import { stocksAdd } from '../settings/file.ts'
+import { type StockEntry } from '../settings/schema.ts'
 
 type StockCandidate = Pick<StockEntry, 'code' | 'name'> & { current: number }
 
@@ -129,10 +130,10 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
       },
 
       handleConfirm: async (answer: string) => {
-        const confirmation = parseYn(answer)
+        const confirmation = parseYesNo(answer)
         if (!confirmation) {
           set((state) => ({
-            confirmInput: { error: YN_ERROR_MESSAGE, resetToken: state.confirmInput.resetToken + 1 },
+            confirmInput: { error: YES_NO_ERROR_MESSAGE, resetToken: state.confirmInput.resetToken + 1 },
           }))
           return
         }

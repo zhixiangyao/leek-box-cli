@@ -1,13 +1,7 @@
 import { beforeEach, expect, test } from 'vitest'
 
-import {
-  DEFAULT_SETTINGS,
-  type Settings,
-  settingsEqual,
-  settingsPatch,
-  settingsSnapshot,
-  useSettingsStore,
-} from '../src/stores/useSettingsStore.ts'
+import { DEFAULT_SETTINGS, type Settings } from '../src/settings/schema.ts'
+import { settingsEqual, settingsPatch, settingsSnapshot, useSettingsStore } from '../src/stores/useSettingsStore.ts'
 
 beforeEach(() => {
   useSettingsStore.getState().resetSettings()

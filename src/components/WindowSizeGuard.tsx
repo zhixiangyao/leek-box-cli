@@ -1,12 +1,14 @@
 import { Box, useWindowSize } from 'ink'
 import type { ReactNode } from 'react'
 
-import { MIN_TERMINAL_ROWS } from '../lib/layout.ts'
-import { stockListColumnsWidth } from '../lib/stockTable.ts'
+import { STOCK_LIST_COLUMNS, tableWidth } from '../lib/quoteTable.ts'
 import Text from './Text.tsx'
 
+/** 完整看板所需的最小终端高度 */
+export const MIN_TERMINAL_ROWS = 26
+
 /** 看板表格占宽: 内容 + 边框 2 + padding 2 */
-const MIN_COLUMNS = stockListColumnsWidth() + 4
+const MIN_COLUMNS = tableWidth(STOCK_LIST_COLUMNS) + 4
 
 type Props = {
   children: ReactNode

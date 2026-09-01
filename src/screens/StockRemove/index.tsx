@@ -6,7 +6,7 @@ import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
-import type { StockEntry } from '../../lib/settings.ts'
+import type { StockEntry } from '../../settings/schema.ts'
 import { useStockRemove } from './hooks/useStockRemove.ts'
 
 type Props = {

@@ -2,7 +2,15 @@ import stringWidth from 'string-width'
 import { expect, test } from 'vitest'
 
 import type { Quote } from '../src/api/types.ts'
-import { COLUMNS_BY_KEY, headerRow, missingRow, quoteRow } from '../src/lib/columns.ts'
+import {
+  COLUMNS_BY_KEY,
+  headerRow,
+  missingRow,
+  quoteRow,
+  STOCK_DETAIL_COLUMNS,
+  STOCK_LIST_COLUMNS,
+  tableWidth,
+} from '../src/lib/quoteTable.ts'
 
 const quote = (patch: Partial<Quote> = {}): Quote => ({
   code: 'sh600000',
@@ -72,4 +80,29 @@ test('missingRow 显示代码/名称并对数据列填充占位符', () => {
   expect(name!.text.startsWith('浦发银行')).toBe(true)
   expect(percent!.text.startsWith('无数据')).toBe(true)
   expect([code, name, percent].every((cell) => cell!.color === 'gray')).toBe(true)
+})
+
+test('列表列以名称/代码开头且不含仅详情使用的列', () => {
+  const keys = STOCK_LIST_COLUMNS.map((column) => column.key)
+  expect(keys.slice(0, 2)).toStrictEqual(['name', 'code'])
+  expect(keys).not.toContain('prevClose')
+  expect(keys).not.toContain('amplitude')
+  expect(keys).not.toContain('volumeRatio')
+})
+
+test('详情列排除标题行已展示的现价与涨跌额', () => {
+  const keys = STOCK_DETAIL_COLUMNS.map((column) => column.key)
+  expect(keys).not.toContain('current')
+  expect(keys).not.toContain('change')
+  expect(keys).not.toContain('changePercent')
+  expect(keys).toContain('prevClose')
+  expect(keys).toContain('amplitude')
+})
+
+test('tableWidth = 各列宽之和 + 列间分隔', () => {
+  const listSum = STOCK_LIST_COLUMNS.reduce((sum, column) => sum + column.width, 0)
+  expect(tableWidth(STOCK_LIST_COLUMNS)).toBe(listSum + STOCK_LIST_COLUMNS.length - 1)
+
+  const detailSum = STOCK_DETAIL_COLUMNS.reduce((sum, column) => sum + column.width, 0)
+  expect(tableWidth(STOCK_DETAIL_COLUMNS)).toBe(detailSum + STOCK_DETAIL_COLUMNS.length - 1)
 })

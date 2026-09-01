@@ -1,7 +1,7 @@
 import { useApp, useInput } from 'ink'
 import { useState } from 'react'
 
-import { SCREEN_REGISTRY, type Screen } from '../../../lib/registry.ts'
+import { SCREEN_REGISTRY, type Screen } from '../../../cli/registry.ts'
 import { useDialogMenuStore } from '../../../stores/useDialogMenuStore.ts'
 import { useRouterStore } from '../../../stores/useRouterStore.ts'
 

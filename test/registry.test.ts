@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-import { isScreen, SCREEN_LIST, SCREEN_REGISTRY, toScreen } from '../src/lib/registry.ts'
+import { isScreen, SCREEN_LIST, SCREEN_REGISTRY, toScreen } from '../src/cli/registry.ts'
 
 test('SCREEN_LIST 与注册表键保持一致', () => {
   expect(SCREEN_LIST).toStrictEqual(['stock-list', 'stock-add', 'stock-remove', 'settings'])

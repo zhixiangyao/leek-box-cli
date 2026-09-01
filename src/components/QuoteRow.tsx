@@ -1,4 +1,4 @@
-import type { Row } from '../lib/columns.ts'
+import type { Row } from '../lib/quoteTable.ts'
 import Text from './Text.tsx'
 
 type Props = {

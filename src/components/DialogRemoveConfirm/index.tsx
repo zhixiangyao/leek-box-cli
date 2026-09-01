@@ -2,8 +2,7 @@ import { useWindowSize } from 'ink'
 import stringWidth from 'string-width'
 
 import { useTheme } from '../../hooks/useTheme.ts'
-import { DIALOG_CHROME } from '../../lib/layout.ts'
-import Dialog from '../Dialog.tsx'
+import Dialog, { DIALOG_CHROME } from '../Dialog.tsx'
 import Text from '../Text.tsx'
 import { useDialogRemoveConfirm } from './hooks/useDialogRemoveConfirm.ts'
 

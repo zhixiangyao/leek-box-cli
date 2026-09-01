@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 
 import { errorMessage } from '../lib/error.ts'
-import { loadStocks, type StockEntry } from '../lib/settings.ts'
+import { loadStocks } from '../settings/file.ts'
+import { type StockEntry } from '../settings/schema.ts'
 
 type StockRemoveState = {
   /** 已加载的自选股列表, 交给网格渲染 */

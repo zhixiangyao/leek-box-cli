@@ -25,10 +25,10 @@ src/main.tsx
 src/app.tsx
   全局 esc/q 输入, 当前 screen 装配, 三个 Dialog 浮层的绘制顺序
 
-src/lib/registry.ts
+src/cli/registry.ts
   页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单
 
-src/lib/meow.ts
+src/cli/meow.ts
   meow 参数解析, 从 registry 生成 help 和 -h 处理
 
 src/screens/<Feature>/index.tsx
@@ -38,7 +38,7 @@ src/screens/<Feature>/hooks/
   Zustand 订阅, 页面生命周期, Ink 输入, 测量和轮询接线
 
 src/components/
-  Card, Dialog, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm)
+  Card, Dialog, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm). Dialog 导出 DIALOG_CHROME, WindowSizeGuard 持有 MIN_TERMINAL_ROWS 等终端尺寸常量
 
 src/hooks/
   usePolling, useOverlayOpen, useClock, useTheme
@@ -52,11 +52,20 @@ src/api/index.ts
 src/api/parsers.ts
   腾讯行情响应的纯解析器
 
-src/lib/settings.ts
-  settings.json schema, 校验, 锁, 原子写入和 stocks 操作
+src/settings/schema.ts
+  settings.json schema, 校验和文档转换; 外观常量 (border/theme) 与 Settings 类型也定义于此, store 从 schema 导入常量
 
-src/lib/settingsPersistence.ts
+src/settings/file.ts
+  settings.json 路径, 原子写入, stocks 增删改操作
+
+src/settings/lock.ts
+  跨进程文件锁 (withFileLock), 通用 filePath 参数
+
+src/settings/persistence.ts
   settings 初始化, store hydration, debounce patch 保存和退出 flush
+
+src/lib/
+  纯工具: format.ts (格式化与涨跌色), error.ts, yesNo.ts, quoteTable.ts (行情表列定义与行渲染)
 
 test/*.test.ts
   parser, store, settings persistence 和终端布局测试
@@ -65,17 +74,17 @@ test/*.test.ts
 依赖方向保持为:
 
 ```text
-screens/components -> hooks/stores -> api/lib
-main -> registry/settingsPersistence -> settings/store
+screens/components -> hooks/stores -> settings/file -> settings/schema -> lib
+main -> cli/registry + settings/persistence -> stores -> settings/file
 ```
 
-中性组件不得导入具体 screen. React 生命周期, `useInput`, Ink ref 和布局测量不得进入 store 或 `src/lib`.
+中性组件不得导入具体 screen. React 生命周期, `useInput`, Ink ref 和布局测量不得进入 store, `src/lib` 或 `src/settings`.
 
 ## CLI 启动和退出
 
 `src/main.tsx` 只保留以下职责:
 
-1. 从 `src/lib/meow.ts` 读取 command 和 flags.
+1. 从 `src/cli/meow.ts` 的 `parseCli()` 读取 command 和 showHelp; showHelp 时打印 `cliHelpMessage` 并跳过应用启动.
 2. 调用 `startSettingsPersistence()`.
 3. 在 `render()` 前写入 router 初始 screen.
 4. 使用 alternate screen 启动 Ink.
@@ -98,7 +107,7 @@ await settingsPersistence.stop()
 
 ## 页面注册和路由
 
-`src/lib/registry.ts` 是页面元数据的唯一来源. 每项包含:
+`src/cli/registry.ts` 是页面元数据的唯一来源. 每项包含:
 
 - `Component`
 - `title`

@@ -1,6 +1,5 @@
 import type { ChartPeriod, ChartPoint, FiveDayPoint, HistoricalPoint, IntradayPoint } from '../../api/types.ts'
-import { trendColor, type TrendColor } from '../../lib/format.ts'
-import { DEFAULT_TREND_COLOR_MODE, type TrendColorMode } from '../../stores/useSettingsStore.ts'
+import { DEFAULT_TREND_COLOR_MODE, trendColor, type TrendColor, type TrendColorMode } from '../../lib/format.ts'
 
 /** 图表单元格: 字符 + 可选颜色, 行渲染时相邻同色合并 */
 export type ChartCell = { ch: string; color?: TrendColor }

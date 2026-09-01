@@ -2,7 +2,8 @@ import { create } from 'zustand'
 
 import { fetchQuotes, type Quote } from '../api/index.ts'
 import { errorMessage } from '../lib/error.ts'
-import { loadStocks, type StockEntry } from '../lib/settings.ts'
+import { loadStocks } from '../settings/file.ts'
+import { type StockEntry } from '../settings/schema.ts'
 
 export type StockRow =
   | { kind: 'quote'; code: string; name: string; quote: Quote }

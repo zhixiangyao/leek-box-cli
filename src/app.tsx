@@ -1,11 +1,11 @@
 import { useApp, useInput } from 'ink'
 
+import { SCREEN_REGISTRY } from './cli/registry.ts'
 import DialogMenu from './components/DialogMenu/index.tsx'
 import DialogRemoveConfirm from './components/DialogRemoveConfirm/index.tsx'
 import DialogStockDetail from './components/DialogStockDetail/index.tsx'
 import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from './hooks/useOverlayOpen.ts'
-import { SCREEN_REGISTRY } from './lib/registry.ts'
 import { useDialogMenuStore } from './stores/useDialogMenuStore.ts'
 import { isRemoveOverlayStep, useDialogRemoveConfirmStore } from './stores/useDialogRemoveConfirmStore.ts'
 import { useDialogStockDetailStore } from './stores/useDialogStockDetailStore.ts'

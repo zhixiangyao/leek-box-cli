@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { Screen } from '../lib/registry.ts'
+import type { Screen } from '../cli/registry.ts'
 
 type RouterState = {
   screen: Screen

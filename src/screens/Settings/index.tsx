@@ -4,7 +4,7 @@ import Card from '../../components/Card.tsx'
 import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useTheme } from '../../hooks/useTheme.ts'
-import { type ThemePalette } from '../../stores/useSettingsStore.ts'
+import { type ThemePalette } from '../../settings/schema.ts'
 import { type SettingRow, useSettings } from './hooks/useSettings.ts'
 
 type Props = {

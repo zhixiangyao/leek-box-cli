@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import { stocksAdd, loadStocks, replaceStocks, settingsPath } from '../src/lib/settings.ts'
+import { stocksAdd, loadStocks, replaceStocks, settingsPath } from '../src/settings/file.ts'
 
 const MOCK_STOCKS = [
   { code: 'sh600584', name: '长电科技' },

@@ -1,5 +1,3 @@
-import { DEFAULT_TREND_COLOR_MODE, type TrendColorMode } from '../stores/useSettingsStore.ts'
-
 /** 价格 -> '12.34'; 非正值 '--' */
 export const formatPrice = (value: number) => (value > 0 ? value.toFixed(2) : '--')
 
@@ -8,6 +6,17 @@ export const formatSigned = (value: number) => `${value > 0 ? '+' : ''}${value.t
 
 /** 涨跌幅 (带符号, %) -> '+1.23%' / '-0.45%' */
 export const formatPercent = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
+
+export const TREND_COLOR_MODES = ['red-up', 'green-up'] as const
+
+export type TrendColorMode = (typeof TREND_COLOR_MODES)[number]
+
+export const TREND_COLOR_MODE_LABELS: Record<TrendColorMode, string> = {
+  'red-up': '涨红跌绿',
+  'green-up': '涨绿跌红',
+}
+
+export const DEFAULT_TREND_COLOR_MODE: TrendColorMode = 'red-up'
 
 export type TrendColor = 'red' | 'green' | 'gray'
 

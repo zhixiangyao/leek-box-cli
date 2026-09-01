@@ -1,8 +1,8 @@
 import stringWidth from 'string-width'
 
 import type { Quote } from '../api/types.ts'
-import { DEFAULT_TREND_COLOR_MODE, type TrendColorMode } from '../stores/useSettingsStore.ts'
 import {
+  DEFAULT_TREND_COLOR_MODE,
   formatMarketCap,
   formatPercent,
   formatPrice,
@@ -12,9 +12,9 @@ import {
   formatTurnover,
   formatVolume,
   trendColor,
+  type TrendColor,
+  type TrendColorMode,
 } from './format.ts'
-
-type TextColor = 'red' | 'green' | 'gray'
 
 type ColumnKind = 'code' | 'name' | 'changePercent' | 'value'
 
@@ -24,11 +24,11 @@ export type Column = {
   title: string
   width: number
   render: (quote: Quote) => string
-  color?: (quote: Quote, trendColorMode: TrendColorMode) => TextColor
+  color?: (quote: Quote, trendColorMode: TrendColorMode) => TrendColor
   suspendedText?: string
 }
 
-export type Row = { text: string; color?: TextColor }[]
+export type Row = { text: string; color?: TrendColor }[]
 
 const cell = (text: string, column: Column) => text + ' '.repeat(Math.max(0, column.width - stringWidth(text)))
 
@@ -151,6 +151,51 @@ export const COLUMNS: readonly Column[] = [
 ]
 
 export const COLUMNS_BY_KEY = new Map(COLUMNS.map((column) => [column.key, column]))
+
+const pickColumns = (keys: readonly (keyof Quote)[]): Column[] =>
+  keys.map((key) => {
+    const column = COLUMNS_BY_KEY.get(key)
+    if (column === undefined) throw new Error(`未知行情列: ${key}`)
+    return column
+  })
+
+/** 列表 12 列: 显式 key 挑选 (昨收/振幅/量比仅详情面板用, 不占看板列宽) */
+const STOCK_LIST_KEYS: readonly (keyof Quote)[] = [
+  'name',
+  'code',
+  'current',
+  'changePercent',
+  'change',
+  'open',
+  'high',
+  'low',
+  'volume',
+  'turnover',
+  'turnoverRate',
+  'marketCap',
+]
+
+/** 详情 10 列: 显式 key 挑选 (现价/涨跌额已在弹窗标题行展示, 不重复) */
+const STOCK_DETAIL_KEYS: readonly (keyof Quote)[] = [
+  'open',
+  'prevClose',
+  'high',
+  'low',
+  'volume',
+  'turnover',
+  'turnoverRate',
+  'amplitude',
+  'volumeRatio',
+  'marketCap',
+]
+
+export const STOCK_LIST_COLUMNS = pickColumns(STOCK_LIST_KEYS)
+
+export const STOCK_DETAIL_COLUMNS = pickColumns(STOCK_DETAIL_KEYS)
+
+/** 表格总宽 = 各列宽之和 + 列间分隔 */
+export const tableWidth = (columns: readonly Column[]): number =>
+  columns.reduce((sum, column) => sum + column.width, 0) + (columns.length - 1)
 
 /** 表头行 */
 export const headerRow = (columns: readonly Column[]): Row =>

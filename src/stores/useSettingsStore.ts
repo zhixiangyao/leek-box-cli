@@ -1,119 +1,12 @@
-import { TextProps } from 'ink'
 import { create } from 'zustand'
 
-export const BORDER_STYLES = [
-  'single',
-  'double',
-  'round',
-  'bold',
-  'singleDouble',
-  'doubleSingle',
-  'classic',
-  'arrow',
-] as const
-
-export type BorderStyle = (typeof BORDER_STYLES)[number]
-
-export const TREND_COLOR_MODES = ['red-up', 'green-up'] as const
-
-export type TrendColorMode = (typeof TREND_COLOR_MODES)[number]
-
-export const TREND_COLOR_MODE_LABELS: Record<TrendColorMode, string> = {
-  'red-up': '涨红跌绿',
-  'green-up': '涨绿跌红',
-}
-
-export const DEFAULT_TREND_COLOR_MODE: TrendColorMode = 'red-up'
-
-export type Color = TextProps['color']
-
-export type ThemePreset = 'classic' | 'gray' | 'ocean' | 'forest' | 'sunset'
-
-export type ThemePalette = {
-  label: string
-  primary: Color
-  accent: Color
-  highlight: Color
-  foreground: Color
-}
-
-export const THEME_PRESETS = {
-  classic: {
-    label: '经典紫蓝',
-    primary: 'magenta',
-    accent: 'blue',
-    highlight: 'cyan',
-    foreground: 'white',
-  },
-  ocean: {
-    label: '海洋青蓝',
-    primary: 'cyan',
-    accent: 'blue',
-    highlight: 'cyan',
-    foreground: 'white',
-  },
-  forest: {
-    label: '森林绿',
-    primary: 'green',
-    accent: 'green',
-    highlight: 'green',
-    foreground: 'white',
-  },
-  sunset: {
-    label: '日落黄红',
-    primary: 'yellow',
-    accent: 'red',
-    highlight: 'yellow',
-    foreground: 'white',
-  },
-  gray: {
-    label: '低调灰',
-    primary: 'gray',
-    accent: 'gray',
-    highlight: 'gray',
-    foreground: 'white',
-  },
-} satisfies Record<ThemePreset, ThemePalette>
-
-export const THEME_PRESET_NAMES = Object.keys(THEME_PRESETS) as ThemePreset[]
-
-export const SETTING_LIMITS = {
-  requestTimeoutMs: { min: 1000, max: 60_000, step: 1000 },
-  minimumRequestDurationMs: { min: 0, max: 5000, step: 250 },
-  quotePollIntervalMs: { min: 1000, max: 60_000, step: 500 },
-  minuteChartPollIntervalMs: { min: 5000, max: 5 * 60_000, step: 5000 },
-  klinePollIntervalMs: { min: 30_000, max: 30 * 60_000, step: 30_000 },
-} as const
-
-export type NumericSettingKey = keyof typeof SETTING_LIMITS
-
-export type Settings = {
-  themePreset: ThemePreset
-  trendColorMode: TrendColorMode
-  borderStyle: BorderStyle
-  requestTimeoutMs: number
-  minimumRequestDurationMs: number
-  quotePollIntervalMs: number
-  minuteChartPollIntervalMs: number
-  klinePollIntervalMs: number
-}
+import { DEFAULT_SETTINGS, type NumericSettingKey, type Settings, SETTING_LIMITS } from '../settings/schema.ts'
 
 type SettingsState = Settings & {
   updateSettings: (patch: Partial<Settings>) => void
   adjustNumericSetting: (setting: NumericSettingKey, direction: 1 | -1) => void
   resetSettings: () => void
   hydrateSettings: (settings: Settings) => void
-}
-
-export const DEFAULT_SETTINGS: Settings = {
-  themePreset: 'classic',
-  trendColorMode: DEFAULT_TREND_COLOR_MODE,
-  borderStyle: 'round',
-  requestTimeoutMs: 8000,
-  minimumRequestDurationMs: 0,
-  quotePollIntervalMs: 5000,
-  minuteChartPollIntervalMs: 30_000,
-  klinePollIntervalMs: 5 * 60_000,
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(value)))

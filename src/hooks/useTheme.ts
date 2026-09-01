@@ -1,4 +1,4 @@
-import { THEME_PRESETS, type ThemePalette } from '../stores/useSettingsStore.ts'
+import { THEME_PRESETS, type ThemePalette } from '../settings/schema.ts'
 import { useSettingsStore } from '../stores/useSettingsStore.ts'
 
 export function useTheme(): ThemePalette {

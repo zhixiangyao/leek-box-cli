@@ -1,7 +1,7 @@
 import { Box } from 'ink'
 
 import type { ChartPeriod, ChartPoint } from '../../api/types.ts'
-import type { TrendColorMode } from '../../stores/useSettingsStore.ts'
+import type { TrendColorMode } from '../../lib/format.ts'
 import Text from '../Text.tsx'
 import { buildChartRows, type ChartCell } from './lib.ts'
 

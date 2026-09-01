@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 
 import { errorMessage } from '../lib/error.ts'
-import { stocksRemove, type StockEntry } from '../lib/settings.ts'
+import { stocksRemove } from '../settings/file.ts'
+import { type StockEntry } from '../settings/schema.ts'
 import { useStockRemoveStore } from './useStockRemoveStore.ts'
 
 export type DialogRemoveConfirmStep =

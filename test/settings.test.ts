@@ -6,14 +6,14 @@ import process from 'node:process'
 import { expect, test } from 'vitest'
 
 import {
-  loadSettingsDocument,
+  initializeSettings,
   loadStocks,
-  parseStocks,
   patchSettings,
   resetSettingsFile,
   settingsPath,
   stocksAdd,
-} from '../src/lib/settings.ts'
+} from '../src/settings/file.ts'
+import { parseStocks } from '../src/settings/schema.ts'
 
 const validStock = { code: 'sh600000', name: '浦发银行', addedAt: '2026-08-20T00:00:00.000Z' }
 
@@ -62,7 +62,7 @@ test('resetSettingsFile 覆盖已有设置为默认值', async () => {
 
     await resetSettingsFile()
 
-    const document = await loadSettingsDocument()
+    const document = await initializeSettings()
     expect(document.theme).toStrictEqual({ preset: 'classic', trendColorMode: 'red-up', borderStyle: 'round' })
     expect(document.request.timeoutMs).toBe(8000)
     expect(document.stocks.map((entry) => entry.code)).toStrictEqual(['sz002156', 'sh600584', 'sh688825'])
@@ -84,7 +84,7 @@ test('resetSettingsFile 修复损坏的设置文件', async () => {
 
     await resetSettingsFile()
 
-    const document = await loadSettingsDocument()
+    const document = await initializeSettings()
     expect(document.theme.preset).toBe('classic')
     expect(await loadStocks()).toHaveLength(3)
   } finally {
