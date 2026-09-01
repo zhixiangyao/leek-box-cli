@@ -19,7 +19,7 @@ export const SCREEN_REGISTRY = {
   ['stock-list']: {
     Component: StockList,
     title: '自选股票看板',
-    description: '自选股票看板 (默认, 自动刷新)',
+    description: '自选股票看板',
     hint: '菜单(esc)   刷新(r)   选择(↑/↓)   详情(enter)   退出(q)',
     menuLabel: '自选股票看板',
   },
