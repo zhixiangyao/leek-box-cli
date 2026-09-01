@@ -387,6 +387,14 @@ export async function initializeSettings(): Promise<SettingsDocument> {
 /** 加载完整设置文档 */
 export const loadSettingsDocument = initializeSettings
 
+/** 在锁内将设置文件重置为默认文档, 不读取现有内容, 损坏文件也能修复 */
+export async function resetSettingsFile(): Promise<void> {
+  const document = createDocument(DEFAULT_SETTINGS, createDefaultStocks())
+  await withSettingsLock(async () => {
+    await writeSettingsFile(document)
+  })
+}
+
 /** 在锁内更新部分应用设置 */
 export async function patchSettings(patch: Partial<Settings>): Promise<void> {
   await withSettingsLock(async () => {
