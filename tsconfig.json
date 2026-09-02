@@ -27,6 +27,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["scripts", "src", "test", "vite.config.ts"],
+  "include": ["scripts", "src", "tests", "vite.config.ts"],
   "exclude": ["node_modules"]
 }

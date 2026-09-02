@@ -67,7 +67,7 @@ src/settings/persistence.ts
 src/lib/
   纯工具: format.ts (格式化与涨跌色), error.ts, yesNo.ts, quoteTable.ts (行情表列定义与行渲染)
 
-test/*.test.ts
+tests/*.test.ts
   parser, store, settings persistence 和终端布局测试
 ```
 
@@ -432,12 +432,12 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 测试使用 Vitest. 当前测试文件:
 
-- `test/api.test.ts`
-- `test/lib.test.ts`
-- `test/settings.test.ts`
-- `test/stores.test.ts`
-- `test/layout.test.ts`
-- `test/checkboxGrid.test.tsx`
+- `tests/api.test.ts`
+- `tests/lib.test.ts`
+- `tests/settings.test.ts`
+- `tests/stores.test.ts`
+- `tests/layout.test.ts`
+- `tests/checkboxGrid.test.tsx`
 
 测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在布局测试之间使用 `getInitialState()` 恢复.
 
