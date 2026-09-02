@@ -7,19 +7,17 @@ const STOCK_LOGOS = new Map<string, string>([
 ])
 
 type Props = {
-  code: string
+  code: string | undefined
   bright?: boolean
 }
 
 export default function StockLogo({ code, bright = false }: Props) {
-  const prefix = code.slice(0, 2).toLowerCase()
-  const label = STOCK_LOGOS.get(prefix)
-
-  if (!label) return undefined
+  const prefix = code?.slice(0, 2).toLowerCase()
+  const label = prefix ? STOCK_LOGOS.get(prefix) : undefined
 
   return (
     <Text bright={bright} color="white" backgroundColor="red">
-      {label}
+      {label ?? '■'}
     </Text>
   )
 }

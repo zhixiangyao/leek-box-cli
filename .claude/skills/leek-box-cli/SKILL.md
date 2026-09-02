@@ -152,7 +152,7 @@ useFeatureStore.ts
 
 Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器.
 
-删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅重置勾选.
+删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅关闭弹窗并保留勾选, 可重新打开确认.
 
 Settings 的规则:
 
@@ -170,7 +170,7 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 - `q`: 仅在没有 overlay 时退出.
 - 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen }`.
 - DialogMenu 自己处理上下键, Enter 和数字快捷键.
-- DialogStockDetail 仅在详情打开且菜单关闭时处理周期数字键.
+- DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (esc 优先级保证), 无需判断菜单状态.
 - DialogRemoveConfirm 仅在 confirm 阶段接受 y/n. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
 
 详情周期快捷键:

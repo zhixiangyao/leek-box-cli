@@ -256,7 +256,7 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
       { code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:00.000Z' },
     ]
 
-    // confirm 阶段 esc 取消: 弹窗关闭并重置网格勾选
+    // confirm 阶段 esc 取消: 弹窗关闭, 网格勾选保留 (resetToken 不变)
     dialogStore.getState().open(targets)
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
@@ -265,7 +265,7 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确定删除选中的'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
-    expect(useStockRemoveStore.getState().resetToken).toBe(token + 1)
+    expect(useStockRemoveStore.getState().resetToken).toBe(token)
 
     // removing 阶段 esc 被忽略
     dialogStore.setState({ step: { type: 'removing' }, targets })

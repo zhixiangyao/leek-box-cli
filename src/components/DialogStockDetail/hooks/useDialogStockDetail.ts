@@ -2,7 +2,6 @@ import { useInput } from 'ink'
 
 import type { ChartPeriod } from '../../../api/types.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
-import { useDialogMenuStore } from '../../../stores/useDialogMenuStore.ts'
 import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
@@ -24,7 +23,6 @@ export function useDialogStockDetail() {
   const detailError = useDialogStockDetailStore((state) => state.errorMessage)
   const minuteChartPollIntervalMs = useSettingsStore((state) => state.minuteChartPollIntervalMs)
   const klinePollIntervalMs = useSettingsStore((state) => state.klinePollIntervalMs)
-  const menuOpen = useDialogMenuStore((state) => state.open)
   const quote = useStockListStore((state) => {
     if (state.step.type !== 'table') return undefined
     const row = state.step.rows.find((item) => item.code === stock?.code)
@@ -37,7 +35,7 @@ export function useDialogStockDetail() {
       const option = CHART_PERIOD_OPTIONS.find((item) => item.key === input)
       if (option) useDialogStockDetailStore.getState().setPeriod(option.value)
     },
-    { isActive: stock !== undefined && !menuOpen },
+    { isActive: stock !== undefined },
   )
 
   usePolling(
@@ -50,8 +48,6 @@ export function useDialogStockDetail() {
       restartKey: stock ? `${stock.code}:${period}` : undefined,
     },
   )
-
-  if (!stock) return undefined
 
   return {
     stock,

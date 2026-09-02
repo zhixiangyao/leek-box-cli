@@ -77,9 +77,6 @@ test('StockRemove store 加载列表, 按代码移除并递增 resetToken', asyn
   store.getState().removeByCodes(['sz000001', 'sz300001'])
   expect(store.getState().entries.map((item) => item.code)).toStrictEqual(['sh600000'])
   expect(store.getState().resetToken).toBe(token + 1)
-
-  store.getState().resetSelection()
-  expect(store.getState().resetToken).toBe(token + 2)
 })
 
 test('DialogRemoveConfirm store 确认后删除并提交移除', async () => {
@@ -92,7 +89,6 @@ test('DialogRemoveConfirm store 确认后删除并提交移除', async () => {
       return codes.length
     },
     commitRemoval: (codes) => committed.push([...codes]),
-    resetSelection: () => undefined,
   })
 
   store.getState().open(targets)
@@ -110,28 +106,23 @@ test('DialogRemoveConfirm store 空提交被忽略', () => {
   const store = createDialogRemoveConfirmStore({
     stocksRemove: async () => 0,
     commitRemoval: () => undefined,
-    resetSelection: () => undefined,
   })
 
   store.getState().open([])
   expect(store.getState().step.type).toBe('idle')
 })
 
-test('DialogRemoveConfirm store 取消关闭弹窗并重置网格勾选', () => {
-  let resetCount = 0
+test('DialogRemoveConfirm store 取消时仅关闭弹窗, 保留网格勾选', () => {
   const store = createDialogRemoveConfirmStore({
     stocksRemove: async () => 0,
     commitRemoval: () => undefined,
-    resetSelection: () => {
-      resetCount += 1
-    },
   })
 
   store.getState().open([entry('sz000001', '平安银行')])
   expect(store.getState().step.type).toBe('confirm')
-  store.getState().cancel()
+  store.getState().close()
   expect(store.getState().step.type).toBe('idle')
-  expect(resetCount).toBe(1)
+  expect(store.getState().targets).toStrictEqual([])
 })
 
 test('StockRemove store 加载失败时记录错误信息, 重试成功后清空', async () => {
@@ -159,7 +150,6 @@ test('DialogRemoveConfirm store 删除失败时进入 error 并可关闭', async
       throw new Error('锁超时')
     },
     commitRemoval: () => undefined,
-    resetSelection: () => undefined,
   })
 
   store.getState().open([entry('sz000001', '平安银行')])
@@ -167,7 +157,7 @@ test('DialogRemoveConfirm store 删除失败时进入 error 并可关闭', async
   expect(store.getState().step).toStrictEqual({ type: 'error', message: '删除失败: 锁超时' })
   expect(store.getState().targets).toStrictEqual([entry('sz000001', '平安银行')])
 
-  store.getState().dismiss()
+  store.getState().close()
   expect(store.getState().step.type).toBe('idle')
   expect(store.getState().targets).toStrictEqual([])
 })
@@ -176,7 +166,6 @@ test('DialogRemoveConfirm store 所选条目已被其他进程删除时报告错
   const store = createDialogRemoveConfirmStore({
     stocksRemove: async () => 0,
     commitRemoval: () => undefined,
-    resetSelection: () => undefined,
   })
 
   store.getState().open([entry('sz000001', '平安银行'), entry('sh600000', '浦发银行')])
@@ -189,7 +178,6 @@ test('DialogRemoveConfirm store 部分条目已不在自选股时进入 done 报
   const store = createDialogRemoveConfirmStore({
     stocksRemove: async () => 1,
     commitRemoval: (codes) => committed.push([...codes]),
-    resetSelection: () => undefined,
   })
 
   store.getState().open([entry('sz000001', '平安银行'), entry('sh600000', '浦发银行')])
@@ -201,7 +189,7 @@ test('DialogRemoveConfirm store 部分条目已不在自选股时进入 done 报
   })
   expect(store.getState().targets).toStrictEqual([])
 
-  store.getState().dismiss()
+  store.getState().close()
   expect(store.getState().step.type).toBe('idle')
 })
 
@@ -384,12 +372,10 @@ test('DialogRemoveConfirm store 动作仅在对应阶段生效', () => {
   const store = createDialogRemoveConfirmStore({
     stocksRemove: () => new Promise(() => undefined),
     commitRemoval: () => undefined,
-    resetSelection: () => undefined,
   })
 
-  // idle: cancel/dismiss/confirmDelete 均无效
-  store.getState().cancel()
-  store.getState().dismiss()
+  // idle: close/confirmDelete 均无效
+  store.getState().close()
   void store.getState().confirmDelete()
   expect(store.getState().step.type).toBe('idle')
 
@@ -399,9 +385,16 @@ test('DialogRemoveConfirm store 动作仅在对应阶段生效', () => {
   expect(store.getState().targets).toStrictEqual([entry('sz000001')])
   expect(store.getState().step.type).toBe('confirm')
 
-  // confirm 阶段 dismiss 无效, 只有 cancel 可退出
-  store.getState().dismiss()
-  expect(store.getState().step.type).toBe('confirm')
+  // confirm 阶段 close 退出, 勾选保留在网格层
+  store.getState().close()
+  expect(store.getState().step.type).toBe('idle')
+
+  // removing 阶段 close 无效, 等待删除结果
+  store.getState().open([entry('sz000001')])
+  void store.getState().confirmDelete()
+  expect(store.getState().step.type).toBe('removing')
+  store.getState().close()
+  expect(store.getState().step.type).toBe('removing')
 })
 
 test('StockRemove store 移除未命中的代码时列表不变', async () => {

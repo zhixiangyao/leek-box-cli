@@ -12,36 +12,22 @@ export type DialogRemoveConfirmStep =
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
-/** 处于删除确认弹窗 (可取消, 接受 y/n) */
-export const isRemoveConfirmStep = (step: DialogRemoveConfirmStep): boolean => step.type === 'confirm'
-
-/** 删除浮层可见 (确认, 正在删除, 删除完成或删除失败): 底层变暗并渲染确认弹窗 */
-export const isRemoveOverlayStep = (step: DialogRemoveConfirmStep): boolean =>
-  step.type === 'confirm' || step.type === 'removing' || step.type === 'done' || step.type === 'error'
-
 type DialogRemoveConfirmState = {
   step: DialogRemoveConfirmStep
-  /** 待删除条目, 由网格提交传入 */
   targets: StockEntry[]
   open: (targets: StockEntry[]) => void
   confirmDelete: () => Promise<void>
-  cancel: () => void
-  /** 关闭删除完成或删除失败弹窗 (失败时保留网格勾选以便重试) */
-  dismiss: () => void
+  close: () => void
 }
 
 export type DialogRemoveConfirmDependencies = {
   stocksRemove: (codes: string[]) => Promise<number>
-  /** 删除成功后同步到自选股列表 (默认写入 StockRemove store) */
   commitRemoval: (codes: string[]) => void
-  /** 重置网格勾选 (默认作用于 StockRemove store) */
-  resetSelection: () => void
 }
 
 const defaultDependencies: DialogRemoveConfirmDependencies = {
   stocksRemove,
   commitRemoval: (codes) => useStockRemoveStore.getState().removeByCodes(codes),
-  resetSelection: () => useStockRemoveStore.getState().resetSelection(),
 }
 
 export function createDialogRemoveConfirmStore(dependencies: DialogRemoveConfirmDependencies = defaultDependencies) {
@@ -80,14 +66,11 @@ export function createDialogRemoveConfirmStore(dependencies: DialogRemoveConfirm
       }
     },
 
-    cancel: () => {
-      if (get().step.type !== 'confirm') return
-      set({ step: { type: 'idle' }, targets: [] })
-      dependencies.resetSelection()
-    },
+    close: () => {
+      const type = get().step.type
 
-    dismiss: () => {
-      if (get().step.type !== 'done' && get().step.type !== 'error') return
+      if (type === 'removing') return
+
       set({ step: { type: 'idle' }, targets: [] })
     },
   }))

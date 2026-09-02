@@ -21,26 +21,10 @@ const CLOCK_RESERVE = 22
 export default function DialogRemoveConfirm() {
   const theme = useTheme()
   const { columns } = useWindowSize()
-  const state = useDialogRemoveConfirm()
-
-  if (!state) return undefined
-
-  const { stage, entries, message } = state
-  const count = entries.length
-  const isError = stage === 'error'
-  const isDone = stage === 'done'
-  const title = isError
-    ? '删除失败'
-    : isDone
-      ? '删除完成'
-      : stage === 'removing'
-        ? `正在删除 ${count} 个股票...`
-        : `确定删除选中的 ${count} 个股票?`
-  const content = isError || isDone ? message : entries.map((entry) => `${entry.name} (${entry.code})`).join(', ')
-  const hint = stage === 'confirm' ? HINT : isError || isDone ? CLOSE_HINT : undefined
-
+  const { isConfirm, isError, isDone, title, content } = useDialogRemoveConfirm()
+  const hint = isConfirm ? HINT : isError || isDone ? CLOSE_HINT : undefined
   const widest = Math.max(
-    stringWidth(title),
+    stringWidth(title ?? ''),
     Math.min(stringWidth(content ?? ''), CONTENT_WIDTH_CAP),
     stringWidth(hint ?? '') + CLOCK_RESERVE,
     24,

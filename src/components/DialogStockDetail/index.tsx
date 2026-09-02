@@ -19,23 +19,19 @@ const CONTENT_WIDTH = STOCK_DETAIL_WIDTH - DIALOG_CHROME
 
 export default function DialogStockDetail() {
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
-  const dialogStockDetail = useDialogStockDetail()
-
-  if (!dialogStockDetail) return undefined
-
-  const { stock, quote, suspended, period, status, points, errorMessage } = dialogStockDetail
+  const { stock, quote, suspended, period, status, points, errorMessage } = useDialogStockDetail()
   const periodLabel = CHART_PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? ''
 
   return (
     <Dialog
       title={
         <Text bright>
-          <StockLogo code={stock.code} bright />
+          <StockLogo code={stock?.code} bright />
           <Text> </Text>
-          <Text bright>{stock.name}</Text>
+          <Text bright>{stock?.name ?? '--'}</Text>
           <Text> </Text>
           <Text bright color="gray">
-            {stock.code}
+            {stock?.code ?? '--'}
           </Text>
           <Text> </Text>
           <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change, trendColorMode)}>
@@ -69,7 +65,7 @@ export default function DialogStockDetail() {
           segments={
             quote
               ? quoteRow(STOCK_DETAIL_COLUMNS, quote, trendColorMode)
-              : missingRow(STOCK_DETAIL_COLUMNS, stock.code, stock.name)
+              : missingRow(STOCK_DETAIL_COLUMNS, stock?.code ?? '--', stock?.name ?? '--')
           }
         />
       </Box>
