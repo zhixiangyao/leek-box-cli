@@ -9,10 +9,10 @@ import { errorMessage } from './lib/error.ts'
 import { startSettingsPersistence } from './settings/persistence.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
 
-const main = async (command: string | undefined) => {
-  const settingsPersistence = await startSettingsPersistence((error) => {
-    console.error(`设置保存失败: ${errorMessage(error)}`)
-  })
+const main = async (command?: string) => {
+  const settingsPersistence = await startSettingsPersistence((error) =>
+    console.error(`设置保存失败: ${errorMessage(error)}`),
+  )
 
   try {
     useRouterStore.setState({ screen: toScreen(command) })

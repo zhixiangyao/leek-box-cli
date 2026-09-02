@@ -5,7 +5,9 @@ import StockAdd from '../screens/StockAdd/index.tsx'
 import StockList from '../screens/StockList/index.tsx'
 import StockRemove from '../screens/StockRemove/index.tsx'
 
-type ScreenComponentProps = { title: string; hint: string }
+export type Screen = 'stock-list' | 'stock-add' | 'stock-remove' | 'settings'
+
+type ScreenComponentProps = { title: ScreenDefinition['title']; hint: ScreenDefinition['hint'] }
 
 type ScreenDefinition = {
   Component: ComponentType<ScreenComponentProps>
@@ -37,20 +39,17 @@ export const SCREEN_REGISTRY = {
     hint: '菜单(esc)   移动(↑/↓/←/→)   选择(空格)   删除(enter)   退出(q)',
     menuLabel: '删除自选股',
   },
-  settings: {
+  ['settings']: {
     Component: Settings,
     title: '设置',
     description: '配置主题, 涨跌颜色与请求参数',
     hint: '菜单(esc)   选择(↑/↓)   调整(←/→/enter)   默认值(d)   退出(q)',
     menuLabel: '设置',
   },
-} as const satisfies Record<string, ScreenDefinition>
+} as const satisfies Record<Screen, ScreenDefinition>
 
-export type Screen = keyof typeof SCREEN_REGISTRY
+export const SCREEN_LIST: Screen[] = ['stock-list', 'stock-add', 'stock-remove', 'settings']
 
-export const SCREEN_LIST = Object.keys(SCREEN_REGISTRY) as Screen[]
-
-export const isScreen = (value: string | undefined): value is Screen =>
-  value !== undefined && Object.hasOwn(SCREEN_REGISTRY, value)
+export const isScreen = (value: string | undefined): value is Screen => !!value && SCREEN_LIST.includes(value as Screen)
 
 export const toScreen = (value: string | undefined): Screen => (isScreen(value) ? value : 'stock-list')
