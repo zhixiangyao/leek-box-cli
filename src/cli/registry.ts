@@ -46,9 +46,14 @@ export const SCREEN_REGISTRY = {
     hint: '菜单(esc)   选择(↑/↓)   调整(←/→/enter)   默认值(d)   退出(q)',
     menuLabel: '设置',
   },
-} as const satisfies Record<Screen, ScreenDefinition>
+} satisfies Record<Screen, ScreenDefinition>
 
-export const SCREEN_LIST: Screen[] = ['stock-list', 'stock-add', 'stock-remove', 'settings']
+export const SCREEN_LIST = Object.keys(SCREEN_REGISTRY) as Screen[]
+
+export const SCREEN_REGISTRY_ENTRIES = SCREEN_LIST.map<[Screen, ScreenDefinition]>((screen) => [
+  screen,
+  SCREEN_REGISTRY[screen],
+])
 
 export const isScreen = (value: string | undefined): value is Screen => !!value && SCREEN_LIST.includes(value as Screen)
 

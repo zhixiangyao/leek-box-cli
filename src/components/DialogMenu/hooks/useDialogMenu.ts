@@ -1,21 +1,19 @@
 import { useApp, useInput } from 'ink'
 import { useState } from 'react'
 
-import { SCREEN_REGISTRY, type Screen } from '../../../cli/registry.ts'
+import { SCREEN_REGISTRY_ENTRIES, type Screen } from '../../../cli/registry.ts'
 import { useDialogMenuStore } from '../../../stores/useDialogMenuStore.ts'
 import { useRouterStore } from '../../../stores/useRouterStore.ts'
 
-type MenuItem = { label: string; screen: Screen | undefined }
+type MenuItem = { type: Screen | 'exit'; label: string }
 
 const MENU_ITEMS: MenuItem[] = [
-  ...Object.entries(SCREEN_REGISTRY).map(([screen, definition], index): MenuItem => ({
-    label: `${index + 1}) ${definition.menuLabel}`,
-    screen: screen as Screen,
+  ...SCREEN_REGISTRY_ENTRIES.map<MenuItem>(([screen, definition]) => ({
+    type: screen,
+    label: definition.menuLabel,
   })),
-  { label: `${Object.keys(SCREEN_REGISTRY).length + 1}) 退出程序`, screen: undefined },
+  { type: 'exit', label: '退出程序' },
 ]
-
-const MENU_WIDTH = 45
 
 export function useDialogMenu() {
   const goTo = useRouterStore((state) => state.goTo)
@@ -24,11 +22,16 @@ export function useDialogMenu() {
   const [highlight, setHighlight] = useState(0)
 
   const choose = (item: MenuItem) => {
-    if (item.screen) {
-      closeMenu()
-      goTo(item.screen)
-    } else {
-      exit()
+    switch (item.type) {
+      case 'exit':
+        exit()
+        break
+
+      default:
+        closeMenu()
+        goTo(item.type)
+
+        break
     }
   }
 
@@ -49,7 +52,6 @@ export function useDialogMenu() {
   })
 
   return {
-    width: MENU_WIDTH,
     menuItems: MENU_ITEMS,
     highlight,
   }

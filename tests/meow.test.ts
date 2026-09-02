@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest'
 
 import { cliHelpMessage, parseCli } from '../src/cli/meow.ts'
-import { SCREEN_REGISTRY } from '../src/cli/registry.ts'
+import { SCREEN_REGISTRY_ENTRIES } from '../src/cli/registry.ts'
 
 test('cliHelpMessage 列出全部注册命令及其描述', () => {
-  for (const [command, definition] of Object.entries(SCREEN_REGISTRY)) {
+  for (const [command, definition] of SCREEN_REGISTRY_ENTRIES) {
     expect(cliHelpMessage).toContain(command)
     expect(cliHelpMessage).toContain(definition.description)
   }

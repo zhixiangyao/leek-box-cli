@@ -36,7 +36,7 @@ export default function Settings({ title, hint }: Props) {
       fullScreen
       bright={!overlayOpen}
       title={<Text color={theme.primary}>{title}</Text>}
-      footer={<StatusBar hint={hint} bright={!overlayOpen} />}
+      footer={<StatusBar showClock hint={hint} bright={!overlayOpen} />}
     >
       <Text color={theme.primary}>外观</Text>
       <SettingRows rows={appearanceRows} highlight={theme.highlight} />
