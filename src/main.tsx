@@ -13,13 +13,15 @@ const main = async (command?: string) => {
   const settingsPersistence = await startSettingsPersistence((error) =>
     console.error(`设置保存失败: ${errorMessage(error)}`),
   )
+  const termProgram = process.env['TERM_PROGRAM']
+  const incrementalRendering = !!termProgram && ['kiro', 'vscode'].includes(termProgram)
 
   try {
     useRouterStore.setState({ screen: toScreen(command) })
     const instance = render(<App />, {
       alternateScreen: true,
       concurrent: true,
-      incrementalRendering: true,
+      incrementalRendering,
       maxFps: 45,
     })
     await instance.waitUntilExit()
