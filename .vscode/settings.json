@@ -1,4 +1,6 @@
 {
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false, // 解决部分文件被推导成非 UTF-8 格式的情况, 避免中文乱码
   "editor.defaultFormatter": "oxc.oxc-vscode",
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "file",

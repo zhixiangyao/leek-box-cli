@@ -261,7 +261,7 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
     const token = useStockRemoveStore.getState().resetToken
-    input.write('')
+    input.write('\x1B')
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确定删除选中的'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
@@ -271,7 +271,7 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
     dialogStore.setState({ step: { type: 'removing' }, targets })
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('正在删除'))
-    input.write('')
+    input.write('\x1B')
     await delay(100)
     expect(dialogStore.getState().step.type).toBe('removing')
 
@@ -279,7 +279,7 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
     dialogStore.setState({ step: { type: 'error', message: '删除失败: 锁超时' }, targets })
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除失败'))
-    input.write('')
+    input.write('\x1B')
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除失败'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
@@ -288,7 +288,7 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
     dialogStore.setState({ step: { type: 'done', message: '已删除 1 个股票, 1 个条目已不在自选股中.' }, targets: [] })
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除完成'))
-    input.write('')
+    input.write('\x1B')
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除完成'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
@@ -330,14 +330,14 @@ test('App 的 esc 接线: 菜单开关切换', async () => {
 
     // esc 打开菜单: 背景变暗
     after = output.frames.length
-    input.write('')
-    await waitForFrame(output, after, (candidate) => candidate.includes('[2m'))
+    input.write('\x1B')
+    await waitForFrame(output, after, (candidate) => candidate.includes('\x1B[2m'))
     expect(useDialogMenuStore.getState().open).toBe(true)
 
     // esc 再次按下关闭菜单: 背景恢复
     after = output.frames.length
-    input.write('')
-    await waitForFrame(output, after, (candidate) => !candidate.includes('[2m'))
+    input.write('\x1B')
+    await waitForFrame(output, after, (candidate) => !candidate.includes('\x1B[2m'))
     expect(useDialogMenuStore.getState().open).toBe(false)
   } finally {
     instance.unmount()
