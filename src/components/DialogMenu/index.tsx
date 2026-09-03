@@ -7,10 +7,13 @@ import Text from '../Text.tsx'
 import { useDialogMenu } from './hooks/useDialogMenu.ts'
 
 /** 提示 */
-const HINT = '取消(esc)   选择(↑/↓)   确认(enter)'
+const HINT = '关闭(esc)   选择(↑/↓)   确认(enter)'
 
 /** 选项列表计入弹窗宽度的上限, 避免超长内容撑宽弹窗 */
 const CONTENT_WIDTH_CAP = 60
+
+/** 弹窗宽度冗余(自定义调整, 比如觉得默认的宽度太小了, 或者 title + extra 太紧凑了) */
+const DIALOG_WIDTH_RESERVE = 6
 
 export default function DialogMenu() {
   const { highlight, menuItems } = useDialogMenu()
@@ -24,7 +27,7 @@ export default function DialogMenu() {
     stringWidth(hint),
     24,
   )
-  const width = Math.min(Math.max(columns - 2, 1), widest + DIALOG_CHROME + 6)
+  const width = Math.min(Math.max(columns - 2, 1), widest + DIALOG_CHROME + DIALOG_WIDTH_RESERVE)
 
   return (
     <Dialog

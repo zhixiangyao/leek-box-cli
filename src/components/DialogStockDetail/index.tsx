@@ -1,4 +1,5 @@
-import { Box } from 'ink'
+import { Box, useWindowSize } from 'ink'
+import stringWidth from 'string-width'
 
 import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
 import { headerRow, missingRow, quoteRow, STOCK_DETAIL_COLUMNS, tableWidth } from '../../lib/quoteTable.ts'
@@ -10,17 +11,21 @@ import StockLogo from '../StockLogo.tsx'
 import Text from '../Text.tsx'
 import { CHART_PERIOD_OPTIONS, useDialogStockDetail } from './hooks/useDialogStockDetail.ts'
 
-/** 弹窗宽度冗余: 预留表格右缘与边框之间的空余 */
-const STOCK_DETAIL_WIDTH_RESERVE = 6
+/** 提示 */
+const HINT = '关闭(esc)   切换(1-6)'
 
-/** 弹窗宽度 = 详情表格总宽 + DIALOG_CHROME + 冗余 */
-const STOCK_DETAIL_WIDTH = tableWidth(STOCK_DETAIL_COLUMNS) + DIALOG_CHROME + STOCK_DETAIL_WIDTH_RESERVE
-const CONTENT_WIDTH = STOCK_DETAIL_WIDTH - DIALOG_CHROME
+/** 弹窗宽度冗余(自定义调整, 比如觉得默认的宽度太小了, 或者 title + extra 太紧凑了) */
+const DIALOG_WIDTH_RESERVE = 6
 
 export default function DialogStockDetail() {
+  const { columns } = useWindowSize()
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
   const { stock, quote, suspended, period, status, points, errorMessage } = useDialogStockDetail()
-  const periodLabel = CHART_PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? ''
+  const periodLabel = CHART_PERIOD_OPTIONS.find((option) => option.value === period)?.label
+  const hint = HINT
+  const widest = Math.max(tableWidth(STOCK_DETAIL_COLUMNS), stringWidth(hint))
+  const width = Math.min(Math.max(columns - 2, 1), widest + DIALOG_CHROME + DIALOG_WIDTH_RESERVE)
+  const stockChartWidth = width - DIALOG_CHROME
 
   return (
     <Dialog
@@ -56,7 +61,8 @@ export default function DialogStockDetail() {
           ))}
         </Text>
       }
-      width={STOCK_DETAIL_WIDTH}
+      width={width}
+      hint={hint}
     >
       <Box flexDirection="column">
         <QuoteRow bright segments={headerRow(STOCK_DETAIL_COLUMNS)} />
@@ -90,7 +96,7 @@ export default function DialogStockDetail() {
             period={period}
             prevClose={quote?.prevClose}
             trendColorMode={trendColorMode}
-            width={CONTENT_WIDTH}
+            width={stockChartWidth}
           />
         )}
       </Box>
