@@ -7,7 +7,7 @@ import Text from '../Text.tsx'
 import { useDialogRemoveConfirm } from './hooks/useDialogRemoveConfirm.ts'
 
 /** 确认阶段的提示 */
-const HINT = '取消(esc/n)   确定(y)'
+const HINT = '取消(n)   确定(y)'
 
 /** 失败/完成阶段的提示 */
 const CLOSE_HINT = '关闭(esc)'
