@@ -2,13 +2,14 @@ import type { Row } from '../lib/quoteTable.ts'
 import Text from './Text.tsx'
 
 type Props = {
+  /** 默认为 false */
+  bright?: boolean
   segments: Row
   selected?: boolean
-  bright?: boolean
 }
 
 export default function QuoteRow(props: Props) {
-  const { segments, selected, bright = false } = props
+  const { bright = false, segments, selected } = props
 
   return (
     <Text bright={bright} inverse={selected}>

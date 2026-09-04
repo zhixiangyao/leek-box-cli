@@ -7,11 +7,12 @@ const STOCK_LOGOS = new Map<string, string>([
 ])
 
 type Props = {
-  code: string | undefined
+  /** 默认为 false */
   bright?: boolean
+  code: string | undefined
 }
 
-export default function StockLogo({ code, bright = false }: Props) {
+export default function StockLogo({ bright = false, code }: Props) {
   const prefix = code?.slice(0, 2).toLowerCase()
   const label = prefix ? STOCK_LOGOS.get(prefix) : undefined
 

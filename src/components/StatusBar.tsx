@@ -15,13 +15,14 @@ function Clock({ bright = false }: Pick<Props, 'bright'>) {
 }
 
 type Props = {
-  hint?: string
+  /** 默认为 false */
   bright?: boolean
+  hint?: string
   showClock?: boolean
 }
 
 export default function StatusBar(props: Props) {
-  const { hint, bright = false, showClock = false } = props
+  const { bright = false, hint, showClock = false } = props
   const theme = useTheme()
 
   return (

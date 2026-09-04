@@ -4,6 +4,7 @@ import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
 import { useTheme } from '../hooks/useTheme.ts'
 
 type Props = {
+  /** 默认为 false */
   bright?: boolean
 } & Omit<TextProps, 'dimColor'>
 

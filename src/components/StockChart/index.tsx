@@ -10,6 +10,8 @@ const DEFAULT_VOLUME_HEIGHT = 4
 export const STOCK_CHART_HEIGHT = DEFAULT_PRICE_HEIGHT + DEFAULT_VOLUME_HEIGHT + 1
 
 type Props = {
+  /** 默认为 false */
+  bright?: boolean
   points: ChartPoint[]
   period: ChartPeriod
   prevClose?: number
@@ -19,7 +21,6 @@ type Props = {
   priceHeight?: number
   /** 成交量柱区高度 (行) */
   volumeHeight?: number
-  bright?: boolean
   trendColorMode?: TrendColorMode
 }
 

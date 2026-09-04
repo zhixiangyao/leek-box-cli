@@ -4,8 +4,9 @@ import type { ReactNode } from 'react'
 import Text from './Text.tsx'
 
 type Props = {
-  title: ReactNode
+  /** 默认为 false */
   bright?: boolean
+  title: ReactNode
   top: BoxProps['top']
   left?: BoxProps['left']
   right?: BoxProps['right']

@@ -6,6 +6,7 @@ import { useSettingsStore } from '../stores/useSettingsStore.ts'
 import BorderTitle from './BorderTitle.tsx'
 
 type Props = {
+  /** 默认为 false */
   bright?: boolean
   fullScreen?: boolean
   title?: ReactNode

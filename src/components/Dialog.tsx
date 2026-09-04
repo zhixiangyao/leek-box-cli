@@ -11,6 +11,8 @@ export const DIALOG_WIDTH_RESERVE = 6
 export const DIALOG_CHROME = 4
 
 type Props = {
+  /** 默认为 true */
+  bright?: boolean
   title?: ReactNode
   extra?: ReactNode
   hint?: string
@@ -19,7 +21,7 @@ type Props = {
 }
 
 export default function Dialog(props: Props) {
-  const { title, extra, hint, width, children } = props
+  const { bright = true, title, extra, hint, width, children } = props
   const { rows, columns } = useWindowSize()
 
   return (
@@ -34,12 +36,12 @@ export default function Dialog(props: Props) {
       justifyContent="center"
     >
       <Card
-        bright
+        bright={bright}
         title={title}
         extra={extra}
         width={width}
-        backgroundColor="black"
-        footer={<StatusBar hint={hint} bright />}
+        backgroundColor={bright ? 'black' : undefined}
+        footer={<StatusBar hint={hint} bright={bright} />}
       >
         {children}
       </Card>
