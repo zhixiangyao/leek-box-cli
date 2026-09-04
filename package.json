@@ -43,7 +43,9 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "lint": "oxlint --fix",
-    "lint:check": "oxlint"
+    "lint:check": "oxlint",
+    "lint-staged": "lint-staged",
+    "postinstall": "simple-git-hooks"
   },
   "dependencies": {
     "ink": "7.1.1",
@@ -54,14 +56,27 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
-    "@types/node": "^22.20.0",
+    "@types/node": "22.20.1",
     "@types/react": "19.2.18",
+    "lint-staged": "17.4.1",
     "oxfmt": "0.65.0",
     "oxlint": "1.80.0",
+    "simple-git-hooks": "2.14.0",
     "tsx": "4.23.13",
     "typescript": "7.0.2",
     "vite": "8.2.2",
     "vitest": "4.1.11"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged && pnpm typecheck"
+  },
+  "lint-staged": {
+    "**/*.{js,cjs,mjs,jsx,ts,mts,tsx}": [
+      "oxlint"
+    ],
+    "**/*.{js,cjs,mjs,jsx,ts,mts,tsx,html,md,json,css}": [
+      "oxfmt --check"
+    ]
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
