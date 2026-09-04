@@ -6,6 +6,7 @@ import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 const fileMocks = vi.hoisted(() => ({
   initializeSettings: vi.fn(),
   patchSettings: vi.fn(),
+  resetSettingsFile: vi.fn(),
 }))
 
 vi.mock('../src/settings/file.ts', () => fileMocks)
@@ -30,8 +31,10 @@ beforeEach(() => {
   vi.useFakeTimers()
   fileMocks.initializeSettings.mockReset()
   fileMocks.patchSettings.mockReset()
+  fileMocks.resetSettingsFile.mockReset()
   fileMocks.initializeSettings.mockResolvedValue(document())
   fileMocks.patchSettings.mockResolvedValue(undefined)
+  fileMocks.resetSettingsFile.mockResolvedValue(undefined)
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
 })
 

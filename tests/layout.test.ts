@@ -3,7 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { stripVTControlCharacters } from 'node:util'
 
 import { createElement, type ComponentProps, type ComponentType } from 'react'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 process.env['FORCE_COLOR'] = '1'
 
@@ -26,6 +26,7 @@ const [
   { useStockRemoveStore },
   { useDialogMenuStore },
   { useDialogRemoveConfirmStore },
+  { useDialogConfirmStore },
   { useRouterStore },
   { useSettingsStore },
   { useDialogStockDetailStore },
@@ -35,6 +36,7 @@ const [
   import('../src/stores/useStockRemoveStore.ts'),
   import('../src/stores/useDialogMenuStore.ts'),
   import('../src/stores/useDialogRemoveConfirmStore.ts'),
+  import('../src/stores/useDialogConfirmStore.ts'),
   import('../src/stores/useRouterStore.ts'),
   import('../src/stores/useSettingsStore.ts'),
   import('../src/stores/useDialogStockDetailStore.ts'),
@@ -101,6 +103,7 @@ const assertFrameSize = (frame: string, columns: number, rows: number) => {
 const resetStores = () => {
   useStockAddStore.setState(useStockAddStore.getInitialState(), true)
   useDialogMenuStore.setState(useDialogMenuStore.getInitialState(), true)
+  useDialogConfirmStore.setState(useDialogConfirmStore.getInitialState(), true)
   useDialogRemoveConfirmStore.setState(useDialogRemoveConfirmStore.getInitialState(), true)
   useRouterStore.setState(useRouterStore.getInitialState(), true)
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
@@ -217,7 +220,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
   }
 })
 
-test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async () => {
+test('删除确认弹窗按阶段处理按键: confirm 只接受 n/y, done/error 接受 esc', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -256,16 +259,14 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
       { code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:00.000Z' },
     ]
 
-    // confirm 阶段 esc 被忽略 (有意收窄, 取消走 n): 弹窗保持打开, 网格勾选保留 (resetToken 不变)
+    // confirm 阶段只接受 hint 里的 n/y: esc 被忽略, 弹窗保持
     dialogStore.getState().open(targets)
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
     const token = useStockRemoveStore.getState().resetToken
     input.write('\x1B')
     await delay(100)
-    expect(dialogStore.getState().step).toStrictEqual({ type: 'confirm' })
-    expect(useStockRemoveStore.getState().resetToken).toBe(token)
-
+    expect(dialogStore.getState().step.type).toBe('confirm')
     // n 取消: 弹窗关闭, 网格勾选保留 (resetToken 不变)
     input.write('n')
     after = output.frames.length
@@ -298,6 +299,99 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除完成'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('通用确认弹窗: 错误态 hint 切换为 关闭(esc) 重试(y), n 忽略, esc 关闭, y 重试', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({
+        step: { type: 'table', rows: [] },
+      })
+    },
+  })
+
+  const instance = render(createElement(App), {
+    stdout: output as unknown as NodeJS.WriteStream,
+    stdin: input as unknown as NodeJS.ReadStream,
+    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
+    debug: true,
+    interactive: false,
+    patchConsole: false,
+  })
+
+  try {
+    const confirm = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    let after = output.frames.length
+    useDialogConfirmStore.setState({
+      config: { title: '确认重置吗?', content: '此操作将重置所有设置与自选股为默认值.', isError: false, confirm },
+    })
+    await waitForFrame(
+      output,
+      after,
+      (candidate) => plain(candidate).includes('确认重置吗') && plain(candidate).includes('取消(n)'),
+    )
+
+    // update 把错误同步进弹窗: 内容为失败信息, hint 切换为 关闭(esc) 重试(y)
+    after = output.frames.length
+    useDialogConfirmStore.getState().update({ content: '重置失败: 锁超时', isError: true })
+    await waitForFrame(
+      output,
+      after,
+      (candidate) =>
+        plain(candidate).includes('重置失败: 锁超时') &&
+        plain(candidate).includes('关闭(esc)') &&
+        plain(candidate).includes('重试(y)'),
+    )
+
+    // 错误态 n 被忽略 (hint 未展示 n)
+    input.write('n')
+    await delay(100)
+    expect(useDialogConfirmStore.getState().config?.isError).toBe(true)
+    expect(useDialogConfirmStore.getState().config?.content).toBe('重置失败: 锁超时')
+
+    // 错误态 esc 关闭
+    input.write('\x1B')
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确认重置吗'))
+    expect(useDialogConfirmStore.getState().config).toBeUndefined()
+
+    // 错误态 y 重试, 成功后才关闭
+    confirm.mockClear()
+    after = output.frames.length
+    useDialogConfirmStore.setState({
+      config: { title: '确认重置吗?', content: '重置失败: 锁超时', isError: true, confirm },
+    })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('重试(y)'))
+    input.write('y')
+    after = output.frames.length
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确认重置吗'))
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(useDialogConfirmStore.getState().config).toBeUndefined()
+
+    // 错误态 y 重试失败: reject 不外泄, 弹窗保留可继续重试
+    confirm.mockClear()
+    confirm.mockRejectedValueOnce(new Error('锁超时'))
+    after = output.frames.length
+    useDialogConfirmStore.setState({
+      config: { title: '确认重置吗?', content: '重置失败: 锁超时', isError: true, confirm },
+    })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('重试(y)'))
+    input.write('y')
+    await delay(100)
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(useDialogConfirmStore.getState().config).not.toBeUndefined()
   } finally {
     instance.unmount()
     await instance.waitUntilExit()

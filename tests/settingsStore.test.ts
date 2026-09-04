@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS, type Settings } from '../src/settings/schema.ts'
 import { settingsEqual, settingsPatch, settingsSnapshot, useSettingsStore } from '../src/stores/useSettingsStore.ts'
 
 beforeEach(() => {
-  useSettingsStore.getState().resetSettings()
+  useSettingsStore.setState(useSettingsStore.getInitialState(), true)
 })
 
 test('settingsSnapshot 提取纯数据字段, 不含方法', () => {

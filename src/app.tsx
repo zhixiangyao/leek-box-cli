@@ -1,6 +1,7 @@
 import { useApp, useInput } from 'ink'
 
 import { SCREEN_REGISTRY } from './cli/registry.ts'
+import DialogConfirm from './components/DialogConfirm.tsx'
 import DialogMenu from './components/DialogMenu/index.tsx'
 import DialogRemoveConfirm from './components/DialogRemoveConfirm/index.tsx'
 import DialogStockDetail from './components/DialogStockDetail/index.tsx'
@@ -33,6 +34,7 @@ export default function App() {
       {overlayOpen.dialogMenuOpen && <DialogMenu />}
       {overlayOpen.dialogStockDetailOpen && <DialogStockDetail />}
       {overlayOpen.dialogRemoveConfirmOpen && <DialogRemoveConfirm />}
+      {overlayOpen.dialogConfirmOpen && <DialogConfirm />}
     </WindowSizeGuard>
   )
 }

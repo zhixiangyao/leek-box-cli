@@ -13,7 +13,7 @@ const HINT = '关闭(esc)   选择(↑/↓)   确认(enter)'
 const CONTENT_WIDTH_CAP = 60
 
 export default function DialogMenu() {
-  const { highlight, menuItems } = useDialogMenu()
+  const { bright, highlight, menuItems } = useDialogMenu()
   const theme = useTheme()
   const { columns } = useWindowSize()
   const title = '菜单'
@@ -29,16 +29,17 @@ export default function DialogMenu() {
   return (
     <Dialog
       title={
-        <Text bright color={theme.primary}>
+        <Text bright={bright} color={theme.primary}>
           {title}
         </Text>
       }
       width={width}
       hint={hint}
+      bright={bright}
     >
       {menuItems.map((item, index) => (
         <Text
-          bright
+          bright={bright}
           key={item.label}
           color={index === highlight ? 'black' : undefined}
           backgroundColor={index === highlight ? theme.highlight : undefined}

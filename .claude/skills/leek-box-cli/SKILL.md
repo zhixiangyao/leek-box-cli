@@ -23,7 +23,7 @@ src/main.tsx
   初始路由, Ink render 和 settings persistence start/stop
 
 src/app.tsx
-  无 overlay 时的 esc/q 输入 (esc 打开菜单, q 退出), 当前 screen 装配, 三个 Dialog 浮层的绘制顺序
+  无浮层时的 esc(开关菜单) 和 q(退出) 输入, 当前 screen 装配, 浮层的绘制顺序
 
 src/cli/registry.ts
   页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单
@@ -38,7 +38,7 @@ src/screens/<Feature>/hooks/
   Zustand 订阅, 页面生命周期, Ink 输入, 测量和轮询接线
 
 src/components/
-  Card, Dialog, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE, WindowSizeGuard 持有 MIN_TERMINAL_ROWS 等终端尺寸常量
+  Card, Dialog, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE, WindowSizeGuard 持有 MIN_TERMINAL_ROWS 等终端尺寸常量
 
 src/hooks/
   usePolling, useOverlayOpen, useClock, useTheme
@@ -150,7 +150,7 @@ useFeatureStore.ts
   可注入依赖
 ```
 
-Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器.
+Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器. `useSettingsStore` 是纯内存投影, 不注入依赖.
 
 删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅关闭弹窗并保留勾选, 可重新打开确认.
 
@@ -158,18 +158,22 @@ Settings 的规则:
 
 - `src/screens/Settings/index.tsx` 只负责分组渲染.
 - `src/screens/Settings/hooks/useSettings.ts` 负责选中项, 键盘输入, option 循环, duration 格式化和行视图模型.
-- UI 只更新 `useSettingsStore`. 磁盘保存由 `settingsPersistence` 统一订阅, 不在 screen 中直接写文件.
+- UI 只更新 `useSettingsStore`, 不在 screen 中直接写文件. 写盘分两条路径: 增量设置变更由 `settingsPersistence` 订阅合并为 patch 保存; 整档操作 (自选股增删改) 由 store 动作调用 `settings/file.ts` 的锁内函数. 全量重置是组合命令 `settings/resetAll.ts` 的 `resetAll()`: 先重置文件, 文件失败则抛出且内存不变; 成功后再恢复设置内存默认值并重新载入自选股.
 
 React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxStore.getState()`. 不在多个 store 中保存同一配置字段.
 
 ## 全局输入和 overlay
 
-共享 overlay 包含菜单, 股票详情和删除确认. App 只在无任何 overlay 时激活输入: `esc` 打开菜单, `q` 退出. 各弹窗自己处理 esc 关闭, 互斥由 useInput 的 isActive 保证 (overlay 打开期间底层 screen 与 App 同时失活).
+共享 overlay 包含菜单, 股票详情, 删除确认和通用确认弹窗 (DialogConfirm).
 
-- 底层 screen 和 App 的 `useInput` 均使用 `{ isActive: !overlayOpen.open }`.
-- DialogMenu 自己处理 esc 关闭, 上下键, Enter 和数字快捷键; 高亮随 open 存于 useDialogMenuStore, close 时复位到 0.
-- DialogStockDetail 处理 esc 关闭和周期数字键. 详情只能在无菜单时从 StockList 打开, 无需判断菜单状态.
-- DialogRemoveConfirm confirm 阶段只接受 y/n (取消走 n, esc 不取消), done/error 阶段 esc 关闭, 删除进行中忽略输入. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
+- App 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`, 只在无浮层时处理 esc(开关菜单) 和 q(退出).
+- 浮层打开后 esc 由各浮层自己处理: 详情和菜单 esc 直接关闭; DialogRemoveConfirm 在 done/error 阶段 esc 关闭, 删除进行中忽略; DialogConfirm 仅在错误态 esc 关闭.
+- 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
+- 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
+- DialogMenu 自己处理上下键, Enter 和数字快捷键. 高亮保存在 `useDialogMenuStore`, 菜单关闭时归零; 被 DialogConfirm 遮住时保留.
+- DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (浮层打开时底层输入一律失活), 无需判断菜单状态.
+- DialogRemoveConfirm 只在 confirm 阶段接受 n/y, done/error 阶段只接受 esc. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
+- DialogConfirm 目前用于菜单的"重置"入口: 确认后经 `settings/resetAll.ts` 的 `resetAll()` 重置设置文件为默认文档 (含默认自选股) 并同步设置与自选股内存; 确认失败时弹窗保留并进入错误态 (`config.isError`), 确认方经 `config.update` 把内容替换为失败信息. 错误态 hint 为 `关闭(esc)   重试(y)` (esc 关闭, n 忽略, y 重试), 确认态 hint 为 `取消(n)   确定(y)` 且不处理 esc. 确认弹窗关闭后菜单保持打开 (高亮位置保留).
 
 详情周期快捷键:
 
@@ -314,6 +318,7 @@ Windows 使用 `%APPDATA%` (Roaming):
 - `patchSettings()` 只合并变化的 settings 字段, 保留锁内读取到的最新 stocks.
 - `stockAdd()`, `stocksAdd()`, `stockRemove()` 在锁内读取最新文档后修改.
 - `replaceStocks()` 表示明确的整表替换, 当前仅用于 mock reset.
+- `resetSettingsFile()` 重置为默认文档, 不读取现有内容, 损坏文件也能修复; 应用内由 `settings/resetAll.ts` 的 `resetAll()` 触发 (重置文件 → 设置内存默认值 → 自选股重新载入).
 
 写入流程:
 
@@ -381,7 +386,7 @@ StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, �
 
 ## Card, Dialog 和 Text
 
-每个 screen 自己渲染 full-screen Card 和 StatusBar. App 只渲染当前 screen, 然后按顺序渲染 DialogMenu, DialogStockDetail 和 DialogRemoveConfirm.
+每个 screen 自己渲染 full-screen Card 和 StatusBar. App 只渲染当前 screen, 然后按序堆叠渲染浮层: DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm (最后绘制即最上层). 浮层输入由各自的 isActive 门控; DialogConfirm 打开时其余浮层变暗 (bright=false) 且输入失活, 仅确认弹窗保持明亮, 视觉与输入上只保留一个活动弹窗, 其余浮层保留挂载与状态.
 
 Card 负责:
 
