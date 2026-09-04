@@ -55,7 +55,7 @@ const formatDuration = (milliseconds: number) => {
 
 export function useSettings() {
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const { overlayOpen } = useOverlayOpen()
+  const overlayOpen = useOverlayOpen()
   const settings = useSettingsStore()
 
   const adjustSelected = (direction: 1 | -1) => {
@@ -94,7 +94,7 @@ export function useSettings() {
         settings.resetSettings()
       }
     },
-    { isActive: !overlayOpen },
+    { isActive: !overlayOpen.open },
   )
 
   const rows = SETTING_ITEMS.map<SettingRow>((item, index) => ({

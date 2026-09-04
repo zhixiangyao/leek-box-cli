@@ -15,7 +15,7 @@ type Props = {
 }
 
 export default function StockRemove({ title, hint }: Props) {
-  const { overlayOpen } = useOverlayOpen()
+  const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { entries, errorMessage, resetToken, open } = useStockRemove()
   let content: ReactNode
@@ -36,7 +36,7 @@ export default function StockRemove({ title, hint }: Props) {
         getKey={(entry) => entry.code}
         getLabel={(entry) => entry.name}
         getHint={(entry) => entry.code}
-        isActive={!overlayOpen}
+        isActive={!overlayOpen.open}
         onSubmit={open}
       />
     )
@@ -45,9 +45,9 @@ export default function StockRemove({ title, hint }: Props) {
   return (
     <Card
       fullScreen
-      bright={!overlayOpen}
+      bright={!overlayOpen.open}
       title={<Text color={theme.primary}>{title}</Text>}
-      footer={<StatusBar showClock hint={hint} bright={!overlayOpen} />}
+      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
     >
       {content}
     </Card>

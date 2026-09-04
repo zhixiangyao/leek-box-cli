@@ -17,7 +17,7 @@ type Props = {
 }
 
 export default function StockList({ title, hint }: Props) {
-  const { overlayOpen } = useOverlayOpen()
+  const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
   const { rowsRef, step, selectedCode, window } = useStockList()
@@ -73,9 +73,9 @@ export default function StockList({ title, hint }: Props) {
   return (
     <Card
       fullScreen
-      bright={!overlayOpen}
+      bright={!overlayOpen.open}
       title={<Text color={theme.primary}>{title}</Text>}
-      footer={<StatusBar showClock hint={hint} bright={!overlayOpen} />}
+      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
     >
       {content}
     </Card>

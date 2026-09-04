@@ -16,7 +16,7 @@ export function useStockList() {
   const scrollOffset = useStockListStore((state) => state.scrollOffset)
   const pollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
   const moveSelection = useStockListStore((state) => state.moveSelection)
-  const { overlayOpen } = useOverlayOpen()
+  const overlayOpen = useOverlayOpen()
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
   const window = step.type === 'table' ? visibleWindow(step.rows.length, scrollOffset, visible) : { start: 0, end: 0 }
 
@@ -44,7 +44,7 @@ export function useStockList() {
         refresh()
       }
     },
-    { isActive: !overlayOpen },
+    { isActive: !overlayOpen.open },
   )
 
   return { rowsRef, step, selectedCode, window }

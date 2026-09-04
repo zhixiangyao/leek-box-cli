@@ -13,18 +13,18 @@ import { useRouterStore } from './stores/useRouterStore.ts'
 
 export default function App() {
   const { exit } = useApp()
-  const { overlayOpen, dialogMenuOpen, dialogStockDetailOpen, dialogRemoveConfirmOpen } = useOverlayOpen()
+  const overlayOpen = useOverlayOpen()
   const screen = useRouterStore((state) => state.screen)
   const ScreenDefinition = SCREEN_REGISTRY[screen]
 
   useInput((input, key) => {
     if (key.escape) {
-      if (dialogStockDetailOpen) {
+      if (overlayOpen.dialogStockDetailOpen) {
         useDialogStockDetailStore.getState().close()
         return
       }
 
-      if (dialogRemoveConfirmOpen) {
+      if (overlayOpen.dialogRemoveConfirmOpen) {
         useDialogRemoveConfirmStore.getState().close()
         return
       }
@@ -33,16 +33,16 @@ export default function App() {
       return
     }
 
-    if (input === 'q' && !overlayOpen) exit()
+    if (input === 'q' && !overlayOpen.open) exit()
   })
 
   return (
     <WindowSizeGuard>
       <ScreenDefinition.Component title={ScreenDefinition.title} hint={ScreenDefinition.hint} />
 
-      {dialogMenuOpen && <DialogMenu />}
-      {dialogStockDetailOpen && <DialogStockDetail />}
-      {dialogRemoveConfirmOpen && <DialogRemoveConfirm />}
+      {overlayOpen.dialogMenuOpen && <DialogMenu />}
+      {overlayOpen.dialogStockDetailOpen && <DialogStockDetail />}
+      {overlayOpen.dialogRemoveConfirmOpen && <DialogRemoveConfirm />}
     </WindowSizeGuard>
   )
 }

@@ -17,7 +17,7 @@ type Props = {
 }
 
 export default function StockAdd({ title, hint }: Props) {
-  const { overlayOpen } = useOverlayOpen()
+  const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { step, codeInput, confirmInput, handleCodeInput, handleConfirm, reset } = useStockAdd()
   let content: ReactNode
@@ -87,9 +87,9 @@ export default function StockAdd({ title, hint }: Props) {
   return (
     <Card
       fullScreen
-      bright={!overlayOpen}
+      bright={!overlayOpen.open}
       title={<Text color={theme.primary}>{title}</Text>}
-      footer={<StatusBar showClock hint={hint} bright={!overlayOpen} />}
+      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
     >
       {content}
     </Card>

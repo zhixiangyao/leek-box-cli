@@ -168,7 +168,7 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 
 - `esc` 优先级: 详情弹窗 > 删除确认弹窗 (confirm 取消, done/error 关闭) > 菜单; 删除进行中忽略.
 - `q`: 仅在没有 overlay 时退出.
-- 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen }`.
+- 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
 - DialogMenu 自己处理上下键, Enter 和数字快捷键.
 - DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (esc 优先级保证), 无需判断菜单状态.
 - DialogRemoveConfirm 仅在 confirm 阶段接受 y/n. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
@@ -184,7 +184,7 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 6 年 K
 ```
 
-`useOverlayOpen()` 是唯一的浮层状态聚合点, 返回 `{ overlayOpen, dialogMenuOpen, dialogStockDetailOpen, dialogRemoveConfirmOpen }`. App 解构全部字段决定浮层渲染, 其余组件只取 `overlayOpen`. 不新增重复的 overlay Context.
+`useOverlayOpen()` 是唯一的浮层状态聚合点, 返回 `overlayOpen`. App 读取全部字段决定浮层渲染, 其余组件只取 `overlayOpen.open`. 不新增重复的 overlay Context.
 
 ## Settings 和主题
 

@@ -6,9 +6,10 @@ export function useOverlayOpen() {
   const dialogMenuOpen = useDialogMenuStore((state) => state.open)
   const dialogStockDetailOpen = useDialogStockDetailStore((state) => state.stock !== undefined)
   const dialogRemoveConfirmOpen = useDialogRemoveConfirmStore((state) => state.step.type !== 'idle')
+  const open = dialogMenuOpen || dialogStockDetailOpen || dialogRemoveConfirmOpen
 
   return {
-    overlayOpen: dialogMenuOpen || dialogStockDetailOpen || dialogRemoveConfirmOpen,
+    open,
     dialogMenuOpen,
     dialogStockDetailOpen,
     dialogRemoveConfirmOpen,

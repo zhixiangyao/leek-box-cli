@@ -11,7 +11,7 @@ type Props = {
 }
 
 export default function TextInput({ prompt, onSubmit, placeholder }: Props) {
-  const { overlayOpen } = useOverlayOpen()
+  const overlayOpen = useOverlayOpen()
   const [value, setValue] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
@@ -28,7 +28,7 @@ export default function TextInput({ prompt, onSubmit, placeholder }: Props) {
         setValue((previous) => previous + input)
       }
     },
-    { isActive: !overlayOpen && !submitted },
+    { isActive: !overlayOpen.open && !submitted },
   )
 
   return (
