@@ -4,7 +4,7 @@ import stringWidth from 'string-width'
 import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
 import { headerRow, missingRow, quoteRow, STOCK_DETAIL_COLUMNS, tableWidth } from '../../lib/quoteTable.ts'
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
-import Dialog, { DIALOG_CHROME } from '../Dialog.tsx'
+import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from '../Dialog.tsx'
 import QuoteRow from '../QuoteRow.tsx'
 import StockChart, { STOCK_CHART_HEIGHT } from '../StockChart/index.tsx'
 import StockLogo from '../StockLogo.tsx'
@@ -14,13 +14,10 @@ import { CHART_PERIOD_OPTIONS, useDialogStockDetail } from './hooks/useDialogSto
 /** 提示 */
 const HINT = '关闭(esc)   切换(1-6)'
 
-/** 弹窗宽度冗余(自定义调整, 比如觉得默认的宽度太小了, 或者 title + extra 太紧凑了) */
-const DIALOG_WIDTH_RESERVE = 6
-
 export default function DialogStockDetail() {
   const { columns } = useWindowSize()
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
-  const { stock, quote, suspended, period, status, points, errorMessage } = useDialogStockDetail()
+  const { stock, quote, suspended, period, status, points, detailError } = useDialogStockDetail()
   const periodLabel = CHART_PERIOD_OPTIONS.find((option) => option.value === period)?.label
   const hint = HINT
   const widest = Math.max(tableWidth(STOCK_DETAIL_COLUMNS), stringWidth(hint))
@@ -83,7 +80,7 @@ export default function DialogStockDetail() {
           </Text>
         ) : status === 'error' ? (
           <Text bright color="red">
-            {errorMessage}
+            {detailError}
           </Text>
         ) : points.length === 0 ? (
           <Text bright color="gray">

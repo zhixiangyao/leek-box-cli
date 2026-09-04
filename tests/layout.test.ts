@@ -256,12 +256,18 @@ test('App 的 esc 优先级接线: 删除确认弹窗按阶段处理 esc', async
       { code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:00.000Z' },
     ]
 
-    // confirm 阶段 esc 取消: 弹窗关闭, 网格勾选保留 (resetToken 不变)
+    // confirm 阶段 esc 被忽略 (有意收窄, 取消走 n): 弹窗保持打开, 网格勾选保留 (resetToken 不变)
     dialogStore.getState().open(targets)
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
     const token = useStockRemoveStore.getState().resetToken
     input.write('\x1B')
+    await delay(100)
+    expect(dialogStore.getState().step).toStrictEqual({ type: 'confirm' })
+    expect(useStockRemoveStore.getState().resetToken).toBe(token)
+
+    // n 取消: 弹窗关闭, 网格勾选保留 (resetToken 不变)
+    input.write('n')
     after = output.frames.length
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确定删除选中的'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })

@@ -13,7 +13,12 @@ export const CHART_PERIOD_OPTIONS = [
   { key: '4', value: 'week', label: '周K' },
   { key: '5', value: 'month', label: '月K' },
   { key: '6', value: 'year', label: '年K' },
-] as const satisfies readonly { key: string; value: ChartPeriod; label: string }[]
+] satisfies { key: string; value: ChartPeriod; label: string }[]
+
+const CHART_PERIOD_MAP = CHART_PERIOD_OPTIONS.reduce<Record<string, ChartPeriod>>(
+  (acc, cur) => ((acc[cur.key] = cur.value), acc),
+  {},
+)
 
 export function useDialogStockDetail() {
   const stock = useDialogStockDetailStore((state) => state.stock)
@@ -21,6 +26,9 @@ export function useDialogStockDetail() {
   const status = useDialogStockDetailStore((state) => state.status)
   const points = useDialogStockDetailStore((state) => state.points)
   const detailError = useDialogStockDetailStore((state) => state.errorMessage)
+  const close = useDialogStockDetailStore((state) => state.close)
+  const setPeriod = useDialogStockDetailStore((state) => state.setPeriod)
+  const refreshChart = useDialogStockDetailStore((state) => state.refreshChart)
   const minuteChartPollIntervalMs = useSettingsStore((state) => state.minuteChartPollIntervalMs)
   const klinePollIntervalMs = useSettingsStore((state) => state.klinePollIntervalMs)
   const quote = useStockListStore((state) => {
@@ -32,19 +40,22 @@ export function useDialogStockDetail() {
   useInput(
     (input, key) => {
       if (key.ctrl) return
-      const option = CHART_PERIOD_OPTIONS.find((item) => item.key === input)
-      if (option) useDialogStockDetailStore.getState().setPeriod(option.value)
+      if (key.escape) close()
+      else {
+        const period = CHART_PERIOD_MAP[input]
+        if (period) setPeriod(period)
+      }
     },
     { isActive: stock !== undefined },
   )
 
   usePolling(
     async (signal) => {
-      if (stock) await useDialogStockDetailStore.getState().refreshChart(stock.code, period, signal)
+      if (stock) await refreshChart(stock.code, period, signal)
     },
     {
       enabled: stock !== undefined,
-      intervalMs: period === 'intraday' || period === 'five-day' ? minuteChartPollIntervalMs : klinePollIntervalMs,
+      intervalMs: ['intraday', 'five-day'].includes(period) ? minuteChartPollIntervalMs : klinePollIntervalMs,
       restartKey: stock ? `${stock.code}:${period}` : undefined,
     },
   )
@@ -56,6 +67,6 @@ export function useDialogStockDetail() {
     period,
     status,
     points,
-    errorMessage: detailError,
+    detailError,
   }
 }

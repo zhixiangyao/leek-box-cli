@@ -1,7 +1,7 @@
 export function parseYesNo(answer: string): 'y' | 'n' | undefined {
   const trimmed = answer.trim()
-  if (trimmed === 'y' || trimmed === 'Y') return 'y'
-  if (trimmed === 'n' || trimmed === 'N') return 'n'
+  if (['y', 'Y'].includes(trimmed)) return 'y'
+  if (['n', 'N'].includes(trimmed)) return 'n'
   return undefined
 }
 

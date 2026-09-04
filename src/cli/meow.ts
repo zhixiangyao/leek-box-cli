@@ -30,7 +30,7 @@ export function parseCli() {
     },
   })
 
-  const inputHasHelpFlag = cli.input.some((argv) => argv === '--help' || argv === '-h')
+  const inputHasHelpFlag = cli.input.some((argv) => ['--help', '-h'].includes(argv))
   const showHelp = cli.flags.help === true || inputHasHelpFlag
 
   return { command: cli.command, showHelp }

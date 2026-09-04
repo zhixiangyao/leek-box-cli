@@ -11,11 +11,13 @@ import { visibleWindow } from '../lib.ts'
 export function useStockList() {
   const rowsRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(rowsRef)
+  const pollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
   const step = useStockListStore((state) => state.step)
   const selectedCode = useStockListStore((state) => state.selectedCode)
   const scrollOffset = useStockListStore((state) => state.scrollOffset)
-  const pollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
+  const refreshQuotes = useStockListStore((state) => state.refreshQuotes)
   const moveSelection = useStockListStore((state) => state.moveSelection)
+  const open = useDialogStockDetailStore((state) => state.open)
   const overlayOpen = useOverlayOpen()
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
   const window = step.type === 'table' ? visibleWindow(step.rows.length, scrollOffset, visible) : { start: 0, end: 0 }
@@ -24,9 +26,7 @@ export function useStockList() {
     useStockListStore.setState({ step: { type: 'loading' } })
   }, [])
 
-  const { refresh } = usePolling((signal) => useStockListStore.getState().refreshQuotes(signal), {
-    intervalMs: pollIntervalMs,
-  })
+  const { refresh } = usePolling(refreshQuotes, { intervalMs: pollIntervalMs })
 
   useInput(
     (input, key) => {
@@ -36,10 +36,9 @@ export function useStockList() {
       } else if (key.downArrow) {
         moveSelection(1, visible)
       } else if (key.return) {
-        const current = useStockListStore.getState()
-        if (current.step.type !== 'table' || !current.selectedCode) return
-        const row = current.step.rows.find((item) => item.code === current.selectedCode)
-        if (row) useDialogStockDetailStore.getState().open(row.code, row.name)
+        if (step.type !== 'table' || !selectedCode) return
+        const row = step.rows.find((item) => item.code === selectedCode)
+        if (row) open(row.code, row.name)
       } else if (input === 'r') {
         refresh()
       }

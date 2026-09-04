@@ -4,6 +4,9 @@ import type { ReactNode } from 'react'
 import Card from './Card.tsx'
 import StatusBar from './StatusBar.tsx'
 
+/** 弹窗宽度冗余默认值 */
+export const DIALOG_WIDTH_RESERVE = 6
+
 /** 弹窗 chrome 宽: 边框 2 + paddingX 2 */
 export const DIALOG_CHROME = 4
 

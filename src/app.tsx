@@ -7,34 +7,24 @@ import DialogStockDetail from './components/DialogStockDetail/index.tsx'
 import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from './hooks/useOverlayOpen.ts'
 import { useDialogMenuStore } from './stores/useDialogMenuStore.ts'
-import { useDialogRemoveConfirmStore } from './stores/useDialogRemoveConfirmStore.ts'
-import { useDialogStockDetailStore } from './stores/useDialogStockDetailStore.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
+
+const noop = () => {}
 
 export default function App() {
   const { exit } = useApp()
   const overlayOpen = useOverlayOpen()
   const screen = useRouterStore((state) => state.screen)
+  const open = useDialogMenuStore((state) => (state.open ? noop : state.toggle))
   const ScreenDefinition = SCREEN_REGISTRY[screen]
 
-  useInput((input, key) => {
-    if (key.escape) {
-      if (overlayOpen.dialogStockDetailOpen) {
-        useDialogStockDetailStore.getState().close()
-        return
-      }
-
-      if (overlayOpen.dialogRemoveConfirmOpen) {
-        useDialogRemoveConfirmStore.getState().close()
-        return
-      }
-
-      useDialogMenuStore.getState().toggle()
-      return
-    }
-
-    if (input === 'q' && !overlayOpen.open) exit()
-  })
+  useInput(
+    (input, key) => {
+      if (key.escape) open()
+      if (input === 'q') exit()
+    },
+    { isActive: !overlayOpen.open },
+  )
 
   return (
     <WindowSizeGuard>

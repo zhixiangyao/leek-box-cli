@@ -9,6 +9,8 @@ import { promisify } from 'node:util'
 import { Box, render, Text, useApp, useInput } from 'ink'
 import { useEffect, useState } from 'react'
 
+import { parseYesNo } from '../src/lib/yesNo.ts'
+
 const execFileAsync = promisify(execFile)
 
 type ReleaseKind = 'major' | 'minor' | 'patch'
@@ -201,8 +203,9 @@ function ReleaseApp() {
 
   useInput(
     (input, key) => {
-      if (input === 'y' || input === 'Y') startPush()
-      else if (input === 'n' || input === 'N') skipPush()
+      const inputYesOrNo = parseYesNo(input)
+      if (inputYesOrNo === 'y') startPush()
+      else if (inputYesOrNo === 'n') skipPush()
       else if (key.upArrow || key.downArrow) setPushSelected((value) => (value === 0 ? 1 : 0))
       else if (key.return) {
         if (pushSelected === 0) startPush()

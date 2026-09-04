@@ -29,7 +29,7 @@ export const isAddConfirmStep = (step: StockAddStep): step is Extract<StockAddSt
 export const isAddResultStep = (
   step: StockAddStep,
 ): step is Extract<StockAddStep, { type: 'already-exists' | 'done' | 'error' }> =>
-  step.type === 'already-exists' || step.type === 'done' || step.type === 'error'
+  ['already-exists', 'done', 'error'].includes(step.type)
 
 /** 输入框状态: 错误信息与重挂载 token */
 type InputState = { error: string | undefined; resetToken: number }

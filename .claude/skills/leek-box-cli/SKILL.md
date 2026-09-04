@@ -23,7 +23,7 @@ src/main.tsx
   初始路由, Ink render 和 settings persistence start/stop
 
 src/app.tsx
-  全局 esc/q 输入, 当前 screen 装配, 三个 Dialog 浮层的绘制顺序
+  无 overlay 时的 esc/q 输入 (esc 打开菜单, q 退出), 当前 screen 装配, 三个 Dialog 浮层的绘制顺序
 
 src/cli/registry.ts
   页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单
@@ -38,7 +38,7 @@ src/screens/<Feature>/hooks/
   Zustand 订阅, 页面生命周期, Ink 输入, 测量和轮询接线
 
 src/components/
-  Card, Dialog, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm). Dialog 导出 DIALOG_CHROME, WindowSizeGuard 持有 MIN_TERMINAL_ROWS 等终端尺寸常量
+  Card, Dialog, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE, WindowSizeGuard 持有 MIN_TERMINAL_ROWS 等终端尺寸常量
 
 src/hooks/
   usePolling, useOverlayOpen, useClock, useTheme
@@ -164,14 +164,12 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 
 ## 全局输入和 overlay
 
-共享 overlay 包含菜单, 股票详情和删除确认.
+共享 overlay 包含菜单, 股票详情和删除确认. App 只在无任何 overlay 时激活输入: `esc` 打开菜单, `q` 退出. 各弹窗自己处理 esc 关闭, 互斥由 useInput 的 isActive 保证 (overlay 打开期间底层 screen 与 App 同时失活).
 
-- `esc` 优先级: 详情弹窗 > 删除确认弹窗 (confirm 取消, done/error 关闭) > 菜单; 删除进行中忽略.
-- `q`: 仅在没有 overlay 时退出.
-- 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
-- DialogMenu 自己处理上下键, Enter 和数字快捷键.
-- DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (esc 优先级保证), 无需判断菜单状态.
-- DialogRemoveConfirm 仅在 confirm 阶段接受 y/n. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
+- 底层 screen 和 App 的 `useInput` 均使用 `{ isActive: !overlayOpen.open }`.
+- DialogMenu 自己处理 esc 关闭, 上下键, Enter 和数字快捷键; 高亮随 open 存于 useDialogMenuStore, close 时复位到 0.
+- DialogStockDetail 处理 esc 关闭和周期数字键. 详情只能在无菜单时从 StockList 打开, 无需判断菜单状态.
+- DialogRemoveConfirm confirm 阶段只接受 y/n (取消走 n, esc 不取消), done/error 阶段 esc 关闭, 删除进行中忽略输入. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
 
 详情周期快捷键:
 

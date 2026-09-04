@@ -1,5 +1,6 @@
 import { useInput } from 'ink'
 
+import { parseYesNo } from '../../../lib/yesNo.ts'
 import { useDialogRemoveConfirmStore } from '../../../stores/useDialogRemoveConfirmStore.ts'
 
 export function useDialogRemoveConfirm() {
@@ -34,10 +35,23 @@ export function useDialogRemoveConfirm() {
   useInput(
     (input, key) => {
       if (key.ctrl) return
-      if (input === 'y' || input === 'Y') void confirmDelete()
-      else if (input === 'n' || input === 'N') close()
+
+      switch (step.type) {
+        case 'confirm': {
+          const inputYesOrNo = parseYesNo(input)
+          if (inputYesOrNo === 'y') void confirmDelete()
+          else if (inputYesOrNo === 'n') close()
+          break
+        }
+
+        case 'done':
+        case 'error': {
+          if (key.escape) close()
+          break
+        }
+      }
     },
-    { isActive: step.type === 'confirm' },
+    { isActive: ['confirm', 'done', 'error'].includes(step.type) },
   )
 
   return {
