@@ -36,11 +36,11 @@ export default function Dialog(props: Props) {
       justifyContent="center"
     >
       <Card
+        mask
         bright={bright}
         title={title}
         extra={extra}
         width={width}
-        backgroundColor={bright ? 'black' : undefined}
         footer={<StatusBar hint={hint} bright={bright} />}
       >
         {children}

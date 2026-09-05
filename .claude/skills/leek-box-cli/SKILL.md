@@ -38,7 +38,7 @@ src/screens/<Feature>/hooks/
   Zustand 订阅, 页面生命周期, Ink 输入, 测量和轮询接线
 
 src/components/
-  Card, Dialog, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE, WindowSizeGuard 持有 MIN_TERMINAL_ROWS 等终端尺寸常量
+  Card, Dialog, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE, WindowSizeGuard 持有 MIN_TERMINAL_ROWS 等终端尺寸常量
 
 src/hooks/
   usePolling, useOverlayOpen, useClock, useTheme
@@ -241,7 +241,7 @@ Border style:
 
 主题应用规则:
 
-- Card 使用全局 `borderStyle` 和 `primary` border; 内容区默认透明, 仅在调用方显式传入 `backgroundColor` 时绘制背景.
+- Card 使用全局 `borderStyle` 和 `primary` border; 内容区默认透明, 传入 `mask` 时用 SpaceMask 铺满 content 区块, 盖住其后的底层内容.
 - Text 在未显式传 color 时使用主题 foreground.
 - StatusBar bright 状态使用主题 accent.
 - Menu 选中项使用主题 highlight.
@@ -394,10 +394,12 @@ Card 负责:
 - 主题 border style 和 border color
 - 左上 title
 - 右上 extra
-- 内容 padding 和可选 `backgroundColor` (省略时透明)
+- 内容 padding 和可选 `mask` (打开时用 SpaceMask 盖住其后内容)
 - footer
 
-Dialog 支持 `title`, `extra`, `hint` 和 `width`, footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见.
+Dialog 支持 `title`, `extra`, `hint` 和 `width`, footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
+
+SpaceMask 用在 card 被 `mask` 时铺出 `useWindowSize` 的 columns*rows 个空格 (absolute + flexDirection column, 每行一个 Text), 再由 Card 的 `overflow: hidden` 裁剪到 content 区域. Card 不再接受 `backgroundColor`, 遮蔽一律走 `mask`.
 
 本地 `src/components/Text.tsx` 是项目文字入口. 它负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
 
