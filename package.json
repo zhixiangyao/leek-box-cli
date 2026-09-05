@@ -68,7 +68,7 @@
     "vitest": "4.1.11"
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint-staged && pnpm typecheck"
+    "pre-commit": "pnpm lint-staged && pnpm typecheck && pnpm test"
   },
   "lint-staged": {
     "**/*.{js,cjs,mjs,jsx,ts,mts,tsx}": [
