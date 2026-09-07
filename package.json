@@ -45,7 +45,7 @@
     "lint": "oxlint --fix",
     "lint:check": "oxlint",
     "lint-staged": "lint-staged",
-    "postinstall": "simple-git-hooks"
+    "prepare": "simple-git-hooks"
   },
   "dependencies": {
     "ink": "7.1.1",
