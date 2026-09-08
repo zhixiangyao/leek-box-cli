@@ -38,7 +38,7 @@
     "preview": "node dist/main.mjs",
     "------------- TOOLS -------------": "",
     "release": "tsx scripts/release.tsx",
-    "test": "vitest run --reporter=verbose",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
