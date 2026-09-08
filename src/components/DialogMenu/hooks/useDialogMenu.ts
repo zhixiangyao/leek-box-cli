@@ -1,6 +1,6 @@
 import { useApp, useInput } from 'ink'
 
-import { SCREEN_REGISTRY_ENTRIES, type Screen } from '../../../cli/registry.ts'
+import { type Item, ITEMS } from '../../../cli/menu.ts'
 import { errorMessage } from '../../../lib/error.ts'
 import { settingsPath } from '../../../settings/file.ts'
 import { resetAll } from '../../../settings/resetAll.ts'
@@ -8,29 +8,18 @@ import { useDialogConfirmStore } from '../../../stores/useDialogConfirmStore.ts'
 import { useDialogMenuStore } from '../../../stores/useDialogMenuStore.ts'
 import { useRouterStore } from '../../../stores/useRouterStore.ts'
 
-type MenuItem = { type: Screen | 'exit' | 'reset'; label: string }
-
-const MENU_ITEMS: MenuItem[] = [
-  ...SCREEN_REGISTRY_ENTRIES.map<MenuItem>(([screen, definition]) => ({
-    type: screen,
-    label: definition.menuLabel,
-  })),
-  { type: 'reset', label: '重置' },
-  { type: 'exit', label: '退出程序' },
-]
-
 export function useDialogMenu() {
   const goTo = useRouterStore((state) => state.goTo)
-  const highlight = useDialogMenuStore((state) => state.highlight)
+  const currentType = useDialogMenuStore((state) => state.currentType)
   const close = useDialogMenuStore((state) => state.close)
-  const setHighlight = useDialogMenuStore((state) => state.setHighlight)
+  const setCurrentType = useDialogMenuStore((state) => state.setCurrentType)
   const config = useDialogConfirmStore((state) => state.config)
   const open = useDialogConfirmStore((state) => state.open)
   const update = useDialogConfirmStore((state) => state.update)
   const { exit } = useApp()
   const bright = !config
 
-  function choose(item: MenuItem) {
+  function choose(item: Item) {
     switch (item.type) {
       case 'exit': {
         exit()
@@ -67,18 +56,26 @@ export function useDialogMenu() {
   useInput(
     (input, key) => {
       if (key.escape) close()
-      else if (key.upArrow) {
-        setHighlight((highlight + MENU_ITEMS.length - 1) % MENU_ITEMS.length)
-      } else if (key.downArrow) {
-        setHighlight((highlight + 1) % MENU_ITEMS.length)
-      } else if (key.return) {
-        choose(MENU_ITEMS[highlight]!)
-      } else if (/^[1-9]$/.test(input)) {
+      else if (/^[1-9]$/.test(input)) {
         const index = Number(input) - 1
-        const item = MENU_ITEMS[index]
+        const item = ITEMS[index]
         if (!item) return
-        setHighlight(index)
+        setCurrentType(item.type)
         choose(item)
+      } else {
+        const currentItemIndex = ITEMS.findIndex((item) => item.type === currentType)
+        const isFirstItem = currentItemIndex === 0
+        const isLastItem = currentItemIndex === ITEMS.length - 1
+        if (key.return) {
+          const item = ITEMS[currentItemIndex]
+          if (item) choose(item)
+        } else if (key.upArrow) {
+          const item = ITEMS.at(isFirstItem ? ITEMS.length - 1 : currentItemIndex - 1)
+          if (item) setCurrentType(item.type)
+        } else if (key.downArrow) {
+          const item = ITEMS.at(isLastItem ? 0 : currentItemIndex + 1)
+          if (item) setCurrentType(item.type)
+        }
       }
     },
     {
@@ -88,7 +85,6 @@ export function useDialogMenu() {
 
   return {
     bright,
-    menuItems: MENU_ITEMS,
-    highlight,
+    currentType,
   }
 }

@@ -1,6 +1,7 @@
 import { useWindowSize } from 'ink'
 import stringWidth from 'string-width'
 
+import { ITEMS } from '../../cli/menu.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from '../Dialog.tsx'
 import Text from '../Text.tsx'
@@ -13,14 +14,14 @@ const HINT = '关闭(esc)   选择(↑/↓)   确认(enter)'
 const CONTENT_WIDTH_CAP = 60
 
 export default function DialogMenu() {
-  const { bright, highlight, menuItems } = useDialogMenu()
+  const { bright, currentType } = useDialogMenu()
   const theme = useTheme()
   const { columns } = useWindowSize()
   const title = '菜单'
   const hint = HINT
   const widest = Math.max(
     stringWidth(title),
-    Math.min(...menuItems.map((item, index) => stringWidth(`  ${index + 1}) ${item.label}`)), CONTENT_WIDTH_CAP),
+    Math.min(...ITEMS.map((item, index) => stringWidth(`  ${index + 1}) ${item.label}`)), CONTENT_WIDTH_CAP),
     stringWidth(hint),
     24,
   )
@@ -37,16 +38,19 @@ export default function DialogMenu() {
       hint={hint}
       bright={bright}
     >
-      {menuItems.map((item, index) => (
-        <Text
-          bright={bright}
-          key={item.label}
-          color={index === highlight ? 'black' : undefined}
-          backgroundColor={index === highlight ? theme.highlight : undefined}
-        >
-          {`${index === highlight ? '> ' : '  '} ${index + 1}) ${item.label}`}
-        </Text>
-      ))}
+      {ITEMS.map((item, index) => {
+        const selected = item.type === currentType
+        return (
+          <Text
+            bright={bright}
+            key={item.label}
+            color={selected ? 'black' : undefined}
+            backgroundColor={selected ? theme.highlight : undefined}
+          >
+            {`${selected ? '> ' : '  '} ${index + 1}) ${item.label}`}
+          </Text>
+        )
+      })}
     </Dialog>
   )
 }

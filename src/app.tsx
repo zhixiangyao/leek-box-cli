@@ -17,11 +17,15 @@ export default function App() {
   const overlayOpen = useOverlayOpen()
   const screen = useRouterStore((state) => state.screen)
   const open = useDialogMenuStore((state) => (state.open ? noop : state.toggle))
+  const setCurrentType = useDialogMenuStore((state) => state.setCurrentType)
   const ScreenDefinition = SCREEN_REGISTRY[screen]
 
   useInput(
     (input, key) => {
-      if (key.escape) open()
+      if (key.escape) {
+        open()
+        setCurrentType(screen)
+      }
       if (input === 'q') exit()
     },
     { isActive: !overlayOpen.open },
