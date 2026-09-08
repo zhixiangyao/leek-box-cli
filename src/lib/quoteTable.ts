@@ -3,6 +3,7 @@ import stringWidth from 'string-width'
 import type { Quote } from '../api/types.ts'
 import {
   DEFAULT_TREND_COLOR_MODE,
+  EMPTY_VALUE,
   formatMarketCap,
   formatPercent,
   formatPrice,
@@ -210,7 +211,7 @@ export const quoteRow = (
   const suspended = quote.current <= 0
   return withSeparators(
     columns.map((col) => ({
-      text: cell(suspended ? (col.suspendedText ?? '--') : col.render(quote), col),
+      text: cell(suspended ? (col.suspendedText ?? EMPTY_VALUE) : col.render(quote), col),
       color: suspended || !col.color ? 'gray' : col.color(quote, trendColorMode),
     })),
   )
@@ -221,7 +222,7 @@ export const missingRow = (columns: readonly Column[], code: string, name: strin
   withSeparators(
     columns.map((col) => ({
       text: cell(
-        col.kind === 'code' ? code : col.kind === 'name' ? name : col.kind === 'changePercent' ? '无数据' : '--',
+        col.kind === 'code' ? code : col.kind === 'name' ? name : col.kind === 'changePercent' ? '无数据' : EMPTY_VALUE,
         col,
       ),
       color: 'gray',

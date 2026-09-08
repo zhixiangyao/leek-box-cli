@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path'
 import process from 'node:process'
 
 import { errorMessage } from '../lib/error.ts'
+import { isWindows } from '../lib/is.ts'
 import { withFileLock } from './lock.ts'
 import {
   createDocument,
@@ -17,15 +18,13 @@ import {
   type StockEntry,
 } from './schema.ts'
 
-const isWindows = process.platform === 'win32'
-
 /** 返回应用配置目录 */
 const configDirectory = () => {
   // 显式设置的 XDG_CONFIG_HOME 优先, 空字符串按未设置处理(遵循 XDG 规范).
   const explicitConfigHome = process.env['XDG_CONFIG_HOME']
   if (explicitConfigHome) return join(explicitConfigHome, 'leek-box-cli')
   // Windows 使用 %APPDATA% (Roaming), 缺失时回退到用户目录下的 .config.
-  if (isWindows) {
+  if (isWindows()) {
     const appData = process.env['APPDATA']
     if (appData) return join(appData, 'leek-box-cli')
   }

@@ -1,7 +1,7 @@
 import { Box, useWindowSize } from 'ink'
 import stringWidth from 'string-width'
 
-import { formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
+import { EMPTY_VALUE, formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
 import { headerRow, missingRow, quoteRow, STOCK_DETAIL_COLUMNS, tableWidth } from '../../lib/quoteTable.ts'
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from '../Dialog.tsx'
@@ -30,22 +30,22 @@ export default function DialogStockDetail() {
         <Text bright>
           <StockLogo code={stock?.code} bright />
           <Text> </Text>
-          <Text bright>{stock?.name ?? '--'}</Text>
+          <Text bright>{stock?.name ?? EMPTY_VALUE}</Text>
           <Text> </Text>
           <Text bright color="gray">
-            {stock?.code ?? '--'}
+            {stock?.code ?? EMPTY_VALUE}
           </Text>
           <Text> </Text>
           <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change, trendColorMode)}>
-            {quote ? formatPrice(quote.current) : '--'}
+            {quote ? formatPrice(quote.current) : EMPTY_VALUE}
           </Text>
           <Text> </Text>
           <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.changePercent, trendColorMode)}>
-            {quote ? (suspended ? '停牌' : formatPercent(quote.changePercent)) : '--'}
+            {quote ? (suspended ? '停牌' : formatPercent(quote.changePercent)) : EMPTY_VALUE}
           </Text>
           <Text> </Text>
           <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change, trendColorMode)}>
-            {quote ? formatSigned(quote.change) : '--'}
+            {quote ? formatSigned(quote.change) : EMPTY_VALUE}
           </Text>
         </Text>
       }
@@ -68,7 +68,7 @@ export default function DialogStockDetail() {
           segments={
             quote
               ? quoteRow(STOCK_DETAIL_COLUMNS, quote, trendColorMode)
-              : missingRow(STOCK_DETAIL_COLUMNS, stock?.code ?? '--', stock?.name ?? '--')
+              : missingRow(STOCK_DETAIL_COLUMNS, stock?.code ?? EMPTY_VALUE, stock?.name ?? EMPTY_VALUE)
           }
         />
       </Box>

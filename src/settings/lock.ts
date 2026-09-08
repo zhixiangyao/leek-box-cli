@@ -3,22 +3,14 @@ import { link, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import process from 'node:process'
 
+import { isNormalObject, isProcessAlive } from '../lib/is.ts'
+
 const LOCK_RETRY_MS = 25
 const LOCK_TIMEOUT_MS = 2000
 const LOCK_STALE_MS = 30_000
 
 /** 等待指定毫秒数 */
 const sleep = (durationMs: number) => new Promise((resolve) => setTimeout(resolve, durationMs))
-
-/** 判断指定进程是否仍在运行 */
-const isProcessAlive = (pid: number) => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== 'ESRCH'
-  }
-}
 
 /** 尝试清理过期的文件锁 */
 const tryRemoveStaleLock = async (lockPath: string): Promise<boolean> => {
@@ -65,9 +57,6 @@ const tryRemoveStaleLock = async (lockPath: string): Promise<boolean> => {
     throw error
   }
 }
-
-const isNormalObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /** 发布新的跨进程文件锁 */
 const publishLock = async (lockPath: string, contents: string) => {

@@ -1,6 +1,7 @@
 import { TextProps } from 'ink'
 
 import { DEFAULT_TREND_COLOR_MODE, TREND_COLOR_MODES, type TrendColorMode } from '../lib/format.ts'
+import { isNormalObject } from '../lib/is.ts'
 
 /* ---------- 外观 (theme / border) ---------- */
 
@@ -159,10 +160,6 @@ export function parseStocks(value: unknown): StockEntry[] {
   }
   return entries
 }
-
-/** 判断值是否为普通对象 */
-const isNormalObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /** 验证主题预设名称 */
 const parseThemePreset = (value: unknown): ThemePreset => {
