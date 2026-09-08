@@ -4,11 +4,14 @@ import type { ReactNode } from 'react'
 import { STOCK_LIST_COLUMNS, tableWidth } from '../lib/quoteTable.ts'
 import Text from './Text.tsx'
 
+/** 看板水平 chrome: 边框 2 + 内容 padding 2 */
+export const TABLE_CHROME = 4
+
 /** 完整看板所需的最小终端高度 */
 export const MIN_TERMINAL_ROWS = 26
 
-/** 看板表格占宽: 内容 + 边框 2 + padding 2 */
-const MIN_COLUMNS = tableWidth(STOCK_LIST_COLUMNS) + 4
+/** 看板表格占宽: 内容 + chrome */
+const MIN_COLUMNS = tableWidth(STOCK_LIST_COLUMNS) + TABLE_CHROME
 
 type Props = {
   children: ReactNode

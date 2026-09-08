@@ -7,6 +7,7 @@ import {
   headerRow,
   missingRow,
   quoteRow,
+  scaleColumns,
   STOCK_DETAIL_COLUMNS,
   STOCK_LIST_COLUMNS,
   tableWidth,
@@ -105,4 +106,27 @@ test('tableWidth = 各列宽之和 + 列间分隔', () => {
 
   const detailSum = STOCK_DETAIL_COLUMNS.reduce((sum, column) => sum + column.width, 0)
   expect(tableWidth(STOCK_DETAIL_COLUMNS)).toBe(detailSum + STOCK_DETAIL_COLUMNS.length - 1)
+})
+
+test('scaleColumns 在 target === 列宽之和时保持不变', () => {
+  const baseSum = STOCK_LIST_COLUMNS.reduce((sum, column) => sum + column.width, 0)
+  expect(baseSum).toBe(101)
+  const scaled = scaleColumns(STOCK_LIST_COLUMNS, baseSum)
+  expect(scaled.map((column) => column.width)).toStrictEqual(STOCK_LIST_COLUMNS.map((column) => column.width))
+})
+
+test('scaleColumns 等比例放大, 由首列吸收四舍五入残差使总和精确等于 target', () => {
+  const target = 185
+  const scaled = scaleColumns(STOCK_LIST_COLUMNS, target)
+  expect(scaled.reduce((sum, column) => sum + column.width, 0)).toBe(target)
+  STOCK_LIST_COLUMNS.forEach((column, index) => {
+    expect(scaled[index]!.width).toBeGreaterThanOrEqual(column.width)
+  })
+  expect(scaled.map((column) => column.width)).toStrictEqual([17, 16, 15, 16, 15, 13, 13, 13, 20, 16, 13, 18])
+})
+
+test('scaleColumns 首列吸收残差 (2 列示例)', () => {
+  const scaled = scaleColumns([codeColumn, percentColumn], 25)
+  expect(scaled.map((column) => column.width)).toStrictEqual([12, 13])
+  expect(scaled.reduce((sum, column) => sum + column.width, 0)).toBe(25)
 })

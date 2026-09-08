@@ -7,7 +7,7 @@ import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
-import { headerRow, missingRow, quoteRow, STOCK_LIST_COLUMNS } from '../../lib/quoteTable.ts'
+import { headerRow, missingRow, quoteRow } from '../../lib/quoteTable.ts'
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import { useStockList } from './hooks/useStockList.ts'
 
@@ -20,7 +20,7 @@ export default function StockList({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
-  const { rowsRef, step, selectedCode, window } = useStockList()
+  const { rowsRef, step, scaledColumns, selectedCode, window } = useStockList()
   let content: ReactNode
 
   switch (step.type) {
@@ -47,7 +47,7 @@ export default function StockList({ title, hint }: Props) {
     case 'table': {
       content = (
         <>
-          <QuoteRow segments={headerRow(STOCK_LIST_COLUMNS)} />
+          <QuoteRow segments={headerRow(scaledColumns)} />
 
           <Box ref={rowsRef} flexDirection="column" flexGrow={1} overflow="hidden">
             {step.rows.slice(window.start, window.end).map((row) => (
@@ -55,8 +55,8 @@ export default function StockList({ title, hint }: Props) {
                 key={row.code}
                 segments={
                   row.kind === 'quote'
-                    ? quoteRow(STOCK_LIST_COLUMNS, row.quote, trendColorMode)
-                    : missingRow(STOCK_LIST_COLUMNS, row.code, row.name)
+                    ? quoteRow(scaledColumns, row.quote, trendColorMode)
+                    : missingRow(scaledColumns, row.code, row.name)
                 }
                 selected={row.code === selectedCode}
               />

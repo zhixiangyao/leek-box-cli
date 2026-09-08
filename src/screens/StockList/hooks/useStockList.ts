@@ -1,8 +1,10 @@
-import { type DOMElement, useBoxMetrics, useInput } from 'ink'
+import { type DOMElement, useBoxMetrics, useInput, useWindowSize } from 'ink'
 import { useEffect, useRef } from 'react'
 
+import { TABLE_CHROME } from '../../../components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
+import { scaleColumns, STOCK_LIST_COLUMNS } from '../../../lib/quoteTable.ts'
 import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
@@ -11,6 +13,7 @@ import { visibleWindow } from '../lib.ts'
 export function useStockList() {
   const rowsRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(rowsRef)
+  const { columns } = useWindowSize()
   const pollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
   const step = useStockListStore((state) => state.step)
   const selectedCode = useStockListStore((state) => state.selectedCode)
@@ -21,6 +24,8 @@ export function useStockList() {
   const overlayOpen = useOverlayOpen()
   const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
   const window = step.type === 'table' ? visibleWindow(step.rows.length, scrollOffset, visible) : { start: 0, end: 0 }
+  const contentColumns = columns - TABLE_CHROME - (STOCK_LIST_COLUMNS.length - 1)
+  const scaledColumns = scaleColumns(STOCK_LIST_COLUMNS, contentColumns)
 
   useEffect(() => {
     useStockListStore.setState({ step: { type: 'loading' } })
@@ -46,5 +51,5 @@ export function useStockList() {
     { isActive: !overlayOpen.open },
   )
 
-  return { rowsRef, step, selectedCode, window }
+  return { rowsRef, step, scaledColumns, selectedCode, window }
 }

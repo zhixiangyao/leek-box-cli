@@ -198,6 +198,19 @@ export const STOCK_DETAIL_COLUMNS = pickColumns(STOCK_DETAIL_KEYS)
 export const tableWidth = (columns: readonly Column[]): number =>
   columns.reduce((sum, column) => sum + column.width, 0) + (columns.length - 1)
 
+/**
+ * 根据终端可用列宽等比例放大各列宽 (四舍五入).
+ * 四舍五入后各列宽之和未必精确等于 target, 由首列吸收残差,
+ * 保证最终列宽之和 === target, 从而恰好填满整行.
+ * 需保证 target >= 列宽之和 (WindowSizeGuard 已保证), 否则比例 < 1, 各列缩窄.
+ */
+export const scaleColumns = (columns: readonly Column[], targetContentWidth: number): Column[] => {
+  const baseSum = columns.reduce((sum, column) => sum + column.width, 0)
+  const widths = columns.map((column) => Math.round((column.width / baseSum) * targetContentWidth))
+  widths[0] = targetContentWidth - widths.slice(1).reduce((sum, width) => sum + width, 0)
+  return columns.map((column, index) => ({ ...column, width: widths[index]! }))
+}
+
 /** 表头行 */
 export const headerRow = (columns: readonly Column[]): Row =>
   withSeparators(columns.map((col) => ({ text: cell(col.title, col), color: 'gray' })))
