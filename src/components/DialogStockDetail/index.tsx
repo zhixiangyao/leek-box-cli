@@ -11,7 +11,6 @@ import StockLogo from '../StockLogo.tsx'
 import Text from '../Text.tsx'
 import { CHART_PERIOD_OPTIONS, useDialogStockDetail } from './hooks/useDialogStockDetail.ts'
 
-/** 提示 */
 const HINT = '关闭(esc)   切换(1-6)'
 
 export default function DialogStockDetail() {

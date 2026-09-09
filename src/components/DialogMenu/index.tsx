@@ -7,7 +7,6 @@ import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from '../Dialog.tsx'
 import Text from '../Text.tsx'
 import { useDialogMenu } from './hooks/useDialogMenu.ts'
 
-/** 提示 */
 const HINT = '关闭(esc)   选择(↑/↓)   确认(enter)'
 
 /** 选项列表计入弹窗宽度的上限, 避免超长内容撑宽弹窗 */

@@ -6,11 +6,9 @@ import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from '../Dialog.tsx'
 import Text from '../Text.tsx'
 import { useDialogRemoveConfirm } from './hooks/useDialogRemoveConfirm.ts'
 
-/** 确认阶段的提示 */
-const HINT = '取消(n)   确定(y)'
+const CONFIRM_HINT = '取消(n)   确定(y)'
 
-/** 失败/完成阶段的提示 */
-const CLOSE_HINT = '关闭(esc)'
+const FINAL_HINT = '关闭(esc)'
 
 /** 条目列表计入弹窗宽度的上限, 避免超长内容撑宽弹窗 */
 const CONTENT_WIDTH_CAP = 60
@@ -19,7 +17,7 @@ export default function DialogRemoveConfirm() {
   const theme = useTheme()
   const { columns } = useWindowSize()
   const { isConfirm, isError, isDone, title, content } = useDialogRemoveConfirm()
-  const hint = isConfirm ? HINT : isError || isDone ? CLOSE_HINT : undefined
+  const hint = isConfirm ? CONFIRM_HINT : isError || isDone ? FINAL_HINT : undefined
   const widest = Math.max(
     stringWidth(title ?? ''),
     Math.min(stringWidth(content), CONTENT_WIDTH_CAP),

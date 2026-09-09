@@ -6,7 +6,9 @@ import Text from '../Text.tsx'
 import { buildChartRows, type ChartCell } from './lib.ts'
 
 const DEFAULT_PRICE_HEIGHT = 9
+
 const DEFAULT_VOLUME_HEIGHT = 4
+
 export const STOCK_CHART_HEIGHT = DEFAULT_PRICE_HEIGHT + DEFAULT_VOLUME_HEIGHT + 1
 
 type Props = {
