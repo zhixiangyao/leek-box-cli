@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 
-import { normalizeCode } from '../src/api/index.ts'
-import { parseFiveDayResponse, parseHistoricalResponse, parseQuoteText } from '../src/api/parsers.ts'
+import { parseFiveDayResponse, parseHistoricalResponse, parseQuoteText } from '../src/api/lib/parsers.ts'
+import { normalizeCode } from '../src/api/lib/tools.ts'
 
 test('normalizeCode 覆盖沪深北各市场前缀', () => {
   expect(normalizeCode('600000')).toBe('sh600000')

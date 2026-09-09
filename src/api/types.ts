@@ -60,7 +60,17 @@ export type HistoricalPoint = {
 }
 
 export type KlinePeriod = 'day' | 'week' | 'month' | 'year'
+
 export type KlineGranularity = Exclude<KlinePeriod, 'year'>
+
 export type KlineAdjustment = 'qfq' | 'hfq'
+
 export type ChartPeriod = 'intraday' | 'five-day' | KlinePeriod
+
 export type ChartPoint = IntradayPoint | FiveDayPoint | HistoricalPoint
+
+export type HistoricalRequest = {
+  period: KlinePeriod
+  barCount: number
+  signal?: AbortSignal
+}

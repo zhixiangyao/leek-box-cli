@@ -1,17 +1,15 @@
 import { create } from 'zustand'
 
-import {
-  fetchFiveDay,
-  fetchHistorical,
-  fetchIntraday,
-  type ChartPeriod,
-  type ChartPoint,
-  type FiveDayPoint,
-  type HistoricalPoint,
-  type HistoricalRequest,
-  type IntradayPoint,
-  type KlinePeriod,
-} from '../api/index.ts'
+import { fetchFiveDay, fetchHistorical, fetchIntraday } from '../api/index.ts'
+import type {
+  ChartPeriod,
+  ChartPoint,
+  FiveDayPoint,
+  HistoricalPoint,
+  HistoricalRequest,
+  IntradayPoint,
+  KlinePeriod,
+} from '../api/types.ts'
 import { errorMessage } from '../lib/error.ts'
 
 const KLINE_REQUEST_BY_PERIOD: Record<KlinePeriod, Omit<HistoricalRequest, 'period' | 'signal'>> = {

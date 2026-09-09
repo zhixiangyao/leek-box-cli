@@ -1,4 +1,11 @@
-import type { FiveDayPoint, HistoricalPoint, IntradayPoint, KlineAdjustment, KlineGranularity, Quote } from './types.ts'
+import type {
+  FiveDayPoint,
+  HistoricalPoint,
+  IntradayPoint,
+  KlineAdjustment,
+  KlineGranularity,
+  Quote,
+} from '../types.ts'
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined =>
   typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined
@@ -29,7 +36,7 @@ const parseIntradayRows = (rows: unknown): IntradayPoint[] => {
   return points
 }
 
-/** 解析腾讯 GBK 解码后的实时行情文本 */
+/** 解析腾讯实时行情文本 (GBK 解码后); 跳过无效行, 无任何有效行情时抛错 */
 export function parseQuoteText(text: string): Quote[] {
   const quotes: Quote[] = []
   for (const part of text.split(';')) {

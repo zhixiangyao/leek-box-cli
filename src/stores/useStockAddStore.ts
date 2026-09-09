@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 
-import { fetchQuotes, normalizeCode, type Quote } from '../api/index.ts'
+import { fetchQuotes } from '../api/index.ts'
+import { normalizeCode } from '../api/lib/tools.ts'
+import type { Quote } from '../api/types.ts'
 import { errorMessage } from '../lib/error.ts'
 import { parseYesNo, YES_NO_ERROR_MESSAGE } from '../lib/yesNo.ts'
 import { stocksAdd } from '../settings/file.ts'

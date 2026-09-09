@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-import { fetchHistorical, fetchQuotes, normalizeCode, parseIntradayResponse, parseQuoteText } from '../src/api/index.ts'
+import { fetchHistorical, fetchQuotes } from '../src/api/index.ts'
+import { parseIntradayResponse, parseQuoteText } from '../src/api/lib/parsers.ts'
+import { normalizeCode } from '../src/api/lib/tools.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 
 /** 构造腾讯实时行情响应字段, 名称使用 ASCII 保证 GBK 编码与 UTF-8 一致 */

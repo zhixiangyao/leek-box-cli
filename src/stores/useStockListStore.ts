@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
-import { fetchQuotes, type Quote } from '../api/index.ts'
+import { fetchQuotes } from '../api/index.ts'
+import type { Quote } from '../api/types.ts'
 import { errorMessage } from '../lib/error.ts'
 import { loadStocks } from '../settings/file.ts'
 import { type StockEntry } from '../settings/schema.ts'
