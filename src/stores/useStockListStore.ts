@@ -22,6 +22,7 @@ type StockListState = {
   scrollOffset: number
   refreshQuotes: (signal?: AbortSignal) => Promise<void>
   moveSelection: (delta: 1 | -1, visible: number) => void
+  reset: () => void
 }
 
 export type StockListDependencies = {
@@ -140,6 +141,10 @@ export function createStockListStore(dependencies: StockListDependencies = defau
         selectedCode: step.rows[nextIndex]?.code,
         scrollOffset: anchoredScrollOffset(delta, currentIndex, step.rows.length, scrollOffset, visible),
       })
+    },
+
+    reset: () => {
+      set({ step: { type: 'loading' }, selectedCode: undefined, scrollOffset: 0 })
     },
   }))
 }

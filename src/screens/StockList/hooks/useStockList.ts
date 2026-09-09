@@ -1,5 +1,5 @@
 import { useInput, useWindowSize } from 'ink'
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { DEFAULT_VISIBLE } from '../../../components/ScrollBox.tsx'
 import { TABLE_CHROME } from '../../../components/WindowSizeGuard.tsx'
@@ -19,6 +19,7 @@ export function useStockList() {
   const scrollOffset = useStockListStore((state) => state.scrollOffset)
   const refreshQuotes = useStockListStore((state) => state.refreshQuotes)
   const moveSelection = useStockListStore((state) => state.moveSelection)
+  const reset = useStockListStore((state) => state.reset)
   const open = useDialogStockDetailStore((state) => state.open)
   const contentColumns = columns - TABLE_CHROME - (STOCK_LIST_COLUMNS.length - 1)
   const scaledColumns = scaleColumns(STOCK_LIST_COLUMNS, contentColumns)
@@ -26,9 +27,7 @@ export function useStockList() {
   const [remainingCount, setRemainingCount] = useState(0)
   const { refresh } = usePolling(refreshQuotes, { intervalMs: pollIntervalMs })
 
-  useLayoutEffect(() => {
-    useStockListStore.setState({ step: { type: 'loading' } })
-  }, [])
+  useEffect(() => () => reset(), [reset])
 
   function handlesVisibleChange(value: number) {
     setVisible(value)
