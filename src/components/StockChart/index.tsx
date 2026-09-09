@@ -1,9 +1,7 @@
 import { Box } from 'ink'
 
-import type { ChartPeriod, ChartPoint } from '../../api/types.ts'
-import type { TrendColorMode } from '../../lib/format.ts'
 import Text from '../Text.tsx'
-import { buildChartRows, type ChartCell } from './lib.ts'
+import { buildChartRows, type BuildChartRowsParams, type ChartCell } from './lib.ts'
 
 const DEFAULT_PRICE_HEIGHT = 9
 
@@ -14,16 +12,13 @@ export const STOCK_CHART_HEIGHT = DEFAULT_PRICE_HEIGHT + DEFAULT_VOLUME_HEIGHT +
 type Props = {
   /** 默认为 false */
   bright?: boolean
-  points: ChartPoint[]
-  period: ChartPeriod
-  prevClose?: number
-  /** 可用列数 */
-  width: number
-  /** 价格区高度 (行) */
-  priceHeight?: number
-  /** 成交量柱区高度 (行) */
-  volumeHeight?: number
-  trendColorMode?: TrendColorMode
+  points: BuildChartRowsParams['points']
+  period: BuildChartRowsParams['period']
+  prevClose?: BuildChartRowsParams['prevClose']
+  width: BuildChartRowsParams['width']
+  priceHeight?: BuildChartRowsParams['priceHeight']
+  volumeHeight?: BuildChartRowsParams['volumeHeight']
+  trendColorMode?: BuildChartRowsParams['trendColorMode']
 }
 
 /** 股票趋势图: 分时/五日/K 线收盘趋势 + 分时参考价虚线 + 成交量柱 + 时间轴 */
@@ -43,20 +38,21 @@ export default function StockChart({
     <Box flexDirection="column">
       {rows.map((row, rowIndex) => {
         // 相邻同色 cell 合并成 run, 减少 Text 片段数量
-        const runs: { text: string; color?: ChartCell['color'] }[] = []
-        for (const cell of row) {
-          const last = runs.at(-1)
+        const runs = row.reduce<ChartCell[]>((acc, cell) => {
+          const last = acc.at(-1)
           if (last && last.color === cell.color) {
-            last.text += cell.ch
+            last.ch += cell.ch
           } else {
-            runs.push({ text: cell.ch, color: cell.color })
+            acc.push(cell)
           }
-        }
+          return acc
+        }, [])
+
         return (
           <Text key={rowIndex} bright={bright}>
             {runs.map((run, runIndex) => (
               <Text key={runIndex} bright={bright} color={run.color}>
-                {run.text}
+                {run.ch}
               </Text>
             ))}
           </Text>

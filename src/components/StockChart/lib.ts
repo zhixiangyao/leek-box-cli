@@ -81,7 +81,9 @@ export const bucketize = (points: IntradayPoint[], width: number): Bucket[] => {
 }
 
 const isHistoricalPoint = (point: ChartPoint): point is HistoricalPoint => 'date' in point
+
 const isFiveDayPoint = (point: ChartPoint): point is FiveDayPoint => 'sessionDate' in point
+
 const isIntradayPoint = (point: ChartPoint): point is IntradayPoint =>
   !isHistoricalPoint(point) && !isFiveDayPoint(point)
 
@@ -154,6 +156,21 @@ const DOT_BIT = (c: number, r: number): number => (r < 3 ? 1 << (r + c * 3) : 1 
 /** Braille 字符: U+2800 + 点阵位掩码 */
 const braille = (mask: number): string => String.fromCharCode(0x2800 + mask)
 
+export type BuildChartRowsParams = {
+  points: ChartPoint[]
+  /** 周期 */
+  period: ChartPeriod
+  prevClose?: number
+  /** 可用列数 */
+  width: number
+  /** 价格区高度 (行) */
+  priceHeight: number
+  /** 成交量柱区高度 (行) */
+  volumeHeight: number
+  /** 趋势颜色模式 */
+  trendColorMode?: TrendColorMode
+}
+
 /**
  * 生成行情图字符矩阵: 价格折线 (Braille 2×4 点阵, 垂直 4 倍 + 水平 2 倍分辨率; 子列间按相邻桶
  * lastPrice 线性插值, 陡坡补垂直间隙; 分时整线按现价 vs 昨收红绿灰, 历史按相邻价格段红绿灰)
@@ -162,15 +179,7 @@ const braille = (mask: number): string => String.fromCharCode(0x2800 + mask)
  * + 底部时间轴行.
  * 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
  */
-export const buildChartRows = (params: {
-  points: ChartPoint[]
-  period: ChartPeriod
-  prevClose?: number
-  width: number
-  priceHeight: number
-  volumeHeight: number
-  trendColorMode?: TrendColorMode
-}): ChartCell[][] => {
+export const buildChartRows = (params: BuildChartRowsParams): ChartCell[][] => {
   const {
     points,
     period,
