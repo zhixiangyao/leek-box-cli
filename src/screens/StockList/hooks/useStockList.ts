@@ -1,6 +1,7 @@
-import { type DOMElement, useBoxMetrics, useInput, useWindowSize } from 'ink'
-import { useEffect, useRef } from 'react'
+import { useInput, useWindowSize } from 'ink'
+import { useLayoutEffect, useState } from 'react'
 
+import { DEFAULT_VISIBLE } from '../../../components/ScrollBox.tsx'
 import { TABLE_CHROME } from '../../../components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
@@ -8,12 +9,10 @@ import { scaleColumns, STOCK_LIST_COLUMNS } from '../../../lib/quoteTable.ts'
 import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
-import { visibleWindow } from '../lib.ts'
 
 export function useStockList() {
-  const rowsRef = useRef<DOMElement>(null)
-  const boxMetrics = useBoxMetrics(rowsRef)
   const { columns } = useWindowSize()
+  const overlayOpen = useOverlayOpen()
   const pollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
   const step = useStockListStore((state) => state.step)
   const selectedCode = useStockListStore((state) => state.selectedCode)
@@ -21,35 +20,44 @@ export function useStockList() {
   const refreshQuotes = useStockListStore((state) => state.refreshQuotes)
   const moveSelection = useStockListStore((state) => state.moveSelection)
   const open = useDialogStockDetailStore((state) => state.open)
-  const overlayOpen = useOverlayOpen()
-  const visible = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
-  const window = step.type === 'table' ? visibleWindow(step.rows.length, scrollOffset, visible) : { start: 0, end: 0 }
   const contentColumns = columns - TABLE_CHROME - (STOCK_LIST_COLUMNS.length - 1)
   const scaledColumns = scaleColumns(STOCK_LIST_COLUMNS, contentColumns)
+  const [visible, setVisible] = useState(DEFAULT_VISIBLE)
+  const [remainingCount, setRemainingCount] = useState(0)
+  const { refresh } = usePolling(refreshQuotes, { intervalMs: pollIntervalMs })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     useStockListStore.setState({ step: { type: 'loading' } })
   }, [])
 
-  const { refresh } = usePolling(refreshQuotes, { intervalMs: pollIntervalMs })
+  function handlesVisibleChange(value: number) {
+    setVisible(value)
+  }
+
+  function handlesWindowChange(value: number) {
+    setRemainingCount(value)
+  }
 
   useInput(
     (input, key) => {
       if (key.ctrl) return
-      if (key.upArrow) {
-        moveSelection(-1, visible)
-      } else if (key.downArrow) {
-        moveSelection(1, visible)
-      } else if (key.return) {
-        if (step.type !== 'table' || !selectedCode) return
-        const row = step.rows.find((item) => item.code === selectedCode)
-        if (row) open(row.code, row.name)
-      } else if (input === 'r') {
+      if (input === 'r') {
         refresh()
+      } else {
+        if (step.type !== 'table' || !selectedCode) return
+
+        if (key.return) {
+          const selectedRow = step.rows.find((item) => item.code === selectedCode)
+          if (selectedRow) open(selectedRow.code, selectedRow.name)
+        } else if (key.upArrow) {
+          moveSelection(-1, visible)
+        } else if (key.downArrow) {
+          moveSelection(1, visible)
+        }
       }
     },
     { isActive: !overlayOpen.open },
   )
 
-  return { rowsRef, step, scaledColumns, selectedCode, window }
+  return { step, selectedCode, scrollOffset, scaledColumns, remainingCount, handlesVisibleChange, handlesWindowChange }
 }
