@@ -85,7 +85,7 @@ export default function StockList({ title, hint }: Props) {
       footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
       extra={
         stockList.step.type === 'table' && stockList.remainingCount > 0 ? (
-          <Text>还有 {stockList.remainingCount} 个</Text>
+          <Text>剩余 {stockList.remainingCount} 个</Text>
         ) : undefined
       }
     >
