@@ -170,7 +170,7 @@ export function parseStocks(value: unknown): StockEntry[] {
 /** 验证主题预设名称 */
 const parseThemePreset = (value: unknown): ThemePreset => {
   if (typeof value !== 'string' || !THEME_PRESET_NAMES.includes(value as ThemePreset)) {
-    throw new Error(t('settings.error.themePreset'))
+    throw new Error(t('settings.error.themePreset', { allowed: THEME_PRESET_NAMES.join(', ') }))
   }
   return value as ThemePreset
 }
@@ -179,7 +179,7 @@ const parseThemePreset = (value: unknown): ThemePreset => {
 const parseTrendColorMode = (value: unknown): TrendColorMode => {
   if (value === undefined) return DEFAULT_TREND_COLOR_MODE
   if (typeof value !== 'string' || !TREND_COLOR_MODES.includes(value as TrendColorMode)) {
-    throw new Error(t('settings.error.trendColorMode'))
+    throw new Error(t('settings.error.trendColorMode', { allowed: TREND_COLOR_MODES.join(', ') }))
   }
   return value as TrendColorMode
 }
@@ -188,7 +188,7 @@ const parseTrendColorMode = (value: unknown): TrendColorMode => {
 const parseLanguage = (value: unknown): Language => {
   if (value === undefined) return DEFAULT_LANGUAGE
   if (typeof value !== 'string' || !LANGUAGES.includes(value as Language)) {
-    throw new Error(t('settings.error.language'))
+    throw new Error(t('settings.error.language', { allowed: LANGUAGES.join(', ') }))
   }
   return value as Language
 }
@@ -209,7 +209,7 @@ export function parseSettingsDocument(value: unknown): SettingsDocument {
   if (!isNormalObject(theme)) throw new Error(t('settings.error.theme'))
   const borderStyle = theme['borderStyle']
   if (typeof borderStyle !== 'string' || !BORDER_STYLES.includes(borderStyle as Settings['borderStyle'])) {
-    throw new Error(t('settings.error.borderStyle'))
+    throw new Error(t('settings.error.borderStyle', { allowed: BORDER_STYLES.join(', ') }))
   }
 
   const request = value['request']

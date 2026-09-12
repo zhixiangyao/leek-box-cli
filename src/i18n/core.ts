@@ -25,7 +25,7 @@ const translateWith = (locale: Locale, key: MessageKey, params?: MessageParams):
 
 /**
  * 当前生效的 locale. 由 settings 的 language 派生, 不是独立状态:
- * 生产只由 settingsPersistence 的 hydrate/订阅和 parseCli 的 help 分支写入,
+ * 生产只由 parseCli 预读文档后的 applyLanguage 和 settingsPersistence 的 hydrate/订阅写入,
  * setActiveLocale 只给测试固定语言用.
  * 初始值是常量而不是检测结果, 因此默认中文, 且测试不受运行环境语言影响.
  */

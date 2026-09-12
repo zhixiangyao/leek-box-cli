@@ -6,7 +6,8 @@ import process from 'node:process'
 import { afterEach, beforeEach, expect, test } from 'vitest'
 
 import { setActiveLocale } from '../src/i18n/core.ts'
-import { DEFAULT_LOCALE } from '../src/i18n/locale.ts'
+import { DEFAULT_LOCALE, detectLocale, LANGUAGES } from '../src/i18n/locale.ts'
+import { TREND_COLOR_MODES } from '../src/lib/format.ts'
 import {
   initializeSettings,
   loadStocks,
@@ -18,11 +19,13 @@ import {
   stocksRemove,
 } from '../src/settings/file.ts'
 import {
+  BORDER_STYLES,
   createDocument,
   DEFAULT_SETTINGS,
   parseSettingsDocument,
   parseStocks,
   settingsFromDocument,
+  THEME_PRESET_NAMES,
   type Settings,
   type SettingsDocument,
   type StockEntry,
@@ -196,10 +199,16 @@ test('parseSettingsDocument 校验主题并采用默认涨跌颜色模式', () =
   })
 
   expect(() => parseSettingsDocument({ ...document, theme: { preset: 'neon', borderStyle: 'round' } })).toThrow(
-    /theme.preset 无效/,
+    new RegExp(`theme.preset 无效, 只支持: ${THEME_PRESET_NAMES.join(', ')}`),
   )
+  expect(() =>
+    parseSettingsDocument({
+      ...document,
+      theme: { preset: 'classic', trendColorMode: 'blue-up', borderStyle: 'round' },
+    }),
+  ).toThrow(new RegExp(`theme.trendColorMode 无效, 只支持: ${TREND_COLOR_MODES.join(', ')}`))
   expect(() => parseSettingsDocument({ ...document, theme: { preset: 'classic', borderStyle: 'wavy' } })).toThrow(
-    /theme.borderStyle 无效/,
+    new RegExp(`theme.borderStyle 无效, 只支持: ${BORDER_STYLES.join(', ')}`),
   )
 })
 
@@ -223,8 +232,28 @@ test('parseSettingsDocument 校验界面语言并接受字段缺失', () => {
   delete withoutLanguage['language']
   expect(parseSettingsDocument(withoutLanguage).language).toBe('auto')
 
-  expect(() => parseSettingsDocument({ ...document, language: 'ja-JP' })).toThrow(/language 无效/)
+  expect(() => parseSettingsDocument({ ...document, language: 'ja-JP' })).toThrow(
+    new RegExp(`language 无效, 只支持: ${LANGUAGES.join(', ')}`),
+  )
   expect(() => parseSettingsDocument({ ...document, language: 1 })).toThrow(/language 无效/)
+})
+
+test('parseSettingsDocument 的语言报错跟随已生效 locale, 而非抛出时重新检测', () => {
+  // LC_ALL 与 active locale 故意不一致: parseCli 在读取设置文件前已按系统语言生效,
+  // 若实现改成抛错时重新检测系统语言, 这里会渲染成中文而断言失败
+  const previous = process.env['LC_ALL']
+  process.env['LC_ALL'] = 'zh_CN.UTF-8'
+  try {
+    // 先钉住前提: 万一 LC_ALL 不再是检测来源, 下面的断言会失去区分度而静默通过
+    expect(detectLocale()).toBe('zh-hans')
+    setActiveLocale('en')
+    expect(() => parseSettingsDocument({ ...validDocument(), language: 'ja-JP' })).toThrow(
+      `language is invalid, supported values: ${LANGUAGES.join(', ')}`,
+    )
+  } finally {
+    if (previous === undefined) delete process.env['LC_ALL']
+    else process.env['LC_ALL'] = previous
+  }
 })
 
 test('createDocument 与 settingsFromDocument 往返保持一致', () => {
