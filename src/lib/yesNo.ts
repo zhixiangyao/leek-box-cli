@@ -1,3 +1,5 @@
+import { t } from '../i18n/core.ts'
+
 export function parseYesNo(answer: string): 'y' | 'n' | undefined {
   const trimmed = answer.trim()
   if (['y', 'Y'].includes(trimmed)) return 'y'
@@ -5,4 +7,5 @@ export function parseYesNo(answer: string): 'y' | 'n' | undefined {
   return undefined
 }
 
-export const YES_NO_ERROR_MESSAGE = '错误: 必须选择 y (是) 或 n (否).'
+/** 延迟到调用时取文案, 保证跟随当前界面语言 */
+export const yesNoErrorMessage = (): string => t('common.yesNoError')

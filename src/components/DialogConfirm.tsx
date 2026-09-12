@@ -2,20 +2,18 @@ import { useInput, useWindowSize } from 'ink'
 import stringWidth from 'string-width'
 
 import { useTheme } from '../hooks/useTheme.ts'
+import { useTranslation } from '../hooks/useTranslation.ts'
 import { parseYesNo } from '../lib/yesNo.ts'
 import { useDialogConfirmStore } from '../stores/useDialogConfirmStore.ts'
 import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from './Dialog.tsx'
 import Text from './Text.tsx'
-
-const HINT = '取消(n)   确定(y)'
-
-const ERROR_HINT = '关闭(esc)   重试(y)'
 
 /** 内容计入弹窗宽度的上限, 避免超长内容撑宽弹窗 */
 const CONTENT_WIDTH_CAP = 60
 
 export default function DialogConfirm() {
   const theme = useTheme()
+  const { t } = useTranslation()
   const { columns } = useWindowSize()
   const config = useDialogConfirmStore((state) => state.config)
   const close = useDialogConfirmStore((state) => state.close)
@@ -23,7 +21,7 @@ export default function DialogConfirm() {
   const content = config?.content
   const isError = config?.isError ?? false
   const confirm = config?.confirm
-  const hint = isError ? ERROR_HINT : HINT
+  const hint = isError ? t('dialogConfirm.errorHint') : t('dialogConfirm.hint')
   const widest = Math.max(
     stringWidth(title ?? ''),
     Math.min(stringWidth(content ?? ''), CONTENT_WIDTH_CAP),

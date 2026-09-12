@@ -1,9 +1,11 @@
 import { useInput } from 'ink'
 
+import { useTranslation } from '../../../hooks/useTranslation.ts'
 import { parseYesNo } from '../../../lib/yesNo.ts'
 import { useDialogRemoveConfirmStore } from '../../../stores/useDialogRemoveConfirmStore.ts'
 
 export function useDialogRemoveConfirm() {
+  const { t } = useTranslation()
   const step = useDialogRemoveConfirmStore((state) => state.step)
   const targets = useDialogRemoveConfirmStore((state) => state.targets)
   const confirmDelete = useDialogRemoveConfirmStore((state) => state.confirmDelete)
@@ -16,19 +18,19 @@ export function useDialogRemoveConfirm() {
 
   switch (step.type) {
     case 'error':
-      title = '删除失败'
+      title = t('dialogRemoveConfirm.titleFailed')
       break
 
     case 'done':
-      title = '删除完成'
+      title = t('dialogRemoveConfirm.titleDone')
       break
 
     case 'removing':
-      title = `正在删除 ${targets.length} 个股票...`
+      title = t('dialogRemoveConfirm.titleRemoving', { count: targets.length })
       break
 
     case 'confirm':
-      title = `确定删除选中的 ${targets.length} 个股票?`
+      title = t('dialogRemoveConfirm.titleConfirm', { count: targets.length })
       break
   }
 

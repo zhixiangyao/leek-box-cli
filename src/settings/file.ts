@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
 
+import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
 import { isWindows } from '../lib/is.ts'
 import { withFileLock } from './lock.ts'
@@ -49,14 +50,14 @@ const readJsonFile = async (path: string): Promise<unknown | undefined> => {
   }
 }
 
-/** 读取并验证设置文件 */
-const readSettingsFile = async (): Promise<SettingsDocument | undefined> => {
+/** 读取并验证设置文件, 不存在时返回 undefined, 不创建文件 */
+export const loadExistingSettings = async (): Promise<SettingsDocument | undefined> => {
   const path = settingsPath()
   try {
     const value = await readJsonFile(path)
     return value === undefined ? undefined : parseSettingsDocument(value)
   } catch (error) {
-    throw new Error(`设置文件损坏: ${path} (${errorMessage(error)})`)
+    throw new Error(t('settings.error.corruptFile', { path, error: errorMessage(error) }))
   }
 }
 
@@ -89,7 +90,7 @@ const createDefaultStocks = (): StockEntry[] => {
 
 /** 在锁内读取设置文件, 不存在时创建默认文档 */
 const loadOrCreateSettings = async (): Promise<SettingsDocument> => {
-  const existing = await readSettingsFile()
+  const existing = await loadExistingSettings()
   if (existing) return existing
 
   const document = createDocument(DEFAULT_SETTINGS, createDefaultStocks())
@@ -99,7 +100,7 @@ const loadOrCreateSettings = async (): Promise<SettingsDocument> => {
 
 /** 初始化并返回设置文档 */
 export async function initializeSettings(): Promise<SettingsDocument> {
-  return (await readSettingsFile()) ?? withFileLock(settingsPath(), loadOrCreateSettings)
+  return (await loadExistingSettings()) ?? withFileLock(settingsPath(), loadOrCreateSettings)
 }
 
 /** 在锁内将设置文件重置为默认文档, 不读取现有内容, 损坏文件也能修复 */

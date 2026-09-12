@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 
+import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
 import { stocksRemove } from '../settings/file.ts'
 import { type StockEntry } from '../settings/schema.ts'
@@ -48,21 +49,24 @@ export function createDialogRemoveConfirmStore(dependencies: DialogRemoveConfirm
       try {
         const removedCount = await dependencies.stocksRemove(codes)
         if (removedCount === 0) {
-          set({ step: { type: 'error', message: `所选 ${count} 个条目已不在自选股中.` } })
+          set({ step: { type: 'error', message: t('dialogRemoveConfirm.allMissing', { count }) } })
           return
         }
         dependencies.commitRemoval(codes)
         const missingCount = count - removedCount
         if (missingCount > 0) {
           set({
-            step: { type: 'done', message: `已删除 ${removedCount} 个股票, ${missingCount} 个条目已不在自选股中.` },
+            step: {
+              type: 'done',
+              message: t('dialogRemoveConfirm.done', { count: removedCount, missing: missingCount }),
+            },
             targets: [],
           })
           return
         }
         set({ step: { type: 'idle' }, targets: [] })
       } catch (error) {
-        set({ step: { type: 'error', message: `删除失败: ${errorMessage(error)}` } })
+        set({ step: { type: 'error', message: t('dialogRemoveConfirm.failed', { error: errorMessage(error) }) } })
       }
     },
 

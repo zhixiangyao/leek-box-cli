@@ -1,6 +1,9 @@
 import stringWidth from 'string-width'
 
 import type { Quote } from '../api/types.ts'
+import { createTranslator } from '../i18n/core.ts'
+import { DEFAULT_LOCALE } from '../i18n/locale.ts'
+import type { MessageKey, Locale } from '../i18n/types.ts'
 import {
   DEFAULT_TREND_COLOR_MODE,
   EMPTY_VALUE,
@@ -19,6 +22,18 @@ import {
 
 type ColumnKind = 'code' | 'name' | 'changePercent' | 'value'
 
+/** 表头与占位文案的键, 宽度按 locale 分开, 因为英文表头比中文表头宽 */
+type ColumnSpec = {
+  key: keyof Quote
+  kind: ColumnKind
+  title: MessageKey
+  widths: Record<Locale, number>
+  render: (quote: Quote, locale: Locale) => string
+  color?: (quote: Quote, trendColorMode: TrendColorMode) => TrendColor
+  suspendedText?: MessageKey
+  missingText?: MessageKey
+}
+
 export type Column = {
   key: keyof Quote
   kind: ColumnKind
@@ -27,6 +42,7 @@ export type Column = {
   render: (quote: Quote) => string
   color?: (quote: Quote, trendColorMode: TrendColorMode) => TrendColor
   suspendedText?: string
+  missingText?: string
 }
 
 export type Row = { text: string; color?: TrendColor }[]
@@ -39,126 +55,147 @@ const withSeparators = (segments: Row): Row =>
     text: index < segments.length - 1 ? `${segment.text} ` : segment.text,
   }))
 
-export const COLUMNS: readonly Column[] = [
+/** 单一来源列定义: 文案用键, 宽度按 locale 分开 */
+const COLUMN_SPECS: readonly ColumnSpec[] = [
   {
     key: 'code',
     kind: 'code',
-    title: '代码',
-    width: 9,
+    title: 'table.column.code',
+    widths: { 'zh-hans': 9, 'zh-hant': 9, en: 9 },
     render: (q: Quote) => q.code,
   },
   {
     key: 'name',
     kind: 'name',
-    title: '名称',
-    width: 9,
+    title: 'table.column.name',
+    widths: { 'zh-hans': 9, 'zh-hant': 9, en: 9 },
     render: (q: Quote) => q.name,
   },
   {
     key: 'current',
     kind: 'value',
-    title: '现价',
-    width: 8,
+    title: 'table.column.current',
+    widths: { 'zh-hans': 8, 'zh-hant': 8, en: 8 },
     render: (q) => formatPrice(q.current),
     color: (q, mode) => trendColor(q.change, mode),
   },
   {
     key: 'changePercent',
     kind: 'changePercent',
-    title: '涨跌幅',
-    width: 9,
+    title: 'table.column.changePercent',
+    widths: { 'zh-hans': 9, 'zh-hant': 9, en: 9 },
     render: (q) => formatPercent(q.changePercent),
     color: (q, mode) => trendColor(q.changePercent, mode),
-    suspendedText: '停牌',
+    suspendedText: 'common.suspended',
+    missingText: 'common.noData',
   },
   {
     key: 'change',
     kind: 'value',
-    title: '涨跌额',
-    width: 8,
+    title: 'table.column.change',
+    widths: { 'zh-hans': 8, 'zh-hant': 8, en: 8 },
     render: (q) => formatSigned(q.change),
     color: (q, mode) => trendColor(q.change, mode),
   },
   {
     key: 'open',
     kind: 'value',
-    title: '今开',
-    width: 7,
+    title: 'table.column.open',
+    widths: { 'zh-hans': 7, 'zh-hant': 7, en: 7 },
     render: (q) => formatPrice(q.open),
   },
   {
     key: 'prevClose',
     kind: 'value',
-    title: '昨收',
-    width: 7,
+    title: 'table.column.prevClose',
+    widths: { 'zh-hans': 7, 'zh-hant': 7, en: 10 },
     render: (q) => formatPrice(q.prevClose),
   },
   {
     key: 'high',
     kind: 'value',
-    title: '最高',
-    width: 7,
+    title: 'table.column.high',
+    widths: { 'zh-hans': 7, 'zh-hant': 7, en: 7 },
     render: (q) => formatPrice(q.high),
   },
   {
     key: 'low',
     kind: 'value',
-    title: '最低',
-    width: 7,
+    title: 'table.column.low',
+    widths: { 'zh-hans': 7, 'zh-hant': 7, en: 7 },
     render: (q) => formatPrice(q.low),
   },
   {
     key: 'volume',
     kind: 'value',
-    title: '成交量',
-    width: 11,
-    render: (q) => formatVolume(q.volume),
+    title: 'table.column.volume',
+    widths: { 'zh-hans': 11, 'zh-hant': 11, en: 11 },
+    render: (q, locale) => formatVolume(q.volume, locale),
   },
   {
     key: 'turnover',
     kind: 'value',
-    title: '成交额',
-    width: 9,
-    render: (q) => formatTurnover(q.turnover),
+    title: 'table.column.turnover',
+    widths: { 'zh-hans': 9, 'zh-hant': 9, en: 9 },
+    render: (q, locale) => formatTurnover(q.turnover, locale),
   },
   {
     key: 'turnoverRate',
     kind: 'value',
-    title: '换手率',
-    width: 7,
+    title: 'table.column.turnoverRate',
+    widths: { 'zh-hans': 7, 'zh-hant': 7, en: 10 },
     render: (q) => formatRate(q.turnoverRate),
   },
   {
     key: 'amplitude',
     kind: 'value',
-    title: '振幅',
-    width: 7,
+    title: 'table.column.amplitude',
+    widths: { 'zh-hans': 7, 'zh-hant': 7, en: 9 },
     render: (q) => formatRate(q.amplitude),
   },
   {
     key: 'volumeRatio',
     kind: 'value',
-    title: '量比',
-    width: 7,
+    title: 'table.column.volumeRatio',
+    widths: { 'zh-hans': 7, 'zh-hant': 7, en: 9 },
     render: (q) => formatRatio(q.volumeRatio),
   },
   {
     key: 'marketCap',
     kind: 'value',
-    title: '总市值',
-    width: 10,
-    render: (q) => formatMarketCap(q.marketCap),
+    title: 'table.column.marketCap',
+    widths: { 'zh-hans': 10, 'zh-hant': 10, en: 10 },
+    render: (q, locale) => formatMarketCap(q.marketCap, locale),
   },
 ]
 
-export const COLUMNS_BY_KEY = new Map(COLUMNS.map((column) => [column.key, column]))
+/**
+ * 解析指定 locale 下的列: 文案绑定该 locale 翻译, 数值按该 locale 的单位格式化.
+ * 必须用 createTranslator(locale) 而不是全局 t, 否则传参 locale 不会生效.
+ */
+const resolveColumns = (locale: Locale): Column[] => {
+  const translate = createTranslator(locale)
+  return COLUMN_SPECS.map((spec) => ({
+    key: spec.key,
+    kind: spec.kind,
+    title: translate(spec.title),
+    width: spec.widths[locale],
+    render: (quote: Quote) => spec.render(quote, locale),
+    color: spec.color,
+    suspendedText: spec.suspendedText === undefined ? undefined : translate(spec.suspendedText),
+    missingText: spec.missingText === undefined ? undefined : translate(spec.missingText),
+  }))
+}
 
-const pickColumns = (keys: readonly (keyof Quote)[]): Column[] =>
-  keys.map((key) => {
-    const column = COLUMNS_BY_KEY.get(key)
-    if (column === undefined) throw new Error(`未知行情列: ${key}`)
+const pickColumns = (locale: Locale, keys: readonly (keyof Quote)[]): Column[] => {
+  const columns = resolveColumns(locale)
+  const byKey = new Map(columns.map((column) => [column.key, column]))
+  return keys.map((key) => {
+    const column = byKey.get(key)
+    if (column === undefined) throw new Error(createTranslator(locale)('table.unknownColumn', { key }))
     return column
   })
+}
 
 /** 列表 12 列: 显式 key 挑选 (昨收/振幅/量比仅详情面板用, 不占看板列宽) */
 const STOCK_LIST_KEYS: readonly (keyof Quote)[] = [
@@ -190,9 +227,29 @@ const STOCK_DETAIL_KEYS: readonly (keyof Quote)[] = [
   'marketCap',
 ]
 
-export const STOCK_LIST_COLUMNS = pickColumns(STOCK_LIST_KEYS)
+/**
+ * 已解析的列按 locale 缓存: 看板每次 resize 和轮询渲染都会取列, 缓存后不再重复构建,
+ * 同时让返回的数组保持稳定引用. 因此返回的列定义是共享的, 调用方不得就地修改
+ * (scaleColumns 需要改宽度时会复制).
+ */
+const listColumnsCache = new Map<Locale, Column[]>()
+const detailColumnsCache = new Map<Locale, Column[]>()
 
-export const STOCK_DETAIL_COLUMNS = pickColumns(STOCK_DETAIL_KEYS)
+const cachedColumns = (cache: Map<Locale, Column[]>, locale: Locale, keys: readonly (keyof Quote)[]): Column[] => {
+  const cached = cache.get(locale)
+  if (cached !== undefined) return cached
+  const columns = pickColumns(locale, keys)
+  cache.set(locale, columns)
+  return columns
+}
+
+/** 看板列, 表头与单位随 locale 变化 */
+export const stockListColumns = (locale: Locale = DEFAULT_LOCALE): Column[] =>
+  cachedColumns(listColumnsCache, locale, STOCK_LIST_KEYS)
+
+/** 详情列, 表头与单位随 locale 变化 */
+export const stockDetailColumns = (locale: Locale = DEFAULT_LOCALE): Column[] =>
+  cachedColumns(detailColumnsCache, locale, STOCK_DETAIL_KEYS)
 
 /** 表格总宽 = 各列宽之和 + 列间分隔 */
 export const tableWidth = (columns: readonly Column[]): number =>
@@ -230,14 +287,11 @@ export const quoteRow = (
   )
 }
 
-/** 缺失行 */
+/** 缺失行: 占位文案取自列元数据, 因此跟随列自己的 locale */
 export const missingRow = (columns: readonly Column[], code: string, name: string): Row =>
   withSeparators(
     columns.map((col) => ({
-      text: cell(
-        col.kind === 'code' ? code : col.kind === 'name' ? name : col.kind === 'changePercent' ? '无数据' : EMPTY_VALUE,
-        col,
-      ),
+      text: cell(col.kind === 'code' ? code : col.kind === 'name' ? name : (col.missingText ?? EMPTY_VALUE), col),
       color: 'gray',
     })),
   )

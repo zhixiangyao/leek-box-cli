@@ -11,8 +11,8 @@ const [
   { render, Text: InkText },
   { default: App },
   { default: Card },
-  { MIN_TERMINAL_ROWS },
-  { STOCK_LIST_COLUMNS, tableWidth },
+  { MIN_TERMINAL_COLUMNS, MIN_TERMINAL_ROWS, TABLE_CHROME },
+  { stockListColumns, tableWidth },
 ] = await Promise.all([
   import('ink'),
   import('../src/app.tsx'),
@@ -20,6 +20,8 @@ const [
   import('../src/components/WindowSizeGuard.tsx'),
   import('../src/lib/quoteTable.ts'),
 ])
+
+const STOCK_LIST_COLUMNS = stockListColumns()
 
 const [
   { useStockAddStore },
@@ -31,6 +33,8 @@ const [
   { useSettingsStore },
   { useDialogStockDetailStore },
   { useStockListStore },
+  { setActiveLocale },
+  { DEFAULT_LOCALE, LOCALES },
 ] = await Promise.all([
   import('../src/stores/useStockAddStore.ts'),
   import('../src/stores/useStockRemoveStore.ts'),
@@ -41,6 +45,8 @@ const [
   import('../src/stores/useSettingsStore.ts'),
   import('../src/stores/useDialogStockDetailStore.ts'),
   import('../src/stores/useStockListStore.ts'),
+  import('../src/i18n/core.ts'),
+  import('../src/i18n/locale.ts'),
 ])
 
 class CaptureOutput extends Writable {
@@ -100,16 +106,31 @@ const assertFrameSize = (frame: string, columns: number, rows: number) => {
   expect(lines.at(-1)?.length).toBe(columns)
 }
 
+/**
+ * 语言固定为简体中文: 默认值 auto 会跟随运行环境的系统语言,
+ * 断言渲染帧的测试必须与机器语言无关.
+ */
 const resetStores = () => {
   useStockAddStore.setState(useStockAddStore.getInitialState(), true)
   useDialogMenuStore.setState(useDialogMenuStore.getInitialState(), true)
   useDialogConfirmStore.setState(useDialogConfirmStore.getInitialState(), true)
   useDialogRemoveConfirmStore.setState(useDialogRemoveConfirmStore.getInitialState(), true)
   useRouterStore.setState(useRouterStore.getInitialState(), true)
-  useSettingsStore.setState(useSettingsStore.getInitialState(), true)
+  useSettingsStore.setState({ ...useSettingsStore.getInitialState(), language: DEFAULT_LOCALE }, true)
   useDialogStockDetailStore.setState(useDialogStockDetailStore.getInitialState(), true)
   useStockListStore.setState(useStockListStore.getInitialState(), true)
+  setActiveLocale(DEFAULT_LOCALE)
 }
+
+/**
+ * 宽度下限必须与界面语言无关: 若按当前 locale 推导, 在恰好满足中文下限的终端上
+ * 切到英文就会被守卫拦住, 而设置页也在守卫之内, 语言再也改不回来.
+ */
+test('终端宽度下限覆盖全部语言的看板占宽', () => {
+  for (const locale of LOCALES) {
+    expect(tableWidth(stockListColumns(locale)) + TABLE_CHROME, locale).toBeLessThanOrEqual(MIN_TERMINAL_COLUMNS)
+  }
+})
 
 test('Card fullScreen 使用终端尺寸而非显式尺寸', async () => {
   const columns = 41
@@ -439,6 +460,84 @@ test('App 的 esc 接线: 菜单开关切换', async () => {
     input.write('\x1B')
     await waitForFrame(output, after, (candidate) => !candidate.includes('\x1B[2m'))
     expect(useDialogMenuStore.getState().open).toBe(false)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 在 en 下渲染英文页面标题, 表头与本地化单位', async () => {
+  const columns = tableWidth(stockListColumns('en')) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useSettingsStore.setState({ language: 'en' })
+  setActiveLocale('en')
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({
+        step: {
+          type: 'table',
+          rows: [
+            {
+              kind: 'quote',
+              code: 'sh600000',
+              name: '浦发银行',
+              quote: {
+                code: 'sh600000',
+                name: '浦发银行',
+                current: 10.25,
+                prevClose: 10,
+                open: 10.1,
+                high: 10.3,
+                low: 9.95,
+                change: 0.25,
+                changePercent: 2.5,
+                timestamp: '20260820150000',
+                volume: 611_000,
+                turnover: 55_000,
+                turnoverRate: 1.2,
+                amplitude: 3.5,
+                marketCap: 2987.53,
+                volumeRatio: 1.1,
+              },
+            },
+            { kind: 'missing', code: 'sz000001', name: '平安银行' },
+          ],
+        },
+      })
+    },
+  })
+
+  const instance = render(createElement(App), {
+    stdout: output as unknown as NodeJS.WriteStream,
+    stdin: input as unknown as NodeJS.ReadStream,
+    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
+    debug: true,
+    interactive: false,
+    patchConsole: false,
+  })
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('Market Cap'))
+    const text = plain(frame)
+
+    // 页面标题与表头
+    expect(text).toContain('Watchlist')
+    expect(text).toContain('Change %')
+    expect(text).toContain('Turnover %')
+    // 本地化单位 (ScrollBox 只渲染测量到的窗口, 首行即行情行)
+    expect(text).toContain('611.0K lots')
+    expect(text).toContain('550.0M')
+    expect(text).toContain('298.75B')
+    // 中文单位不再出现
+    expect(text).not.toContain('亿')
+    expect(text).not.toContain('万手')
+    assertFrameSize(frame, columns, rows)
   } finally {
     instance.unmount()
     await instance.waitUntilExit()

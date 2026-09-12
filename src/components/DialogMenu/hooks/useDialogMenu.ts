@@ -1,6 +1,7 @@
 import { useApp, useInput } from 'ink'
 
 import { type Item, ITEMS } from '../../../cli/menu.ts'
+import { useTranslation } from '../../../hooks/useTranslation.ts'
 import { errorMessage } from '../../../lib/error.ts'
 import { settingsPath } from '../../../settings/file.ts'
 import { resetAll } from '../../../settings/resetAll.ts'
@@ -9,6 +10,7 @@ import { useDialogMenuStore } from '../../../stores/useDialogMenuStore.ts'
 import { useRouterStore } from '../../../stores/useRouterStore.ts'
 
 export function useDialogMenu() {
+  const { t } = useTranslation()
   const goTo = useRouterStore((state) => state.goTo)
   const currentType = useDialogMenuStore((state) => state.currentType)
   const close = useDialogMenuStore((state) => state.close)
@@ -27,9 +29,9 @@ export function useDialogMenu() {
       }
 
       case 'reset': {
-        const content = `此操作将重置所有设置与自选股为默认值, 配置文件: ${settingsPath()}`
+        const content = t('menu.resetConfirmContent', { path: settingsPath() })
         open({
-          title: '确认重置吗?',
+          title: t('menu.resetConfirmTitle'),
           content,
           isError: false,
           confirm: async () => {
@@ -37,7 +39,7 @@ export function useDialogMenu() {
             try {
               await resetAll()
             } catch (cause) {
-              update({ content: `重置失败: ${errorMessage(cause)}`, isError: true })
+              update({ content: t('menu.resetFailed', { error: errorMessage(cause) }), isError: true })
               throw cause
             }
           },

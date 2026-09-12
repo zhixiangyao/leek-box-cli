@@ -6,6 +6,7 @@ import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
+import { useTranslation } from '../../hooks/useTranslation.ts'
 import type { StockEntry } from '../../settings/schema.ts'
 import { useStockRemove } from './hooks/useStockRemove.ts'
 
@@ -17,6 +18,7 @@ type Props = {
 export default function StockRemove({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
+  const { t } = useTranslation()
   const { entries, errorMessage, resetToken, open } = useStockRemove()
   let content: ReactNode
 
@@ -24,7 +26,7 @@ export default function StockRemove({ title, hint }: Props) {
     content = errorMessage ? (
       <Text color="red">{errorMessage}</Text>
     ) : (
-      <Text color="yellow">自选股为空, 按 esc 打开菜单添加自选股.</Text>
+      <Text color="yellow">{t('common.watchlistEmpty')}</Text>
     )
   } else {
     // 网格常驻: 无浮层时可交互, 确认/删除阶段作为底层被弹窗覆盖并变暗.

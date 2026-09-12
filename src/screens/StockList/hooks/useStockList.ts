@@ -5,7 +5,8 @@ import { DEFAULT_VISIBLE } from '../../../components/ScrollBox.tsx'
 import { TABLE_CHROME } from '../../../components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
-import { scaleColumns, STOCK_LIST_COLUMNS } from '../../../lib/quoteTable.ts'
+import { useTranslation } from '../../../hooks/useTranslation.ts'
+import { scaleColumns, stockListColumns } from '../../../lib/quoteTable.ts'
 import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
@@ -13,6 +14,7 @@ import { useStockListStore } from '../../../stores/useStockListStore.ts'
 export function useStockList() {
   const { columns } = useWindowSize()
   const overlayOpen = useOverlayOpen()
+  const { locale } = useTranslation()
   const pollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
   const step = useStockListStore((state) => state.step)
   const selectedCode = useStockListStore((state) => state.selectedCode)
@@ -21,8 +23,9 @@ export function useStockList() {
   const moveSelection = useStockListStore((state) => state.moveSelection)
   const reset = useStockListStore((state) => state.reset)
   const open = useDialogStockDetailStore((state) => state.open)
-  const contentColumns = columns - TABLE_CHROME - (STOCK_LIST_COLUMNS.length - 1)
-  const scaledColumns = scaleColumns(STOCK_LIST_COLUMNS, contentColumns)
+  const columnsForLocale = stockListColumns(locale)
+  const contentColumns = columns - TABLE_CHROME - (columnsForLocale.length - 1)
+  const scaledColumns = scaleColumns(columnsForLocale, contentColumns)
   const [visible, setVisible] = useState(DEFAULT_VISIBLE)
   const [remainingCount, setRemainingCount] = useState(0)
   const { refresh } = usePolling(refreshQuotes, { intervalMs: pollIntervalMs })

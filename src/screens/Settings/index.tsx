@@ -4,6 +4,7 @@ import Card from '../../components/Card.tsx'
 import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useTheme } from '../../hooks/useTheme.ts'
+import { useTranslation } from '../../hooks/useTranslation.ts'
 import { type ThemePalette } from '../../settings/schema.ts'
 import { type SettingRow, useSettings } from './hooks/useSettings.ts'
 
@@ -29,6 +30,7 @@ function SettingRows({ rows, highlight }: { rows: SettingRow[]; highlight: Theme
 
 export default function Settings({ title, hint }: Props) {
   const theme = useTheme()
+  const { t } = useTranslation()
   const { overlayOpen, appearanceRows, requestRows } = useSettings()
 
   return (
@@ -38,16 +40,16 @@ export default function Settings({ title, hint }: Props) {
       title={<Text color={theme.primary}>{title}</Text>}
       footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
     >
-      <Text color={theme.primary}>外观</Text>
+      <Text color={theme.primary}>{t('settings.section.appearance')}</Text>
       <SettingRows rows={appearanceRows} highlight={theme.highlight} />
 
       <Box marginTop={1} flexDirection="column">
-        <Text color={theme.primary}>请求与刷新</Text>
+        <Text color={theme.primary}>{t('settings.section.request')}</Text>
         <SettingRows rows={requestRows} highlight={theme.highlight} />
       </Box>
 
       <Box marginTop={1} flexDirection="column">
-        <Text color="gray">请求最短耗时用于避免加载状态闪烁, 且不会超过请求超时.</Text>
+        <Text color="gray">{t('settings.note.minimumDuration')}</Text>
       </Box>
     </Card>
   )

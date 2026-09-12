@@ -1,3 +1,4 @@
+import { t } from '../i18n/core.ts'
 import { parseFiveDayResponse, parseHistoricalResponse, parseIntradayResponse, parseQuoteText } from './lib/parsers.ts'
 import { aggregateYearly, withRequestTiming } from './lib/tools.ts'
 import type {
@@ -18,7 +19,7 @@ export async function fetchQuotes(codes: string[], signal?: AbortSignal): Promis
     const response = await fetch(`https://qt.gtimg.cn/q=${codes.join(',')}`, {
       signal: requestSignal,
     })
-    if (!response.ok) throw new Error(`行情接口请求失败: HTTP ${response.status}`)
+    if (!response.ok) throw new Error(t('api.error.quote', { status: response.status }))
 
     const buffer = await response.arrayBuffer()
     const text = new TextDecoder('gbk').decode(buffer)
@@ -32,7 +33,7 @@ export async function fetchIntraday(code: string, signal?: AbortSignal): Promise
     const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=${code}`, {
       signal: requestSignal,
     })
-    if (!response.ok) throw new Error(`分时接口请求失败: HTTP ${response.status}`)
+    if (!response.ok) throw new Error(t('api.error.intraday', { status: response.status }))
     return parseIntradayResponse(await response.json(), code)
   })
 }
@@ -43,7 +44,7 @@ export async function fetchFiveDay(code: string, signal?: AbortSignal): Promise<
     const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/day/query?code=${code}`, {
       signal: requestSignal,
     })
-    if (!response.ok) throw new Error(`五日行情接口请求失败: HTTP ${response.status}`)
+    if (!response.ok) throw new Error(t('api.error.fiveDay', { status: response.status }))
     return parseFiveDayResponse(await response.json(), code)
   })
 }
@@ -58,7 +59,7 @@ export async function fetchHistorical(code: string, request: HistoricalRequest):
     const response = await fetch(`https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param}`, {
       signal: requestSignal,
     })
-    if (!response.ok) throw new Error(`K 线行情接口请求失败: HTTP ${response.status}`)
+    if (!response.ok) throw new Error(t('api.error.historical', { status: response.status }))
 
     const points = parseHistoricalResponse(await response.json(), code, granularity, adjustment)
     return (request.period === 'year' ? aggregateYearly(points) : points).slice(-request.barCount)

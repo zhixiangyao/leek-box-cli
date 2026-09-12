@@ -2,16 +2,21 @@ import stringWidth from 'string-width'
 import { expect, test } from 'vitest'
 
 import type { Quote } from '../src/api/types.ts'
+import { LOCALES } from '../src/i18n/locale.ts'
+import type { Locale } from '../src/i18n/types.ts'
 import {
-  COLUMNS_BY_KEY,
   headerRow,
   missingRow,
   quoteRow,
   scaleColumns,
-  STOCK_DETAIL_COLUMNS,
-  STOCK_LIST_COLUMNS,
+  stockDetailColumns,
+  stockListColumns,
   tableWidth,
 } from '../src/lib/quoteTable.ts'
+
+const STOCK_LIST_COLUMNS = stockListColumns()
+const STOCK_DETAIL_COLUMNS = stockDetailColumns()
+const COLUMNS_BY_KEY = new Map(STOCK_LIST_COLUMNS.concat(STOCK_DETAIL_COLUMNS).map((column) => [column.key, column]))
 
 const quote = (patch: Partial<Quote> = {}): Quote => ({
   code: 'sh600000',
@@ -129,4 +134,92 @@ test('scaleColumns 首列吸收残差 (2 列示例)', () => {
   const scaled = scaleColumns([codeColumn, percentColumn], 25)
   expect(scaled.map((column) => column.width)).toStrictEqual([12, 13])
   expect(scaled.reduce((sum, column) => sum + column.width, 0)).toBe(25)
+})
+
+/* ---------- 多语言列 ---------- */
+
+const LIST_WIDTH_SUM: Record<Locale, number> = { 'zh-hans': 101, 'zh-hant': 101, en: 104 }
+
+test('各 locale 的列表列宽之和稳定, 且 tableWidth 等于列宽之和加分隔', () => {
+  for (const locale of LOCALES) {
+    const columns = stockListColumns(locale)
+    const sum = columns.reduce((total, column) => total + column.width, 0)
+    expect(sum, locale).toBe(LIST_WIDTH_SUM[locale])
+    expect(tableWidth(columns), locale).toBe(sum + columns.length - 1)
+  }
+})
+
+test('中文列宽未因多语言改动而变化', () => {
+  expect(stockListColumns('zh-hans').map((column) => column.width)).toStrictEqual(
+    STOCK_LIST_COLUMNS.map((column) => column.width),
+  )
+  expect(stockListColumns('zh-hant').map((column) => column.width)).toStrictEqual(
+    STOCK_LIST_COLUMNS.map((column) => column.width),
+  )
+})
+
+test('各 locale 的表头宽度不超过对应列宽', () => {
+  for (const locale of LOCALES) {
+    for (const column of stockListColumns(locale).concat(stockDetailColumns(locale))) {
+      expect(stringWidth(column.title), `${locale} ${column.key}: ${column.title}`).toBeLessThanOrEqual(column.width)
+    }
+  }
+})
+
+test('en 使用本地化表头, 占位文案与单位', () => {
+  const byKey = new Map(stockListColumns('en').map((column) => [column.key, column]))
+  const percentColumn = byKey.get('changePercent')!
+
+  expect(byKey.get('marketCap')!.title).toBe('Market Cap')
+  expect(percentColumn.title).toBe('Change %')
+  expect(percentColumn.suspendedText).toBe('Suspended')
+  expect(missingRow([percentColumn], 'sh600000', 'Name')[0]!.text.startsWith('No data')).toBe(true)
+
+  expect(byKey.get('volume')!.render(quote({ volume: 611_000 }))).toBe('611.0K lots')
+  expect(byKey.get('turnover')!.render(quote({ turnover: 55_000 }))).toBe('550.0M')
+  expect(byKey.get('marketCap')!.render(quote({ marketCap: 2987.53 }))).toBe('298.75B')
+})
+
+test('zh-hant 使用繁体表头与占位文案', () => {
+  const byKey = new Map(stockListColumns('zh-hant').map((column) => [column.key, column]))
+  const percentColumn = byKey.get('changePercent')!
+
+  expect(byKey.get('turnoverRate')!.title).toBe('週轉率')
+  expect(percentColumn.suspendedText).toBe('暫停交易')
+  expect(missingRow([percentColumn], 'sh600000', 'Name')[0]!.text.startsWith('無資料')).toBe(true)
+})
+
+/**
+ * 各数值列在单位档位边界附近的取值: 档位切换和四舍五入都会在这里放大宽度.
+ * 上限取单只股票的合理量级 (成交量 1 亿手, 成交额 1000 亿元, 总市值 10 万亿元).
+ */
+const UNIT_PROBES: { key: 'volume' | 'turnover' | 'marketCap'; values: number[] }[] = [
+  { key: 'volume', values: [1, 999, 1_000, 9_999, 10_000, 999_949, 999_950, 999_999, 1_000_000, 99_999_999] },
+  { key: 'turnover', values: [1, 99, 100, 9_999, 10_000, 99_999, 100_000, 9_999_999] },
+  { key: 'marketCap', values: [0.01, 1, 9, 10, 9_999, 10_000, 99_999] },
+]
+
+test('单位列在档位边界的渲染文本不超出列宽', () => {
+  // cell() 只补齐不截断, 超出列宽会撑宽整行并让后续列错位
+  for (const locale of LOCALES) {
+    const byKey = new Map(stockDetailColumns(locale).map((column) => [column.key, column]))
+    for (const { key, values } of UNIT_PROBES) {
+      const column = byKey.get(key)!
+      for (const value of values) {
+        const text = column.render(quote({ [key]: value }))
+        expect(stringWidth(text), `${locale} ${key} ${value}: ${text}`).toBeLessThanOrEqual(column.width)
+      }
+    }
+  }
+})
+
+test('停牌与缺失占位文案不超出列宽', () => {
+  for (const locale of LOCALES) {
+    for (const column of stockListColumns(locale).concat(stockDetailColumns(locale))) {
+      for (const text of [column.suspendedText, column.missingText]) {
+        if (text === undefined) continue
+        expect(stringWidth(text), `${locale} ${column.key}: ${text}`).toBeLessThanOrEqual(column.width)
+      }
+    }
+  }
 })

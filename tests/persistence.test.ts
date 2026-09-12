@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
+import { getActiveLocale, setActiveLocale } from '../src/i18n/core.ts'
+import { DEFAULT_LOCALE } from '../src/i18n/locale.ts'
 import { type SettingsDocument } from '../src/settings/schema.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 
@@ -14,6 +16,7 @@ vi.mock('../src/settings/file.ts', () => fileMocks)
 import { startSettingsPersistence } from '../src/settings/persistence.ts'
 
 const document = (): SettingsDocument => ({
+  language: 'auto',
   theme: { preset: 'classic', trendColorMode: 'red-up', borderStyle: 'round' },
   request: {
     timeoutMs: 8000,
@@ -36,10 +39,13 @@ beforeEach(() => {
   fileMocks.patchSettings.mockResolvedValue(undefined)
   fileMocks.resetSettingsFile.mockResolvedValue(undefined)
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
+  // 隔离运行环境的系统语言, 避免 auto 解析出与断言无关的 locale
+  setActiveLocale(DEFAULT_LOCALE)
 })
 
 afterEach(() => {
   vi.useRealTimers()
+  setActiveLocale(DEFAULT_LOCALE)
 })
 
 test('启动时从文件 hydrate 设置', async () => {
@@ -47,6 +53,52 @@ test('启动时从文件 hydrate 设置', async () => {
 
   expect(useSettingsStore.getState().themePreset).toBe('classic')
   expect(useSettingsStore.getState().requestTimeoutMs).toBe(8000)
+  await persistence.stop()
+})
+
+test('hydrate 后立即按文件中的 language 确定 locale', async () => {
+  fileMocks.initializeSettings.mockResolvedValue({ ...document(), language: 'en' })
+
+  const persistence = await startSettingsPersistence(() => undefined)
+
+  expect(getActiveLocale()).toBe('en')
+  await persistence.stop()
+})
+
+test('启动时复用 parseCli 预读的设置文档, 完全不碰 initializeSettings', async () => {
+  const preloaded = { ...document(), language: 'en' } as SettingsDocument
+
+  const persistence = await startSettingsPersistence(() => undefined, preloaded)
+
+  // 复用预读文档意味着启动阶段不再读第二遍 settings.json
+  expect(fileMocks.initializeSettings).not.toHaveBeenCalled()
+  expect(useSettingsStore.getState().language).toBe('en')
+  expect(getActiveLocale()).toBe('en')
+  await persistence.stop()
+})
+
+test('修改 language 立即切换 locale 并在 debounce 后写盘', async () => {
+  const persistence = await startSettingsPersistence(() => undefined)
+
+  useSettingsStore.getState().updateSettings({ language: 'zh-hant' })
+  // locale 同步发生在 store 订阅里, 不等待 debounce
+  expect(getActiveLocale()).toBe('zh-hant')
+
+  await advanceDebounce()
+  expect(fileMocks.patchSettings).toHaveBeenCalledWith({ language: 'zh-hant' })
+  await persistence.stop()
+})
+
+test('非 language 的设置变更不触发 locale 解析', async () => {
+  fileMocks.initializeSettings.mockResolvedValue({ ...document(), language: 'en' })
+  const persistence = await startSettingsPersistence(() => undefined)
+  // 手动改回中文, 用于观察后续变更是否会被 locale 解析覆盖
+  setActiveLocale(DEFAULT_LOCALE)
+
+  useSettingsStore.getState().updateSettings({ borderStyle: 'double' })
+  expect(getActiveLocale()).toBe(DEFAULT_LOCALE)
+
+  await advanceDebounce()
   await persistence.stop()
 })
 

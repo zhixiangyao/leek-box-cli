@@ -2,18 +2,19 @@ import { useInput } from 'ink'
 
 import type { ChartPeriod } from '../../../api/types.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
+import type { MessageKey } from '../../../i18n/types.ts'
 import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
 
 export const CHART_PERIOD_OPTIONS = [
-  { key: '1', value: 'intraday', label: '分时' },
-  { key: '2', value: 'five-day', label: '五日' },
-  { key: '3', value: 'day', label: '日K' },
-  { key: '4', value: 'week', label: '周K' },
-  { key: '5', value: 'month', label: '月K' },
-  { key: '6', value: 'year', label: '年K' },
-] satisfies { key: string; value: ChartPeriod; label: string }[]
+  { key: '1', value: 'intraday', labelKey: 'chart.period.intraday' },
+  { key: '2', value: 'five-day', labelKey: 'chart.period.fiveDay' },
+  { key: '3', value: 'day', labelKey: 'chart.period.day' },
+  { key: '4', value: 'week', labelKey: 'chart.period.week' },
+  { key: '5', value: 'month', labelKey: 'chart.period.month' },
+  { key: '6', value: 'year', labelKey: 'chart.period.year' },
+] satisfies { key: string; value: ChartPeriod; labelKey: MessageKey }[]
 
 const CHART_PERIOD_MAP = CHART_PERIOD_OPTIONS.reduce<Record<string, ChartPeriod>>(
   (acc, cur) => ((acc[cur.key] = cur.value), acc),

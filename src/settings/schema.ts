@@ -1,5 +1,8 @@
 import { TextProps } from 'ink'
 
+import { t } from '../i18n/core.ts'
+import { DEFAULT_LANGUAGE, LANGUAGES } from '../i18n/locale.ts'
+import type { Language } from '../i18n/types.ts'
 import { DEFAULT_TREND_COLOR_MODE, TREND_COLOR_MODES, type TrendColorMode } from '../lib/format.ts'
 import { isNormalObject } from '../lib/is.ts'
 
@@ -16,14 +19,15 @@ export const BORDER_STYLES = [
   'arrow',
 ] as const
 
+/** 显示名称在 i18n catalog 的 settings.borderStyle.*, 由 useSettings 的 Record 保证一一对应 */
 export type BorderStyle = (typeof BORDER_STYLES)[number]
 
 export type Color = TextProps['color']
 
 export type ThemePreset = 'classic' | 'gray' | 'ocean' | 'forest' | 'sunset'
 
+/** 主题只定义色值, 显示名称在 i18n catalog 的 settings.themePreset.* */
 export type ThemePalette = {
-  label: string
   primary: Color
   accent: Color
   highlight: Color
@@ -32,35 +36,30 @@ export type ThemePalette = {
 
 export const THEME_PRESETS = {
   classic: {
-    label: '经典紫蓝',
     primary: 'magenta',
     accent: 'blue',
     highlight: 'cyan',
     foreground: 'white',
   },
   ocean: {
-    label: '海洋青蓝',
     primary: 'cyan',
     accent: 'blue',
     highlight: 'cyan',
     foreground: 'white',
   },
   forest: {
-    label: '森林绿',
     primary: 'green',
     accent: 'green',
     highlight: 'green',
     foreground: 'white',
   },
   sunset: {
-    label: '日落黄红',
     primary: 'yellow',
     accent: 'red',
     highlight: 'yellow',
     foreground: 'white',
   },
   gray: {
-    label: '低调灰',
     primary: 'gray',
     accent: 'gray',
     highlight: 'gray',
@@ -86,6 +85,7 @@ export type Settings = {
   themePreset: ThemePreset
   trendColorMode: TrendColorMode
   borderStyle: BorderStyle
+  language: Language
   requestTimeoutMs: number
   minimumRequestDurationMs: number
   quotePollIntervalMs: number
@@ -97,6 +97,7 @@ export const DEFAULT_SETTINGS: Settings = {
   themePreset: 'classic',
   trendColorMode: DEFAULT_TREND_COLOR_MODE,
   borderStyle: 'round',
+  language: DEFAULT_LANGUAGE,
   requestTimeoutMs: 8000,
   minimumRequestDurationMs: 0,
   quotePollIntervalMs: 5000,
@@ -116,6 +117,8 @@ export type StockEntry = {
 }
 
 export type SettingsDocument = {
+  /** 界面语言, auto 表示跟随系统 */
+  language: Language
   theme: {
     preset: Settings['themePreset']
     trendColorMode: Settings['trendColorMode']
@@ -135,27 +138,30 @@ const WATCH_CODE_PATTERN = /^(?:sh|sz|bj)\d{6}$/
 
 /** 解析并验证单个股票条目 */
 const parseStock = (value: unknown, index: number): StockEntry => {
-  if (typeof value !== 'object' || value === null) throw new Error(`第 ${index + 1} 项不是对象`)
+  if (typeof value !== 'object' || value === null)
+    throw new Error(t('settings.error.stockNotObject', { index: index + 1 }))
   const entry = value as Record<string, unknown>
   if (typeof entry['code'] !== 'string' || !WATCH_CODE_PATTERN.test(entry['code'])) {
-    throw new Error(`第 ${index + 1} 项 code 无效`)
+    throw new Error(t('settings.error.stockCode', { index: index + 1 }))
   }
   if (typeof entry['name'] !== 'string' || entry['name'].trim() === '') {
-    throw new Error(`第 ${index + 1} 项 name 无效`)
+    throw new Error(t('settings.error.stockName', { index: index + 1 }))
   }
   if (typeof entry['addedAt'] !== 'string' || !Number.isFinite(Date.parse(entry['addedAt']))) {
-    throw new Error(`第 ${index + 1} 项 addedAt 无效`)
+    throw new Error(t('settings.error.stockAddedAt', { index: index + 1 }))
   }
   return { code: entry['code'], name: entry['name'], addedAt: entry['addedAt'] }
 }
 
 /** 解析并验证股票条目列表 */
 export function parseStocks(value: unknown): StockEntry[] {
-  if (!Array.isArray(value)) throw new Error('stocks 不是数组')
+  if (!Array.isArray(value)) throw new Error(t('settings.error.stocksNotArray'))
   const entries = value.map(parseStock)
   const seen = new Set<string>()
   for (const [index, entry] of entries.entries()) {
-    if (seen.has(entry.code)) throw new Error(`第 ${index + 1} 项 code 重复: ${entry.code}`)
+    if (seen.has(entry.code)) {
+      throw new Error(t('settings.error.stockCodeDuplicate', { index: index + 1, code: entry.code }))
+    }
     seen.add(entry.code)
   }
   return entries
@@ -164,7 +170,7 @@ export function parseStocks(value: unknown): StockEntry[] {
 /** 验证主题预设名称 */
 const parseThemePreset = (value: unknown): ThemePreset => {
   if (typeof value !== 'string' || !THEME_PRESET_NAMES.includes(value as ThemePreset)) {
-    throw new Error('theme.preset 无效')
+    throw new Error(t('settings.error.themePreset'))
   }
   return value as ThemePreset
 }
@@ -173,41 +179,51 @@ const parseThemePreset = (value: unknown): ThemePreset => {
 const parseTrendColorMode = (value: unknown): TrendColorMode => {
   if (value === undefined) return DEFAULT_TREND_COLOR_MODE
   if (typeof value !== 'string' || !TREND_COLOR_MODES.includes(value as TrendColorMode)) {
-    throw new Error('theme.trendColorMode 无效')
+    throw new Error(t('settings.error.trendColorMode'))
   }
   return value as TrendColorMode
+}
+
+/** 验证界面语言设置, 缺失时按默认 auto 接受 */
+const parseLanguage = (value: unknown): Language => {
+  if (value === undefined) return DEFAULT_LANGUAGE
+  if (typeof value !== 'string' || !LANGUAGES.includes(value as Language)) {
+    throw new Error(t('settings.error.language'))
+  }
+  return value as Language
 }
 
 /** 验证范围内的整数配置值 */
 const parseInteger = (value: unknown, name: string, limits: { min: number; max: number }) => {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < limits.min || value > limits.max) {
-    throw new Error(`${name} 无效`)
+    throw new Error(t('settings.error.invalidValue', { name }))
   }
   return value
 }
 
 /** 解析并验证完整设置文档 */
 export function parseSettingsDocument(value: unknown): SettingsDocument {
-  if (!isNormalObject(value)) throw new Error('顶层数据不是对象')
+  if (!isNormalObject(value)) throw new Error(t('settings.error.notObject'))
 
   const theme = value['theme']
-  if (!isNormalObject(theme)) throw new Error('theme 无效')
+  if (!isNormalObject(theme)) throw new Error(t('settings.error.theme'))
   const borderStyle = theme['borderStyle']
   if (typeof borderStyle !== 'string' || !BORDER_STYLES.includes(borderStyle as Settings['borderStyle'])) {
-    throw new Error('theme.borderStyle 无效')
+    throw new Error(t('settings.error.borderStyle'))
   }
 
   const request = value['request']
-  if (!isNormalObject(request)) throw new Error('request 无效')
+  if (!isNormalObject(request)) throw new Error(t('settings.error.request'))
   const timeoutMs = parseInteger(request['timeoutMs'], 'request.timeoutMs', SETTING_LIMITS.requestTimeoutMs)
   const minimumDurationMs = parseInteger(
     request['minimumDurationMs'],
     'request.minimumDurationMs',
     SETTING_LIMITS.minimumRequestDurationMs,
   )
-  if (minimumDurationMs > timeoutMs) throw new Error('request.minimumDurationMs 不能大于 request.timeoutMs')
+  if (minimumDurationMs > timeoutMs) throw new Error(t('settings.error.minimumDurationGtTimeout'))
 
   return {
+    language: parseLanguage(value['language']),
     theme: {
       preset: parseThemePreset(theme['preset']),
       trendColorMode: parseTrendColorMode(theme['trendColorMode']),
@@ -242,6 +258,7 @@ export function settingsFromDocument(document: SettingsDocument): Settings {
     themePreset: document.theme.preset,
     trendColorMode: document.theme.trendColorMode,
     borderStyle: document.theme.borderStyle,
+    language: document.language,
     requestTimeoutMs: document.request.timeoutMs,
     minimumRequestDurationMs: document.request.minimumDurationMs,
     quotePollIntervalMs: document.request.quotePollIntervalMs,
@@ -253,6 +270,7 @@ export function settingsFromDocument(document: SettingsDocument): Settings {
 /** 组合应用设置和股票条目为持久化文档 */
 export function createDocument(settings: Settings, stocks: StockEntry[]): SettingsDocument {
   return {
+    language: settings.language,
     theme: {
       preset: settings.themePreset,
       trendColorMode: settings.trendColorMode,

@@ -7,6 +7,7 @@ import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
+import { useTranslation } from '../../hooks/useTranslation.ts'
 import { headerRow, missingRow, quoteRow } from '../../lib/quoteTable.ts'
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import { useStockList } from './hooks/useStockList.ts'
@@ -19,18 +20,19 @@ type Props = {
 export default function StockList({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
+  const { t } = useTranslation()
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
   const stockList = useStockList()
   let content: ReactNode
 
   switch (stockList.step.type) {
     case 'loading': {
-      content = <Text color="cyan">正在获取行情数据...</Text>
+      content = <Text color="cyan">{t('stockList.loading')}</Text>
       break
     }
 
     case 'empty': {
-      content = <Text color="yellow">自选股为空, 按 esc 打开菜单添加自选股.</Text>
+      content = <Text color="yellow">{t('common.watchlistEmpty')}</Text>
       break
     }
 
@@ -38,7 +40,7 @@ export default function StockList({ title, hint }: Props) {
       content = (
         <>
           <Text color="red">{stockList.step.message}</Text>
-          <Text color="gray">行情接口异常, 稍后自动重试</Text>
+          <Text color="gray">{t('stockList.sourceError')}</Text>
         </>
       )
       break
@@ -69,7 +71,7 @@ export default function StockList({ title, hint }: Props) {
           />
 
           {stockList.step.errorLine ? (
-            <Text color="yellow">刷新失败: {stockList.step.errorLine}, 稍后自动重试</Text>
+            <Text color="yellow">{t('stockList.refreshFailed', { error: stockList.step.errorLine })}</Text>
           ) : undefined}
         </>
       )
@@ -85,7 +87,7 @@ export default function StockList({ title, hint }: Props) {
       footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
       extra={
         stockList.step.type === 'table' && stockList.remainingCount > 0 ? (
-          <Text>剩余 {stockList.remainingCount} 个</Text>
+          <Text>{t('stockList.remaining', { count: stockList.remainingCount })}</Text>
         ) : undefined
       }
     >

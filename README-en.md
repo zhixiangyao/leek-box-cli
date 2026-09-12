@@ -85,16 +85,24 @@
 - **Refresh controls**: Press `r` to refresh immediately. Configure the automatic refresh interval in Settings in 500 ms increments, from 1 to 60 seconds.
 - **Watchlist management**: Add or remove Shanghai, Shenzhen, and Beijing A-shares and ETFs. Stock codes can be entered as `600000`, `sh600000`, `600000.SH`, and other common formats.
 - **Resilient display**: Suspended stocks, incomplete quotes, and refresh failures each have a dedicated state. The display recovers automatically after a later poll succeeds.
+- **Interface language**: Simplified Chinese, Traditional Chinese, and English. It follows the system language by default and can be pinned in Settings. Switching applies to both interface text and quote units immediately, so `61.1万手` becomes `611.0K lots` in English.
 
 ## Controls
 
 - `esc`: Open the menu. If stock details are open, close them first; if the menu is open, close it.
 - In the menu, use `↑`/`↓`, `enter`, or a number key to select a page.
 - In the dashboard, use `↑`/`↓`, `enter`, and `r`.
-- In Settings, use `↑`/`↓` to select an item and `←`/`→` or `enter` to adjust it.
+- In Settings, use `↑`/`↓` to select an item, `←`/`→` or `enter` to adjust it, and `d` to restore defaults.
+- In Settings, `Language` cycles through `Auto` / `简体中文` / `繁體中文` / `English`; `Auto` follows the system.
 - In stock details, press `1`-`6` to switch between `Intraday`, `Five-day`, `Daily`, `Weekly`, `Monthly`, and `Yearly`.
 - `q`: Exit when no menu or stock details overlay is open. It does nothing while an overlay is open to prevent accidental exits.
 - The right side of the status bar displays `YYYY-MM-DD HH:MM:SS` in the Asia/Shanghai time zone.
+
+Language detection reads `LC_ALL`, then `LC_MESSAGES`, then `LANG`, and falls back to the Node `Intl`
+system locale when those are `C`/`POSIX` or unrecognized; if nothing matches, Simplified Chinese is used.
+So `LANG=zh_TW.UTF-8 leek-box-cli` starts in Traditional Chinese and `LANG=en_US.UTF-8 leek-box-cli`
+starts in English. A language chosen in Settings takes priority over the system language, and the
+`leek-box-cli -h` help text follows the configured language too.
 
 ## Requirements
 
@@ -160,7 +168,7 @@ leek-box-cli               # Stock watchlist dashboard
 leek-box-cli stock-list    # Same as above
 leek-box-cli stock-add     # Add a stock to the watchlist
 leek-box-cli stock-remove  # Remove a stock from the watchlist
-leek-box-cli settings      # Configure theme and request parameters
+leek-box-cli settings      # Configure language, theme, and request parameters
 leek-box-cli -v            # Show version information
 leek-box-cli -h            # Show help
 ```
@@ -175,6 +183,7 @@ File structure:
 
 ```json
 {
+  "language": "auto",
   "theme": {
     "preset": "classic",
     "trendColorMode": "red-up",
@@ -197,7 +206,9 @@ File structure:
 }
 ```
 
-The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates the `theme` and `request` fields, as well as each stock's `code`, `name`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
+The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates `language`, `theme`, and `request`, as well as each stock's `code`, `name`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
+
+`language` is one of `auto`, `zh-hans`, `zh-hant`, or `en`. Like `theme.trendColorMode`, the field may be omitted, in which case it is treated as `auto`.
 
 ## Development Scripts
 

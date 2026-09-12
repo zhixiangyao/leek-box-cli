@@ -25,11 +25,15 @@ src/main.tsx
 src/app.tsx
   无浮层时的 esc(开关菜单) 和 q(退出) 输入, 当前 screen 装配, 浮层的绘制顺序
 
+src/i18n/
+  国际化叶子模块. types.ts 是全部 i18n 类型与文案键的规范来源, locale.ts 定义 locale/language 常量与系统语言检测, core.ts 持有 active locale 与 t(), catalog/ 存放三份文案表
+
 src/cli/registry.ts
-  页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单
+  页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单. 文案字段是 MessageKey
 
 src/cli/meow.ts
-  meow 参数解析, 从 registry 生成 help 和 -h 处理
+  meow 参数解析, parseCli() 先按已配置语言 applyLanguage 再生成 help, 处理 -h,
+  返回 cliHelpMessage 与已读到的 settingsDocument (供 persistence 复用)
 
 src/screens/<Feature>/index.tsx
   页面渲染, 只消费对应 feature hook 返回的状态和视图模型
@@ -38,10 +42,10 @@ src/screens/<Feature>/hooks/
   Zustand 订阅, 页面生命周期, Ink 输入, 测量和轮询接线
 
 src/components/
-  Card, Dialog, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE, WindowSizeGuard 持有 MIN_TERMINAL_ROWS 等终端尺寸常量
+  Card, Dialog, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量
 
 src/hooks/
-  usePolling, useOverlayOpen, useClock, useTheme
+  usePolling, useOverlayOpen, useClock, useTheme, useTranslation
 
 src/stores/
   Zustand 状态机和业务动作. 复杂 store 导出 createXxxStore(dependencies)
@@ -53,16 +57,17 @@ src/api/parsers.ts
   腾讯行情响应的纯解析器
 
 src/settings/schema.ts
-  settings.json schema, 校验和文档转换; 外观常量 (border/theme) 与 Settings 类型也定义于此, store 从 schema 导入常量
+  settings.json schema, 校验和文档转换; 外观常量 (border/theme) 与 Settings 类型也定义于此, store 从 schema 导入常量. 校验错误文案也是 MessageKey
 
 src/settings/file.ts
-  settings.json 路径, 原子写入, stocks 增删改操作
+  settings.json 路径, 原子写入, stocks 增删改操作. loadExistingSettings() 只读不创建,
+  供启动阶段先取语言用
 
 src/settings/lock.ts
   跨进程文件锁 (withFileLock), 通用 filePath 参数
 
 src/settings/persistence.ts
-  settings 初始化, store hydration, debounce patch 保存和退出 flush
+  settings 初始化 (可复用 parseCli 预读的文档), store hydration, debounce patch 保存和退出 flush
 
 src/lib/
   纯工具: format.ts (格式化与涨跌色), error.ts, yesNo.ts, quoteTable.ts (行情表列定义与行渲染)
@@ -76,7 +81,12 @@ tests/*.test.ts
 ```text
 screens/components -> hooks/stores -> settings/file -> settings/schema -> lib
 main -> cli/registry + settings/persistence -> stores -> settings/file
+lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTranslation, main -> i18n
 ```
+
+`src/i18n/**` 是叶子层, 只依赖 `node:process`, 不导入项目内任何模块, 因此上游任一模块 import i18n
+都是向下的. i18n 不得导入 `src/lib`, `src/settings` 或 `src/stores`; 反过来 `src/lib` 与
+`src/settings` 也不得为了拿文案类型而反过来定义领域类型 (见 `BorderStyle` 的做法).
 
 中性组件不得导入具体 screen. React 生命周期, `useInput`, Ink ref 和布局测量不得进入 store, `src/lib` 或 `src/settings`.
 
@@ -84,8 +94,19 @@ main -> cli/registry + settings/persistence -> stores -> settings/file
 
 `src/main.tsx` 只保留以下职责:
 
-1. 从 `src/cli/meow.ts` 的 `parseCli()` 读取 command 和 showHelp; showHelp 时打印 `cliHelpMessage` 并跳过应用启动.
-2. 调用 `startSettingsPersistence()`.
+1. `await` `src/cli/meow.ts` 的 `parseCli()`, 取出 command, showHelp, cliHelpMessage 和 settingsDocument;
+   showHelp 时直接打印 cliHelpMessage 并跳过应用启动.
+   parseCli 内部先用 `tryLoadSettings()` (对 `loadExistingSettings()` 的包装) 读取已有配置并
+   `applyLanguage`, 再调用 `genCliHelpMessage()` 生成文案, 因此 help 与界面同语言. 这一步只读文件
+   不创建文件, 读取失败 (缺失或损坏) 时回退系统语言. 这层包装必须留在 meow.ts: parseCli 在 main 的
+   try 之外, 抛出会变成顶层 await 的未处理拒绝, 并让 `-h` 一起失败; 损坏文件的报错留给后面的
+   `initializeSettings` (在 try 内) 统一给出用户提示, 因此报错只出现一次.
+   help 文案必须在 `meow()` 之前生成: 未知命令时 meow 会自己打印它, 不能延后到 showHelp 分支.
+2. 把 `settingsDocument` 传给 `startSettingsPersistence()`, 复用 parseCli 已读到的文档,
+   使启动全程只读一次 settings.json. 复用判断写在 persistence 里
+   (`preloadedDocument ?? (await initializeSettings())`), `initializeSettings()` 保持无参:
+   "初始化" 不该带一个 "也许别初始化" 的开关. 文件缺失或损坏时该值是 undefined,
+   由 initializeSettings 走正常的读取/创建流程并给出报错.
 3. 在 `render()` 前写入 router 初始 screen.
 4. 使用 alternate screen 启动 Ink.
 5. 等待 `instance.waitUntilExit()`.
@@ -94,7 +115,7 @@ main -> cli/registry + settings/persistence -> stores -> settings/file
 标准启动:
 
 ```ts
-const settingsPersistence = await startSettingsPersistence(onError)
+const settingsPersistence = await startSettingsPersistence(onError, settingsDocument)
 useRouterStore.setState({ screen: toScreen(cli.command) })
 const instance = render(<App />, { alternateScreen: true, concurrent: true })
 await instance.waitUntilExit()
@@ -114,6 +135,10 @@ await settingsPersistence.stop()
 - `description`
 - `hint`
 - `menuLabel`
+
+后四项是 `MessageKey`, 由 App / meow / DialogMenu 用 `t()` 解析.
+`ScreenComponentProps` 显式写作 `{ title: string; hint: string }`: 页面只接收已翻译的字符串,
+不能写成 `ScreenDefinition['title']`, 否则会把 `MessageKey` 当字符串传下去.
 
 `Screen`, `SCREEN_LIST`, `isScreen()` 和 `toScreen()` 均从注册表派生. 新增页面只修改注册表, 不在 App, CLI help 或 DialogMenu 维护第二份映射.
 
@@ -197,6 +222,7 @@ type Settings = {
   themePreset: ThemePreset
   trendColorMode: TrendColorMode
   borderStyle: BorderStyle
+  language: Language
   requestTimeoutMs: number
   minimumRequestDurationMs: number
   quotePollIntervalMs: number
@@ -211,12 +237,21 @@ type Settings = {
 themePreset                 classic
 trendColorMode              red-up
 borderStyle                 round
+language                    auto
 requestTimeoutMs            8000
 minimumRequestDurationMs    0
 quotePollIntervalMs         5000
 minuteChartPollIntervalMs   30000
 klinePollIntervalMs         300000
 ```
+
+主题只定义色值, 显示名称在 catalog 的 `settings.themePreset.*`; `borderStyle` 的显示名称同样在
+catalog 的 `settings.borderStyle.*` (`round` -> `圆角` / `Round`), 设置行不直接显示样式 id.
+
+`BorderStyle` 定义在 `settings/schema.ts` 而不是从 i18n 键反推, 方向是 schema -> 文案:
+`useSettings.ts` 的 `BORDER_STYLE_KEYS: Record<BorderStyle, MessageKey>` 负责一一对应,
+新增边框样式时该 Record 会编译报错, 从而强制补上三份 catalog 的 `settings.borderStyle.*`.
+`settings/schema.ts` 只从 i18n 取 `DEFAULT_LANGUAGE` / `LANGUAGES` / `Language`, 不 import i18n 的类型别名.
 
 主题 preset:
 
@@ -257,7 +292,82 @@ Enter         增加或切换 option
 d             恢复默认值
 ```
 
+`SETTING_ITEMS` 用 `group` 字段区分外观组和请求组, 不再用 `rows.slice(0, 3)` 切分.
+`SettingItem.type` 必须是每个成员各一个字面量, 否则 TS 无法按它收窄 `setting` 字段.
+
 所有数值更新必须经过 `normalizeSettings()`. 始终保证 `minimumRequestDurationMs <= requestTimeoutMs`.
+
+## 国际化
+
+语言集合是 `auto | zh-hans | zh-hant | en`, 默认 `auto`, 解析兜底为 zh-hans.
+`auto` 按 `LC_ALL` > `LC_MESSAGES` > `LANG` 读取系统语言, 再回退到 Node `Intl`, 最后回退 zh-hans.
+环境变量明确指定了不支持的语言 (如 `ja_JP`) 时按默认中文处理, 不再回退到 Intl.
+
+- `src/i18n/types.ts` — 全部 i18n 类型的唯一来源, 也是**键的规范来源**.
+  `Message` 逐键声明每个文案键 (值为 `string` 或 `MessageValue`); `MessageKey = keyof Message`;
+  另有 `MessageValue` / `MessageParams` / `Translate` / `Locale` / `Language`.
+- `src/i18n/locale.ts` — `LOCALES` / `LANGUAGES` / `DEFAULT_LOCALE` / `DEFAULT_LANGUAGE` /
+  `LOCALE_NATIVE_NAMES` 与 `detectLocale()` / `resolveLanguage()`. 类型从 `types.ts` 导入.
+  检测每次实时计算, 便于测试替换环境变量.
+- `src/i18n/core.ts` — `t(key, params)` / `createTranslator(locale)` / `applyLanguage(language)`.
+  模块级 `activeLocale` 初值是常量 `zh-hans` 而不是检测结果: 保证默认中文, 且测试不受运行环境语言影响.
+- `src/i18n/catalog/{zh-hans,zh-hant,en}.ts` — 三份文案表, 都是 `as const satisfies Message`.
+  键在 `types.ts` 声明, 三份 catalog 都必须完整实现: `Message` 没有索引签名, 因此缺键和多余键
+  都会被 `satisfies` 编译拦截. `catalog/index.ts` 只把三份合成 `CATALOGS`.
+- `src/hooks/useTranslation.ts` — 组件唯一入口, 返回 `{ locale, t }`, 写法与 `useTheme` 同构.
+  只依赖 `language` 变化重算, 因此系统语言检测不会进入渲染热路径.
+
+文案键是扁平点号命名 (`settings.row.language.label`), 按区域分组:
+`app` / `cli` / `screen` / `menu` / `dialog*` / `stock*` / `chart.period` / `table` / `settings` / `api` / `common`.
+
+插值与复数:
+
+- `{name}` 占位符用 `MessageParams` 替换, 缺参时保留 `{name}` 原文便于发现遗漏.
+- 值为 `{ one, other }` 对象时按 `params.count` 选形态 (`count === 1` 取 `one`, 否则 `other`);
+  未传 `count` 时确定性地取 `other`.
+- **复数键的计数占位符必须命名为 `{count}`**, 即与形态选择的依据同名. 不要另起别名
+  (如 `{added}` / `{removed}`) 再额外传一个重复的 `count`: 那样漏传 `count` 编译期无感,
+  运行时静默落到 `other`, 输出 `Removed 1 stocks`. 现在漏传 `count` 会把 `{count}` 原文显示出来,
+  错误是显性的. `tests/i18n.test.ts` 有用例机械校验每个复数键的两种形态都含 `{count}`.
+- 需要单复数时在 `types.ts` 把该键声明为 `MessageValue`, 只有英文写 `{ one, other }`;
+  中文和繁体没有单复数变化, 保持普通字符串. 目前只有 6 个计数键用 `MessageValue`.
+
+`useSettingsStore.language` 是唯一的 settings 状态, active locale 是由 `resolveLanguage()` 派生的
+只读渲染缓存, 从不持久化, 也不是 settings 输入. **生产只在两处写入**: `src/settings/persistence.ts`
+的 hydrate 之后与 language 变化的订阅里, 以及 `src/cli/meow.ts` 的 `parseCli()`.
+`parseCli()` 用 `tryLoadSettings()` 读取已有配置 (不创建文件, 损坏时按无配置处理并回退系统语言),
+并把读到的文档回传给 `startSettingsPersistence()` 复用, 因此启动全程只读一次 settings.json.
+`setActiveLocale()` 只给测试固定语言用, 不是第二个生产写入口.
+
+数值单位是数据不是文案, 因此定义在 `src/lib/format.ts` 的 `VOLUME_UNITS` / `TURNOVER_UNITS` /
+`MARKET_CAP_UNITS` 里, 用 `{ min, scale, decimals, suffix }` 描述档位, 因为 亿/万/手 与 B/M/K/lots
+之间是换算而非单纯改后缀. `formatVolume` / `formatTurnover` / `formatMarketCap` 末尾带
+`locale: Locale = DEFAULT_LOCALE` 参数.
+每档的 `min` 必须与 `scale` 对应 (`min * scale` 落在 1 附近), 否则该档在自己的下界就渲染成两位数,
+等于跳过一个数量级 (曾出现过 `min: 10_000` 配 `scale: 1/1000` 的 `K lots` 档, 使 1000-9999 手
+不走 K 档而显示 `9999 lots`).
+
+`formatWithUnits` 选中档位后还会向上检查一次: 档位边界上四舍五入会进位 (999950 手若用 K 档会渲染成
+`1000.0K lots`), 因此渲染值达到上一档起点时改用上一档, 输出 `1.0M lots`; 起点按本档小数位取整后再比较,
+避免 scale 的浮点误差把边界推高一格. 这是格式化层的规则, 不要靠加宽列宽来兜底.
+最高档 (`units[0]`) 上方没有档位可进, 因此跳过该检查: 中文的 万手/万元/亿 就是最高档,
+所以 `100000.0万手` 这类超大值会自然变宽, 由列宽守卫用例的取值上限约束.
+
+行情表列宽按 locale 分开 (`ColumnSpec.widths`): 既要容纳英文表头 (比中文表头宽), 也要容纳本地化单位
+格式化后的数值 (`611.0K lots` 比 `61.1万手` 宽). `stockListColumns(locale)` 与
+`stockDetailColumns(locale)` 内部用 `createTranslator(locale)` 而不是全局 `t`, 否则传参 locale 不生效;
+解析结果按 locale 缓存在模块级 Map 里, 因此看板每次 resize 和轮询渲染都不会重建列, 返回的数组引用稳定.
+**缓存的列定义是共享的, 调用方不得就地修改** (`scaleColumns` 需要改宽度时会复制).
+
+`WindowSizeGuard` 的 `MIN_TERMINAL_COLUMNS` 取**全部 locale** 看板列宽的最大值 + `TABLE_CHROME`,
+不按当前 locale 推导. 原因是宽度守卫包住了全部页面, 设置页也在里面: 若下限随语言变化,
+在恰好满足中文下限 (116 列) 的终端上切到英文 (需要 119 列) 会被守卫拦住, 语言就再也改不回来,
+只能手动编辑 settings.json. 代价是中文用户也需要 119 列, 换取"任一语言都不会把自己锁在外面".
+新增或加宽某个 locale 的列时会自然抬高全局下限, `tests/layout.test.ts` 有用例校验覆盖关系.
+
+新增文案时: 先在 `types.ts` 的 `Message` 里加键, 再三份 catalog 同步补齐 (类型强制),
+并保证各语言的占位符集合与之一致. 组件与常量表存 `MessageKey`, 在渲染处用 `t()` 解析.
+catalog 禁止全角标点, 顿号, U+3000 和 emoji, 由 `tests/i18n.test.ts` 的标点守卫用例机械校验.
 
 ## settings.json 持久化
 
@@ -285,6 +395,7 @@ Windows 使用 `%APPDATA%` (Roaming):
 
 ```json
 {
+  "language": "auto",
   "theme": {
     "preset": "classic",
     "trendColorMode": "red-up",
@@ -310,7 +421,8 @@ Windows 使用 `%APPDATA%` (Roaming):
 规则:
 
 - 文件不存在时使用默认 settings 和预置默认自选股 (DEFAULT_STOCKS: 富通微电, 长电科技, 长鑫科技) 创建, addedAt 为创建时间.
-- 文件存在时严格校验 theme, request 和 stocks; theme.trendColorMode 缺失时按默认 red-up 接受.
+- 文件存在时严格校验 language, theme, request 和 stocks; `theme.trendColorMode` 缺失时按默认 red-up 接受,
+  `language` 缺失时按默认 auto 接受. 这是 schema 的可选字段默认值规则, 不是 legacy 格式迁移, 首次成功写入即持久化.
 - 读取时先去除 UTF-8 BOM (`stripBom`), 兼容 Windows 记事本或 PowerShell 重定向写入的配置.
 - 损坏文件直接报错, 不静默丢弃字段, 不 fallback 到旧格式.
 - `StockEntry` 为 `{code, name, addedAt}`.
@@ -399,6 +511,11 @@ Card 负责:
 
 Dialog 支持 `title`, `extra`, `hint` 和 `width`, footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
 
+弹窗宽度一律按 `Math.max(标题宽, Math.min(内容宽, CONTENT_WIDTH_CAP), hint 宽, 下限)` 计算:
+外层取各部分的**最大**值, `CONTENT_WIDTH_CAP` 只用来给内容单独设上限. 内容是列表时先
+`Math.max(...每项宽度)` 再套 cap, 不要把整串宽度直接丢进 `Math.min`, 那样取到的是最短项, 弹窗会偏窄
+(文案换语言变长后更明显).
+
 SpaceMask 用在 card 被 `mask` 时铺出 `useWindowSize` 的 columns*rows 个空格 (absolute + flexDirection column, 每行一个 Text), 再由 Card 的 `overflow: hidden` 裁剪到 content 区域. Card 不再接受 `backgroundColor`, 遮蔽一律走 `mask`.
 
 本地 `src/components/Text.tsx` 是项目文字入口. 它负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
@@ -422,7 +539,8 @@ TextInput 和全局快捷键没有事件冒泡停止机制. 新增自由文本�
 
 ## 行情解析和显示
 
-A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 停牌显示 `--` 和 `停牌`. 接口缺失显示 `--` 和 `无数据`.
+A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 停牌显示 `--` 和 `common.suspended`
+(英文 `Suspended`), 接口缺失显示 `--` 和 `common.noData` (英文 `No data`).
 
 `src/api/parsers.ts` 是纯解析层:
 
@@ -435,16 +553,26 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 ## 测试和验证
 
-测试使用 Vitest. 当前测试文件:
+测试使用 Vitest. 测试文件按被测对象分文件, 均位于 `tests/`:
 
-- `tests/api.test.ts`
-- `tests/lib.test.ts`
-- `tests/settings.test.ts`
-- `tests/stores.test.ts`
-- `tests/layout.test.ts`
-- `tests/checkboxGrid.test.tsx`
+`api` / `chart` / `parsers` / `format` / `lib` / `quoteTable` / `yesNo` / `checkboxGrid` /
+`lock` / `persistence` / `resetAll` / `settings` / `settingsStore` / `stores` / `registry` /
+`meow` / `usePolling` / `layout` / `i18n`.
 
 测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在布局测试之间使用 `getInitialState()` 恢复.
+
+涉及渲染帧或文案断言的测试必须固定语言: 模块级 `activeLocale` 初值是 `zh-hans`, 但 `language` 默认值
+`auto` 会跟随运行环境的系统语言, 因此 `tests/layout.test.ts` 的 `resetStores()`,
+`tests/persistence.test.ts` 与 `tests/settings.test.ts` 的 `beforeEach` 都显式
+`setActiveLocale(DEFAULT_LOCALE)` (布局测试同时把 store 的 `language` 置为 `zh-hans`).
+新增此类测试必须做同样的固定, 否则在 `LANG=en_US` 的机器上会失败. 需要中文或英文文案时用 `t(key)` 而不是字面量.
+
+`tests/quoteTable.test.ts` 持有三语言列宽的守卫用例: 表头宽度, 停牌/缺失占位文案宽度, 以及单位列在
+档位边界 (含四舍五入) 的渲染文本宽度都不超过列宽, 另有 `LIST_WIDTH_SUM` 锁定各 locale 的列宽之和.
+改动 `ColumnSpec.widths` 或 `format.ts` 的单位档位时必须同步更新这些常量, 否则用例会失败.
+`cell()` 只补齐不截断, 因此超宽文本会撑宽整行并让后续列错位, 而不是被裁掉.
+`tests/layout.test.ts` 另有一条用例校验 `MIN_TERMINAL_COLUMNS` 覆盖全部 locale 的看板占宽,
+防止再次出现"切到某种语言就被宽度守卫锁在外面".
 
 修改后至少运行:
 
@@ -476,8 +604,10 @@ script -qec "stty cols 160 rows 40; pnpm dev" /dev/null
 - 中文使用 ASCII `, . : ; ! ? ( )`, 标点后按英文规则留空格.
 - 禁止中文全角标点, 顿号和 U+3000 空格.
 - 不使用 emoji.
+- 上述三条同样适用于 catalog 内容, 由 `tests/i18n.test.ts` 的标点守卫用例机械校验.
 - 不新增兼容 alias, migration 或 deprecated API, 除非任务明确要求.
 - 不新增第二份路由, overlay, poll interval 或 settings 状态.
+- 不新增第二份文案来源: 显示文案只放 catalog, 组件与常量表存 `MessageKey` 并在渲染处解析.
 - 不直接修改 Zustand store 内部字段来绕过 action, 测试 setup 和明确初始化除外.
 - 表格宽度由列元数据推导, CJK 宽度使用项目本地函数.
 - screen 不复制 Card, StatusBar, registry 或 persistence 逻辑.

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 
 import type { IntradayPoint, Quote } from '../src/api/types.ts'
-import { YES_NO_ERROR_MESSAGE } from '../src/lib/yesNo.ts'
+import { yesNoErrorMessage } from '../src/lib/yesNo.ts'
 import type { StockEntry } from '../src/settings/schema.ts'
 import { createDialogRemoveConfirmStore } from '../src/stores/useDialogRemoveConfirmStore.ts'
 import { createDialogStockDetailStore } from '../src/stores/useDialogStockDetailStore.ts'
@@ -303,7 +303,7 @@ test('StockAdd store 确认阶段回答非 y/n 时提示错误并保持确认', 
   const token = store.getState().confirmInput.resetToken
   await store.getState().handleConfirm('x')
   expect(store.getState().step.type).toBe('confirm')
-  expect(store.getState().confirmInput.error).toBe(YES_NO_ERROR_MESSAGE)
+  expect(store.getState().confirmInput.error).toBe(yesNoErrorMessage())
   expect(store.getState().confirmInput.resetToken).toBe(token + 1)
 })
 

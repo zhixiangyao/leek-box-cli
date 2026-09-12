@@ -3,15 +3,24 @@ import process from 'node:process'
 import { render } from 'ink'
 
 import App from './app.tsx'
-import { cliHelpMessage, parseCli } from './cli/meow.ts'
+import { parseCli } from './cli/meow.ts'
 import { toScreen } from './cli/registry.ts'
+import { t } from './i18n/core.ts'
 import { errorMessage } from './lib/error.ts'
 import { startSettingsPersistence } from './settings/persistence.ts'
+import type { SettingsDocument } from './settings/schema.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
 
-const main = async (command?: string) => {
-  const settingsPersistence = await startSettingsPersistence((error) =>
-    console.error(`设置保存失败: ${errorMessage(error)}`),
+type MainParams = {
+  settingsDocument?: SettingsDocument
+  command?: string
+}
+
+async function main(params: MainParams) {
+  const { settingsDocument, command } = params
+  const settingsPersistence = await startSettingsPersistence(
+    (error) => console.error(t('app.persistenceFailed', { error: errorMessage(error) })),
+    settingsDocument,
   )
   const termProgram = process.env['TERM_PROGRAM']
   const incrementalRendering = !!termProgram && ['kiro', 'vscode'].includes(termProgram)
@@ -31,15 +40,15 @@ const main = async (command?: string) => {
   }
 }
 
-const { command, showHelp } = parseCli()
+const { settingsDocument, cliHelpMessage, command, showHelp } = await parseCli()
 
 if (showHelp) {
   console.log(cliHelpMessage)
 } else {
   try {
-    await main(command)
+    await main({ settingsDocument, command })
   } catch (error) {
-    console.error(`运行失败: ${errorMessage(error)}`)
+    console.error(t('app.runFailed', { error: errorMessage(error) }))
     process.exitCode = 1
   }
 }

@@ -1,3 +1,4 @@
+import { t } from '../../i18n/core.ts'
 import type {
   FiveDayPoint,
   HistoricalPoint,
@@ -68,7 +69,7 @@ export function parseQuoteText(text: string): Quote[] {
     })
   }
 
-  if (quotes.length === 0) throw new Error('未查询到任何行情数据, 请检查股票代码')
+  if (quotes.length === 0) throw new Error(t('api.error.noQuotes'))
   return quotes
 }
 

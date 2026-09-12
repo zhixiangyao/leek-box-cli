@@ -1,6 +1,7 @@
 import { Newline } from 'ink'
 
 import type { Screen } from '../cli/registry.ts'
+import { useTranslation } from '../hooks/useTranslation.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
 import Message, { type MessageTone } from './Message.tsx'
 import TextInput from './TextInput.tsx'
@@ -13,6 +14,7 @@ type Props = {
 }
 
 export default function ActionResult({ tone, msg, to, onReturn }: Props) {
+  const { t } = useTranslation()
   const goTo = useRouterStore((state) => state.goTo)
 
   const handleReturn = () => {
@@ -24,7 +26,7 @@ export default function ActionResult({ tone, msg, to, onReturn }: Props) {
     <>
       <Message tone={tone} msg={msg} />
       <Newline />
-      <TextInput prompt="按 Enter 返回操作页..." onSubmit={handleReturn} />
+      <TextInput prompt={t('common.returnPrompt')} onSubmit={handleReturn} />
     </>
   )
 }

@@ -2,80 +2,176 @@ import { useInput } from 'ink'
 import { useState } from 'react'
 
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
-import { TREND_COLOR_MODE_LABELS, TREND_COLOR_MODES } from '../../../lib/format.ts'
-import { BORDER_STYLES, type NumericSettingKey, THEME_PRESET_NAMES, THEME_PRESETS } from '../../../settings/schema.ts'
+import { useTranslation } from '../../../hooks/useTranslation.ts'
+import { LANGUAGES, LOCALE_NATIVE_NAMES } from '../../../i18n/locale.ts'
+import type { MessageKey, Translate } from '../../../i18n/types.ts'
+import { TREND_COLOR_MODES, type TrendColorMode } from '../../../lib/format.ts'
+import { BORDER_STYLES, THEME_PRESET_NAMES } from '../../../settings/schema.ts'
+import type { BorderStyle, NumericSettingKey, ThemePreset } from '../../../settings/schema.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 
 export type SettingRow = {
-  label: SettingItem['label']
-  description: SettingItem['description']
+  label: string
+  description: string
   value: string
   selected: boolean
 }
 
-type SettingItem =
-  | { type: 'theme'; label: string; description: string }
-  | { type: 'trendColor'; label: string; description: string }
-  | { type: 'border'; label: string; description: string }
-  | { type: 'numeric'; label: string; description: string; setting: NumericSettingKey }
+type SettingGroup = 'appearance' | 'request'
+
+/** type 必须是每个成员各一个字面量, 否则 TS 无法按它收窄 setting 字段 */
+type SettingItem = {
+  group: SettingGroup
+  label: MessageKey
+  description: MessageKey
+} & (
+  | { type: 'theme' }
+  | { type: 'trendColor' }
+  | { type: 'border' }
+  | { type: 'language' }
+  | { type: 'numeric'; setting: NumericSettingKey }
+)
 
 const SETTING_ITEMS: SettingItem[] = [
-  { type: 'theme', label: '主题色系', description: '界面配色' },
-  { type: 'trendColor', label: '涨跌颜色', description: '选择涨绿或跌绿' },
-  { type: 'border', label: '卡片边框', description: '边框样式' },
-  { type: 'numeric', label: '请求超时', description: '单次请求最长等待', setting: 'requestTimeoutMs' },
-  { type: 'numeric', label: '请求最短耗时', description: '避免加载闪烁', setting: 'minimumRequestDurationMs' },
-  { type: 'numeric', label: '看板刷新间隔', description: '自选股票看板自动刷新频率', setting: 'quotePollIntervalMs' },
+  {
+    type: 'theme',
+    group: 'appearance',
+    label: 'settings.row.theme.label',
+    description: 'settings.row.theme.description',
+  },
+  {
+    type: 'trendColor',
+    group: 'appearance',
+    label: 'settings.row.trendColor.label',
+    description: 'settings.row.trendColor.description',
+  },
+  {
+    type: 'border',
+    group: 'appearance',
+    label: 'settings.row.border.label',
+    description: 'settings.row.border.description',
+  },
+  {
+    type: 'language',
+    group: 'appearance',
+    label: 'settings.row.language.label',
+    description: 'settings.row.language.description',
+  },
   {
     type: 'numeric',
-    label: '分时图刷新间隔',
-    description: '分时与五日图自动刷新频率',
+    group: 'request',
+    label: 'settings.row.requestTimeout.label',
+    description: 'settings.row.requestTimeout.description',
+    setting: 'requestTimeoutMs',
+  },
+  {
+    type: 'numeric',
+    group: 'request',
+    label: 'settings.row.minimumDuration.label',
+    description: 'settings.row.minimumDuration.description',
+    setting: 'minimumRequestDurationMs',
+  },
+  {
+    type: 'numeric',
+    group: 'request',
+    label: 'settings.row.quotePoll.label',
+    description: 'settings.row.quotePoll.description',
+    setting: 'quotePollIntervalMs',
+  },
+  {
+    type: 'numeric',
+    group: 'request',
+    label: 'settings.row.minuteChartPoll.label',
+    description: 'settings.row.minuteChartPoll.description',
     setting: 'minuteChartPollIntervalMs',
   },
   {
     type: 'numeric',
-    label: 'K 线刷新间隔',
-    description: '日/周/月/年 K 线自动刷新频率',
+    group: 'request',
+    label: 'settings.row.klinePoll.label',
+    description: 'settings.row.klinePoll.description',
     setting: 'klinePollIntervalMs',
   },
 ]
+
+const THEME_PRESET_KEYS: Record<ThemePreset, MessageKey> = {
+  classic: 'settings.themePreset.classic',
+  ocean: 'settings.themePreset.ocean',
+  forest: 'settings.themePreset.forest',
+  sunset: 'settings.themePreset.sunset',
+  gray: 'settings.themePreset.gray',
+}
+
+const TREND_COLOR_MODE_KEYS: Record<TrendColorMode, MessageKey> = {
+  'red-up': 'settings.trendColorMode.redUp',
+  'green-up': 'settings.trendColorMode.greenUp',
+}
+
+/** Record<BorderStyle, ...> 保证新增边框样式时必然补上文案键 */
+const BORDER_STYLE_KEYS: Record<BorderStyle, MessageKey> = {
+  single: 'settings.borderStyle.single',
+  double: 'settings.borderStyle.double',
+  round: 'settings.borderStyle.round',
+  bold: 'settings.borderStyle.bold',
+  singleDouble: 'settings.borderStyle.singleDouble',
+  doubleSingle: 'settings.borderStyle.doubleSingle',
+  classic: 'settings.borderStyle.classic',
+  arrow: 'settings.borderStyle.arrow',
+}
 
 const nextOption = <Value extends string>(options: readonly Value[], current: Value, direction: 1 | -1) => {
   const currentIndex = options.indexOf(current)
   return options[(currentIndex + direction + options.length) % options.length] ?? current
 }
 
-const formatDuration = (milliseconds: number) => {
-  if (milliseconds === 0) return '关闭'
-  if (milliseconds < 1000) return `${milliseconds} ms`
-  if (milliseconds % 60_000 === 0) return `${milliseconds / 60_000} 分钟`
-  if (milliseconds % 1000 === 0) return `${milliseconds / 1000} 秒`
-  return `${(milliseconds / 1000).toFixed(2)} 秒`
+const formatDuration = (milliseconds: number, t: Translate) => {
+  if (milliseconds === 0) return t('settings.duration.off')
+  if (milliseconds < 1000) return t('settings.duration.rawMs', { value: milliseconds })
+  if (milliseconds % 60_000 === 0) return t('settings.duration.minutes', { value: milliseconds / 60_000 })
+  if (milliseconds % 1000 === 0) return t('settings.duration.seconds', { value: milliseconds / 1000 })
+  return t('settings.duration.seconds', { value: (milliseconds / 1000).toFixed(2) })
 }
 
 export function useSettings() {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const overlayOpen = useOverlayOpen()
-  const settings = useSettingsStore()
+  const { locale, t } = useTranslation()
+  const themePreset = useSettingsStore((state) => state.themePreset)
+  const trendColorMode = useSettingsStore((state) => state.trendColorMode)
+  const borderStyle = useSettingsStore((state) => state.borderStyle)
+  const language = useSettingsStore((state) => state.language)
+  const requestTimeoutMs = useSettingsStore((state) => state.requestTimeoutMs)
+  const minimumRequestDurationMs = useSettingsStore((state) => state.minimumRequestDurationMs)
+  const quotePollIntervalMs = useSettingsStore((state) => state.quotePollIntervalMs)
+  const minuteChartPollIntervalMs = useSettingsStore((state) => state.minuteChartPollIntervalMs)
+  const klinePollIntervalMs = useSettingsStore((state) => state.klinePollIntervalMs)
+  const updateSettings = useSettingsStore((state) => state.updateSettings)
+  const adjustNumericSetting = useSettingsStore((state) => state.adjustNumericSetting)
+  const resetSettings = useSettingsStore((state) => state.resetSettings)
+
+  /** 数值项按 setting 键取值, 与 SETTING_ITEMS 的 setting 字段一一对应 */
+  const numericValues: Record<NumericSettingKey, number> = {
+    requestTimeoutMs,
+    minimumRequestDurationMs,
+    quotePollIntervalMs,
+    minuteChartPollIntervalMs,
+    klinePollIntervalMs,
+  }
 
   const adjustSelected = (direction: 1 | -1) => {
     const selected = SETTING_ITEMS[selectedIndex]
     if (!selected) return
 
     if (selected.type === 'theme') {
-      settings.updateSettings({
-        themePreset: nextOption(THEME_PRESET_NAMES, settings.themePreset, direction),
-      })
+      updateSettings({ themePreset: nextOption(THEME_PRESET_NAMES, themePreset, direction) })
     } else if (selected.type === 'trendColor') {
-      settings.updateSettings({
-        trendColorMode: nextOption(TREND_COLOR_MODES, settings.trendColorMode, direction),
-      })
+      updateSettings({ trendColorMode: nextOption(TREND_COLOR_MODES, trendColorMode, direction) })
     } else if (selected.type === 'border') {
-      settings.updateSettings({
-        borderStyle: nextOption(BORDER_STYLES, settings.borderStyle, direction),
-      })
+      updateSettings({ borderStyle: nextOption(BORDER_STYLES, borderStyle, direction) })
+    } else if (selected.type === 'language') {
+      updateSettings({ language: nextOption(LANGUAGES, language, direction) })
     } else {
-      settings.adjustNumericSetting(selected.setting, direction)
+      adjustNumericSetting(selected.setting, direction)
     }
   }
 
@@ -91,29 +187,42 @@ export function useSettings() {
       } else if (key.rightArrow || key.return) {
         adjustSelected(1)
       } else if (input === 'd') {
-        settings.resetSettings()
+        resetSettings()
       }
     },
     { isActive: !overlayOpen.open },
   )
 
-  const rows = SETTING_ITEMS.map<SettingRow>((item, index) => ({
-    label: item.label,
-    description: item.description,
-    selected: index === selectedIndex,
-    value:
-      item.type === 'theme'
-        ? THEME_PRESETS[settings.themePreset].label
-        : item.type === 'trendColor'
-          ? TREND_COLOR_MODE_LABELS[settings.trendColorMode]
-          : item.type === 'border'
-            ? settings.borderStyle
-            : formatDuration(settings[item.setting]),
-  }))
+  /** 语言项显示母语名称, 保证切错语言后仍能找回 */
+  const valueOf = (item: SettingItem): string => {
+    if (item.type === 'theme') return t(THEME_PRESET_KEYS[themePreset])
+    if (item.type === 'trendColor') return t(TREND_COLOR_MODE_KEYS[trendColorMode])
+    if (item.type === 'border') return t(BORDER_STYLE_KEYS[borderStyle])
+    if (item.type === 'language') {
+      return language === 'auto'
+        ? t('settings.language.auto', { locale: LOCALE_NATIVE_NAMES[locale] })
+        : LOCALE_NATIVE_NAMES[language]
+    }
+    return formatDuration(numericValues[item.setting], t)
+  }
+
+  const rowsFor = (group: SettingGroup): SettingRow[] =>
+    SETTING_ITEMS.flatMap((item, index) =>
+      item.group === group
+        ? [
+            {
+              label: t(item.label),
+              description: t(item.description),
+              selected: index === selectedIndex,
+              value: valueOf(item),
+            },
+          ]
+        : [],
+    )
 
   return {
     overlayOpen,
-    appearanceRows: rows.slice(0, 3),
-    requestRows: rows.slice(3),
+    appearanceRows: rowsFor('appearance'),
+    requestRows: rowsFor('request'),
   }
 }

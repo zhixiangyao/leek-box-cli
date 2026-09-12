@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 
+import type { MessageKey } from '../i18n/types.ts'
 import Settings from '../screens/Settings/index.tsx'
 import StockAdd from '../screens/StockAdd/index.tsx'
 import StockList from '../screens/StockList/index.tsx'
@@ -7,44 +8,45 @@ import StockRemove from '../screens/StockRemove/index.tsx'
 
 export type Screen = 'stock-list' | 'stock-add' | 'stock-remove' | 'settings'
 
-type ScreenComponentProps = { title: ScreenDefinition['title']; hint: ScreenDefinition['hint'] }
+/** App 用 t() 解析注册表文案后再传入, 页面只接收已翻译的字符串 */
+type ScreenComponentProps = { title: string; hint: string }
 
 type ScreenDefinition = {
   Component: ComponentType<ScreenComponentProps>
-  title: string
-  description: string
-  hint: string
-  menuLabel: string
+  title: MessageKey
+  description: MessageKey
+  hint: MessageKey
+  menuLabel: MessageKey
 }
 
 export const SCREEN_REGISTRY = {
   ['stock-list']: {
     Component: StockList,
-    title: '自选股票看板',
-    description: '自选股票看板',
-    hint: '菜单(esc)   刷新(r)   选择(↑/↓)   详情(enter)   退出(q)',
-    menuLabel: '自选股票看板',
+    title: 'screen.stockList.title',
+    description: 'screen.stockList.description',
+    hint: 'screen.stockList.hint',
+    menuLabel: 'screen.stockList.menuLabel',
   },
   ['stock-add']: {
     Component: StockAdd,
-    title: '添加自选股',
-    description: '添加自选股',
-    hint: '菜单(esc)   退出(q)',
-    menuLabel: '添加自选股',
+    title: 'screen.stockAdd.title',
+    description: 'screen.stockAdd.description',
+    hint: 'screen.stockAdd.hint',
+    menuLabel: 'screen.stockAdd.menuLabel',
   },
   ['stock-remove']: {
     Component: StockRemove,
-    title: '删除自选股',
-    description: '删除自选股',
-    hint: '菜单(esc)   移动(↑/↓/←/→)   选择(空格)   删除(enter)   退出(q)',
-    menuLabel: '删除自选股',
+    title: 'screen.stockRemove.title',
+    description: 'screen.stockRemove.description',
+    hint: 'screen.stockRemove.hint',
+    menuLabel: 'screen.stockRemove.menuLabel',
   },
   ['settings']: {
     Component: Settings,
-    title: '设置',
-    description: '配置主题, 涨跌颜色与请求参数',
-    hint: '菜单(esc)   选择(↑/↓)   调整(←/→/enter)   默认值(d)   退出(q)',
-    menuLabel: '设置',
+    title: 'screen.settings.title',
+    description: 'screen.settings.description',
+    hint: 'screen.settings.hint',
+    menuLabel: 'screen.settings.menuLabel',
   },
 } satisfies Record<Screen, ScreenDefinition>
 

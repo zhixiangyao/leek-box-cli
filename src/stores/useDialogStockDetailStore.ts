@@ -10,6 +10,7 @@ import type {
   IntradayPoint,
   KlinePeriod,
 } from '../api/types.ts'
+import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
 
 const KLINE_REQUEST_BY_PERIOD: Record<KlinePeriod, Omit<HistoricalRequest, 'period' | 'signal'>> = {
@@ -55,7 +56,10 @@ export function createDialogStockDetailStore(dependencies: DialogStockDetailDepe
           const request = KLINE_REQUEST_BY_PERIOD[period]
           points = await dependencies.fetchHistorical?.(code, { period, ...request, signal })
         }
-        if (!points) throw new Error(`${period === 'five-day' ? '五日' : 'K 线'}行情数据源不可用`)
+        if (!points) {
+          const label = period === 'five-day' ? t('chart.period.fiveDay') : t('chart.period.kline')
+          throw new Error(t('dialogStockDetail.sourceUnavailable', { period: label }))
+        }
         if (get().stock?.code !== code || get().period !== period || signal?.aborted) return
         set({ status: 'ready', points, errorMessage: undefined })
       } catch (error) {

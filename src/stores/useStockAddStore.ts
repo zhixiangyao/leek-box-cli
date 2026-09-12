@@ -3,8 +3,9 @@ import { create } from 'zustand'
 import { fetchQuotes } from '../api/index.ts'
 import { normalizeCode } from '../api/lib/tools.ts'
 import type { Quote } from '../api/types.ts'
+import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
-import { parseYesNo, YES_NO_ERROR_MESSAGE } from '../lib/yesNo.ts'
+import { parseYesNo, yesNoErrorMessage } from '../lib/yesNo.ts'
 import { stocksAdd } from '../settings/file.ts'
 import { type StockEntry } from '../settings/schema.ts'
 
@@ -71,8 +72,6 @@ const defaultDependencies: StockAddDependencies = {
 
 const FRESH_INPUT: InputState = { error: undefined, resetToken: 0 }
 
-const INVALID_CODE_MESSAGE = '无法识别股票代码, 请用英文逗号分隔 6 位股票代码.'
-
 export function createStockAddStore(dependencies: StockAddDependencies = defaultDependencies) {
   let generation = 0
   const isStale = (value: number) => value !== generation
@@ -80,7 +79,9 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
   return create<StockAddState>()((set, get) => {
     /** 代码输入非法: 记录错误并重挂载输入框 */
     const rejectCodeInput = () =>
-      set((state) => ({ codeInput: { error: INVALID_CODE_MESSAGE, resetToken: state.codeInput.resetToken + 1 } }))
+      set((state) => ({
+        codeInput: { error: t('stockAdd.invalidCode'), resetToken: state.codeInput.resetToken + 1 },
+      }))
 
     return {
       step: { type: 'input-code' },
@@ -117,7 +118,7 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
           const quotesByCode = new Map(quotes.map((quote) => [quote.code, quote]))
           const missingCodes = codes.filter((code) => !quotesByCode.has(code))
           if (missingCodes.length > 0) {
-            set({ step: { type: 'error', message: `未找到股票代码: ${missingCodes.join(', ')}.` } })
+            set({ step: { type: 'error', message: t('stockAdd.missingCodes', { codes: missingCodes.join(', ') }) } })
             return
           }
 
@@ -135,13 +136,13 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
         const confirmation = parseYesNo(answer)
         if (!confirmation) {
           set((state) => ({
-            confirmInput: { error: YES_NO_ERROR_MESSAGE, resetToken: state.confirmInput.resetToken + 1 },
+            confirmInput: { error: yesNoErrorMessage(), resetToken: state.confirmInput.resetToken + 1 },
           }))
           return
         }
         set((state) => ({ confirmInput: { error: undefined, resetToken: state.confirmInput.resetToken + 1 } }))
         if (confirmation === 'n') {
-          set({ step: { type: 'done', message: '已取消.' } })
+          set({ step: { type: 'done', message: t('stockAdd.cancelled') } })
           return
         }
 
@@ -168,12 +169,12 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
           set({
             step: {
               type: 'done',
-              message: `已添加 ${addedCount} 个股票, ${existingCount} 个已在自选股中.`,
+              message: t('stockAdd.done', { count: addedCount, existing: existingCount }),
             },
           })
         } catch (error) {
           if (!isStale(currentGeneration)) {
-            set({ step: { type: 'error', message: `写入自选股失败: ${errorMessage(error)}` } })
+            set({ step: { type: 'error', message: t('stockAdd.writeFailed', { error: errorMessage(error) }) } })
           }
         }
       },

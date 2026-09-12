@@ -3,6 +3,7 @@ import { link, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import process from 'node:process'
 
+import { t } from '../i18n/core.ts'
 import { isNormalObject, isProcessAlive } from '../lib/is.ts'
 
 const LOCK_RETRY_MS = 25
@@ -34,7 +35,7 @@ const tryRemoveStaleLock = async (lockPath: string): Promise<boolean> => {
       typeof metadata['createdAt'] !== 'number' ||
       !Number.isFinite(metadata['createdAt'])
     ) {
-      throw new Error('lock metadata 无效')
+      throw new Error(t('settings.lock.invalidMetadata'))
     }
     stale = !isProcessAlive(metadata['pid']) || Date.now() - metadata['createdAt'] >= LOCK_STALE_MS
   } catch {
@@ -89,7 +90,7 @@ export async function withFileLock<Result>(filePath: string, operation: () => Pr
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
       if (await tryRemoveStaleLock(lockPath)) continue
       if (Date.now() - startedAt >= LOCK_TIMEOUT_MS) {
-        throw new Error('文件正被其他进程占用, 请稍后重试')
+        throw new Error(t('settings.lock.busy'))
       }
       await sleep(LOCK_RETRY_MS)
     }

@@ -50,6 +50,7 @@ export const settingsSnapshot = (settings: Settings): Settings => ({
   themePreset: settings.themePreset,
   trendColorMode: settings.trendColorMode,
   borderStyle: settings.borderStyle,
+  language: settings.language,
   requestTimeoutMs: settings.requestTimeoutMs,
   minimumRequestDurationMs: settings.minimumRequestDurationMs,
   quotePollIntervalMs: settings.quotePollIntervalMs,
@@ -61,6 +62,7 @@ export const settingsEqual = (left: Settings, right: Settings) =>
   left.themePreset === right.themePreset &&
   left.trendColorMode === right.trendColorMode &&
   left.borderStyle === right.borderStyle &&
+  left.language === right.language &&
   left.requestTimeoutMs === right.requestTimeoutMs &&
   left.minimumRequestDurationMs === right.minimumRequestDurationMs &&
   left.quotePollIntervalMs === right.quotePollIntervalMs &&
@@ -72,6 +74,7 @@ export const settingsPatch = (current: Settings, previous: Settings): Partial<Se
   if (current.themePreset !== previous.themePreset) patch.themePreset = current.themePreset
   if (current.trendColorMode !== previous.trendColorMode) patch.trendColorMode = current.trendColorMode
   if (current.borderStyle !== previous.borderStyle) patch.borderStyle = current.borderStyle
+  if (current.language !== previous.language) patch.language = current.language
   if (current.requestTimeoutMs !== previous.requestTimeoutMs) patch.requestTimeoutMs = current.requestTimeoutMs
   if (current.minimumRequestDurationMs !== previous.minimumRequestDurationMs) {
     patch.minimumRequestDurationMs = current.minimumRequestDurationMs
