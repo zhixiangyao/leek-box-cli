@@ -256,15 +256,28 @@ export const tableWidth = (columns: readonly Column[]): number =>
   columns.reduce((sum, column) => sum + column.width, 0) + (columns.length - 1)
 
 /**
- * 根据终端可用列宽等比例放大各列宽 (四舍五入).
- * 四舍五入后各列宽之和未必精确等于 target, 由首列吸收残差,
- * 保证最终列宽之和 === target, 从而恰好填满整行.
- * 需保证 target >= 列宽之和 (WindowSizeGuard 已保证), 否则比例 < 1, 各列缩窄.
+ * 根据终端可用列宽等比例放大各列宽.
+ * 每列先取比例值的整数下界, 再把剩余的列宽按小数部分从大到小逐列 +1 (最大余额法),
+ * 保证最终列宽之和 === target, 恰好填满整行, 且没有哪一列会独吞残差.
+ * 残差全部压给首列时它可能被压到内容宽度以下 (124 列下曾压到 6, 窄于 8 列宽的中文名),
+ * 于是整行超宽, cell() 只补齐不截断, 末列会被折到下一行.
+ * 需保证 target >= 列宽之和 (WindowSizeGuard 已保证), 此时每列只增不减, 列宽不小于内容宽度.
  */
 export const scaleColumns = (columns: readonly Column[], targetContentWidth: number): Column[] => {
   const baseSum = columns.reduce((sum, column) => sum + column.width, 0)
-  const widths = columns.map((column) => Math.round((column.width / baseSum) * targetContentWidth))
-  widths[0] = targetContentWidth - widths.slice(1).reduce((sum, width) => sum + width, 0)
+  const ideals = columns.map((column) => (column.width / baseSum) * targetContentWidth)
+  const widths = ideals.map((ideal) => Math.floor(ideal))
+  const byFraction = ideals
+    .map((ideal, index) => ({ index, fraction: ideal - Math.floor(ideal) }))
+    .sort((left, right) => right.fraction - left.fraction || left.index - right.index)
+
+  let residual = targetContentWidth - widths.reduce((sum, width) => sum + width, 0)
+  for (const { index } of byFraction) {
+    if (residual <= 0) break
+    widths[index] = widths[index]! + 1
+    residual -= 1
+  }
+
   return columns.map((column, index) => ({ ...column, width: widths[index]! }))
 }
 

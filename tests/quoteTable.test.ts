@@ -120,7 +120,7 @@ test('scaleColumns 在 target === 列宽之和时保持不变', () => {
   expect(scaled.map((column) => column.width)).toStrictEqual(STOCK_LIST_COLUMNS.map((column) => column.width))
 })
 
-test('scaleColumns 等比例放大, 由首列吸收四舍五入残差使总和精确等于 target', () => {
+test('scaleColumns 等比例放大, 残差按小数部分从大到小分摊使总和精确等于 target', () => {
   const target = 185
   const scaled = scaleColumns(STOCK_LIST_COLUMNS, target)
   expect(scaled.reduce((sum, column) => sum + column.width, 0)).toBe(target)
@@ -130,10 +130,38 @@ test('scaleColumns 等比例放大, 由首列吸收四舍五入残差使总和�
   expect(scaled.map((column) => column.width)).toStrictEqual([17, 16, 15, 16, 15, 13, 13, 13, 20, 16, 13, 18])
 })
 
-test('scaleColumns 首列吸收残差 (2 列示例)', () => {
+test('scaleColumns 残差按小数部分分摊, 小数相同时靠前的列先取 (2 列示例)', () => {
+  // 两列比例相同 (各 12.5), 残差 1 归首列, 而不是像以前那样让首列吸收全部残差
   const scaled = scaleColumns([codeColumn, percentColumn], 25)
-  expect(scaled.map((column) => column.width)).toStrictEqual([12, 13])
+  expect(scaled.map((column) => column.width)).toStrictEqual([13, 12])
   expect(scaled.reduce((sum, column) => sum + column.width, 0)).toBe(25)
+})
+
+/**
+ * 124 列的终端曾让首列被压到 6: 名称列窄于 8 列宽的中文名, 整行超宽后末列被折到下一行.
+ * scaleColumns 是 cell() 只补齐不截断的前提, 因此任何一列都不得窄于列定义的内容宽度.
+ */
+test('scaleColumns 不把任何一列压到内容宽度以下 (124 列回归)', () => {
+  const scaled = scaleColumns(STOCK_LIST_COLUMNS, 109)
+  expect(scaled.map((column) => column.width)).toStrictEqual([10, 10, 9, 10, 9, 7, 7, 7, 12, 10, 7, 11])
+})
+
+test('scaleColumns 在 target >= 列宽之和时每列只增不减, 总和精确等于 target', () => {
+  for (const locale of LOCALES) {
+    const columns = stockListColumns(locale)
+    const baseSum = columns.reduce((sum, column) => sum + column.width, 0)
+    for (let target = baseSum; target <= baseSum + 60; target += 1) {
+      const scaled = scaleColumns(columns, target)
+      const label = `${locale} target ${target}`
+      expect(
+        scaled.reduce((sum, column) => sum + column.width, 0),
+        label,
+      ).toBe(target)
+      columns.forEach((column, index) => {
+        expect(scaled[index]!.width, `${label} ${column.key}`).toBeGreaterThanOrEqual(column.width)
+      })
+    }
+  }
 })
 
 /* ---------- 多语言列 ---------- */
