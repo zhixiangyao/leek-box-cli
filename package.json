@@ -50,21 +50,21 @@
   "dependencies": {
     "ink": "7.1.1",
     "meow": "14.1.0",
-    "react": "19.2.8",
-    "react-devtools-core": "7.0.1",
+    "react": "19.3.0",
+    "react-devtools-core": "8.0.0",
     "string-width": "8.2.2",
     "zustand": "5.0.15"
   },
   "devDependencies": {
-    "@types/node": "22.20.1",
-    "@types/react": "19.2.18",
-    "lint-staged": "17.5.0",
-    "oxfmt": "0.66.0",
-    "oxlint": "1.81.0",
+    "@types/node": "22.20.2",
+    "@types/react": "19.3.0",
+    "lint-staged": "17.5.1",
+    "oxfmt": "0.67.0",
+    "oxlint": "1.82.0",
     "simple-git-hooks": "2.14.0",
     "tsx": "4.23.13",
     "typescript": "7.0.2",
-    "vite": "8.2.2",
+    "vite": "8.3.0",
     "vitest": "5.0.0"
   },
   "simple-git-hooks": {
@@ -82,5 +82,5 @@
     "node": "^22.19.0 || >=24.0.0",
     "pnpm": ">=12.3.4"
   },
-  "packageManager": "pnpm@12.3.4"
+  "packageManager": "pnpm@12.4.1"
 }
