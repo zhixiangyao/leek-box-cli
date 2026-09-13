@@ -51,7 +51,6 @@
     "ink": "7.1.1",
     "meow": "14.1.0",
     "react": "19.3.0",
-    "react-devtools-core": "8.0.0",
     "string-width": "8.2.2",
     "zustand": "5.0.15"
   },
