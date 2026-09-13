@@ -19,7 +19,7 @@
 ### 自选股票看板
 
 <p align="center">
-  <img src="scrennshots/stock-list.png" alt="自选股票看板" width="100%">
+  <img src="scrennshots/zh-hans/stock-list.png" alt="自选股票看板" width="100%">
 </p>
 
 ### 菜单与设置
@@ -30,8 +30,8 @@
     <td align="center" width="50%"><strong>设置</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/dialog-menu.png" alt="菜单对话框"></td>
-    <td><img src="scrennshots/settings.png" alt="设置界面"></td>
+    <td><img src="scrennshots/zh-hans/dialog-menu.png" alt="菜单对话框"></td>
+    <td><img src="scrennshots/zh-hans/settings.png" alt="设置界面"></td>
   </tr>
 </table>
 
@@ -43,8 +43,8 @@
     <td align="center" width="50%"><strong>删除自选股</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/stock-add.png" alt="添加自选股界面"></td>
-    <td><img src="scrennshots/stock-remove.png" alt="删除自选股界面"></td>
+    <td><img src="scrennshots/zh-hans/stock-add.png" alt="添加自选股界面"></td>
+    <td><img src="scrennshots/zh-hans/stock-remove.png" alt="删除自选股界面"></td>
   </tr>
 </table>
 
@@ -56,24 +56,24 @@
     <td align="center" width="50%"><strong>五日</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/dialog-stock-detail-intraday.png" alt="分时走势图"></td>
-    <td><img src="scrennshots/dialog-stock-detail-five-day.png" alt="五日走势图"></td>
+    <td><img src="scrennshots/zh-hans/dialog-stock-detail-intraday.png" alt="分时走势图"></td>
+    <td><img src="scrennshots/zh-hans/dialog-stock-detail-five-day.png" alt="五日走势图"></td>
   </tr>
   <tr>
     <td align="center" width="50%"><strong>日 K</strong></td>
     <td align="center" width="50%"><strong>周 K</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/dialog-stock-detail-day.png" alt="日 K 走势图"></td>
-    <td><img src="scrennshots/dialog-stock-detail-week.png" alt="周 K 走势图"></td>
+    <td><img src="scrennshots/zh-hans/dialog-stock-detail-day.png" alt="日 K 走势图"></td>
+    <td><img src="scrennshots/zh-hans/dialog-stock-detail-week.png" alt="周 K 走势图"></td>
   </tr>
   <tr>
     <td align="center" width="50%"><strong>月 K</strong></td>
     <td align="center" width="50%"><strong>年 K</strong></td>
   </tr>
   <tr>
-    <td><img src="scrennshots/dialog-stock-detail-month.png" alt="月 K 走势图"></td>
-    <td><img src="scrennshots/dialog-stock-detail-year.png" alt="年 K 走势图"></td>
+    <td><img src="scrennshots/zh-hans/dialog-stock-detail-month.png" alt="月 K 走势图"></td>
+    <td><img src="scrennshots/zh-hans/dialog-stock-detail-year.png" alt="年 K 走势图"></td>
   </tr>
 </table>
 
