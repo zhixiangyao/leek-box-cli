@@ -177,10 +177,9 @@ export type Message = {
   'common.noData': string
   'common.returnPrompt': string
   'windowGuard.tooSmall': string
+  'windowGuard.required': string
   'windowGuard.width': string
   'windowGuard.height': string
-  'windowGuard.required': string
-  'windowGuard.requiredSize': string
   'stockLogo.sh': string
   'stockLogo.sz': string
   'stockLogo.bj': string

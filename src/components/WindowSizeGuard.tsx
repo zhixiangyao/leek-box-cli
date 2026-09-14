@@ -30,17 +30,25 @@ export default function WindowSizeGuard({ children }: Props) {
 
   return (
     <Box width={columns} height={rows} flexDirection="column" alignItems="center" justifyContent="center">
-      <Text color="yellow">{t('windowGuard.tooSmall')}</Text>
+      <Box>
+        <Text color="yellow">{t('windowGuard.tooSmall')}</Text>
+      </Box>
       <Box>
         <Text color={widthOk ? 'green' : 'red'}>{t('windowGuard.width', { value: columns })}</Text>
         <Text> </Text>
         <Text color={heightOk ? 'green' : 'red'}>{t('windowGuard.height', { value: rows })}</Text>
       </Box>
+
       <Box height={1} />
-      <Text color="gray">{t('windowGuard.required')}</Text>
-      <Text color="gray">
-        {t('windowGuard.requiredSize', { width: MIN_TERMINAL_COLUMNS, height: MIN_TERMINAL_ROWS })}
-      </Text>
+
+      <Box>
+        <Text color="gray">{t('windowGuard.required')}</Text>
+      </Box>
+      <Box>
+        <Text>{t('windowGuard.width', { value: MIN_TERMINAL_COLUMNS })}</Text>
+        <Text> </Text>
+        <Text>{t('windowGuard.height', { value: MIN_TERMINAL_ROWS })}</Text>
+      </Box>
     </Box>
   )
 }
