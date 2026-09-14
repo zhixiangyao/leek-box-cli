@@ -1,4 +1,5 @@
 import { Box } from 'ink'
+import { useMemo } from 'react'
 
 import Text from '../Text.tsx'
 import { buildChartRows, type BuildChartRowsParams, type ChartCell } from './lib.ts'
@@ -32,7 +33,10 @@ export default function StockChart({
   bright = false,
   trendColorMode,
 }: Props) {
-  const rows = buildChartRows({ points, period, prevClose, width, priceHeight, volumeHeight, trendColorMode })
+  const rows = useMemo(
+    () => buildChartRows({ points, period, prevClose, width, priceHeight, volumeHeight, trendColorMode }),
+    [points, period, prevClose, width, priceHeight, volumeHeight, trendColorMode],
+  )
 
   return (
     <Box flexDirection="column">

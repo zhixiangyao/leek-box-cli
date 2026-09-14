@@ -1,4 +1,5 @@
 import { Box } from 'ink'
+import { useMemo } from 'react'
 
 import GridCell, { GridCellSlot } from './components/GridCell.tsx'
 import { useCheckboxGrid } from './hooks/useCheckboxGrid.ts'
@@ -18,7 +19,7 @@ type Props<T> = {
 export default function CheckboxGrid<T>(props: Props<T>) {
   const { items, getKey, getLabel, getHint, isActive, onSubmit } = props
   const { gridRef, cursor, selectedKeys, visibleRange } = useCheckboxGrid({ items, getKey, isActive, onSubmit })
-  const rows = toGridRows(items)
+  const rows = useMemo(() => toGridRows(items), [items])
 
   return (
     <Box ref={gridRef} flexDirection="column" flexGrow={1} overflow="hidden">
