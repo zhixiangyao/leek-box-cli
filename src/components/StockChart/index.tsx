@@ -2,7 +2,7 @@ import { Box } from 'ink'
 import { useMemo } from 'react'
 
 import Text from '../Text.tsx'
-import { buildChartRows, type BuildChartRowsParams, type ChartCell } from './lib.ts'
+import { buildChartRows, mergeChartCell, type BuildChartRowsParams } from './lib.ts'
 
 const DEFAULT_PRICE_HEIGHT = 9
 
@@ -34,34 +34,30 @@ export default function StockChart({
   trendColorMode,
 }: Props) {
   const rows = useMemo(
-    () => buildChartRows({ points, period, prevClose, width, priceHeight, volumeHeight, trendColorMode }),
+    () =>
+      buildChartRows({
+        points,
+        period,
+        prevClose,
+        width,
+        priceHeight,
+        volumeHeight,
+        trendColorMode,
+      }).map((row) => mergeChartCell(row)),
     [points, period, prevClose, width, priceHeight, volumeHeight, trendColorMode],
   )
 
   return (
     <Box flexDirection="column">
-      {rows.map((row, rowIndex) => {
-        // 相邻同色 cell 合并成 run, 减少 Text 片段数量
-        const runs = row.reduce<ChartCell[]>((acc, cell) => {
-          const last = acc.at(-1)
-          if (last && last.color === cell.color) {
-            last.ch += cell.ch
-          } else {
-            acc.push(cell)
-          }
-          return acc
-        }, [])
-
-        return (
-          <Text key={rowIndex} bright={bright}>
-            {runs.map((run, runIndex) => (
-              <Text key={runIndex} bright={bright} color={run.color}>
-                {run.ch}
-              </Text>
-            ))}
-          </Text>
-        )
-      })}
+      {rows.map((row, rowIndex) => (
+        <Text key={rowIndex} bright={bright}>
+          {row.map((cell, cellIndex) => (
+            <Text key={cellIndex} bright={bright} color={cell.color}>
+              {cell.ch}
+            </Text>
+          ))}
+        </Text>
+      ))}
     </Box>
   )
 }

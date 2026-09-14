@@ -2,7 +2,23 @@ import type { ChartPeriod, ChartPoint, FiveDayPoint, HistoricalPoint, IntradayPo
 import { DEFAULT_TREND_COLOR_MODE, trendColor, type TrendColor, type TrendColorMode } from '../../lib/format.ts'
 
 /** 图表单元格: 字符 + 可选颜色, 行渲染时相邻同色合并 */
-export type ChartCell = { ch: string; color?: TrendColor }
+type ChartCell = { ch: string; color?: TrendColor }
+
+/**
+ * 合并相邻同色 cell, 颜色变化处断开.
+ * 返回的 cell 都是新对象: 结果会被 useMemo 缓存, 复用入参 cell 时后续拼接会写进缓存.
+ */
+export const mergeChartCell = (row: readonly ChartCell[]): ChartCell[] =>
+  row.reduce<ChartCell[]>((acc, cell) => {
+    const last = acc.at(-1)
+    if (last && last.color === cell.color) {
+      // last 是本函数新建的副本, 就地拼接不会写到入参上
+      last.ch += cell.ch
+    } else {
+      acc.push({ ...cell })
+    }
+    return acc
+  }, [])
 
 /** 桶: 一列内的聚合值; 空桶 (无数据) 各字段为 0 */
 type Bucket = {
