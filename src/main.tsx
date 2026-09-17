@@ -40,10 +40,10 @@ async function main(params: MainParams) {
   }
 }
 
-const { settingsDocument, cliHelpMessage, command, showHelp } = await parseCli()
+const { settingsDocument, helpMessage, command, showHelp } = await parseCli()
 
 if (showHelp) {
-  console.log(cliHelpMessage)
+  console.log(helpMessage)
 } else {
   try {
     await main({ settingsDocument, command })

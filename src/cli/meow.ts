@@ -19,7 +19,7 @@ const tryLoadSettings = async (): Promise<SettingsDocument | undefined> => {
   }
 }
 
-export function genCliHelpMessage(): string {
+export function genHelpMessage(): string {
   const commandHelp = SCREEN_REGISTRY_ENTRIES.map(
     ([command, definition]) => `  ${command.padEnd(13)}${t(definition.description)}`,
   ).join('\n')
@@ -40,8 +40,8 @@ export async function parseCli() {
   const settingsDocument = await tryLoadSettings()
   applyLanguage(settingsDocument?.language ?? DEFAULT_LANGUAGE)
   // help 文案必须在 meow() 之前生成
-  const cliHelpMessage = genCliHelpMessage()
-  const cli = meow(cliHelpMessage, {
+  const helpMessage = genHelpMessage()
+  const cli = meow(helpMessage, {
     importMeta: import.meta,
     commands: [...SCREEN_LIST],
     description: false,
@@ -56,5 +56,5 @@ export async function parseCli() {
   const inputHasHelpFlag = cli.input.some((argv) => ['--help', '-h'].includes(argv))
   const showHelp = cli.flags.help === true || inputHasHelpFlag
 
-  return { settingsDocument, cliHelpMessage, command, showHelp }
+  return { settingsDocument, helpMessage, command, showHelp }
 }

@@ -33,7 +33,7 @@ src/cli/registry.ts
 
 src/cli/meow.ts
   meow 参数解析, parseCli() 先按已配置语言 applyLanguage 再生成 help, 处理 -h,
-  返回 cliHelpMessage 与已读到的 settingsDocument (供 persistence 复用)
+  返回 helpMessage 与已读到的 settingsDocument (供 persistence 复用)
 
 src/screens/<Feature>/index.tsx
   页面渲染, 只消费对应 feature hook 返回的状态和视图模型
@@ -94,10 +94,10 @@ lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTransla
 
 `src/main.tsx` 只保留以下职责:
 
-1. `await` `src/cli/meow.ts` 的 `parseCli()`, 取出 command, showHelp, cliHelpMessage 和 settingsDocument;
-   showHelp 时直接打印 cliHelpMessage 并跳过应用启动.
+1. `await` `src/cli/meow.ts` 的 `parseCli()`, 取出 command, showHelp, helpMessage 和 settingsDocument;
+   showHelp 时直接打印 helpMessage 并跳过应用启动.
    parseCli 内部先用 `tryLoadSettings()` (对 `loadExistingSettings()` 的包装) 读取已有配置并
-   `applyLanguage`, 再调用 `genCliHelpMessage()` 生成文案, 因此 help 与界面同语言. 这一步只读文件
+   `applyLanguage`, 再调用 `genHelpMessage()` 生成文案, 因此 help 与界面同语言. 这一步只读文件
    不创建文件, 读取失败 (缺失或损坏) 时回退系统语言. 这层包装必须留在 meow.ts: parseCli 在 main 的
    try 之外, 抛出会变成顶层 await 的未处理拒绝, 并让 `-h` 一起失败; 损坏文件的报错留给后面的
    `initializeSettings` (在 try 内) 统一给出用户提示, 因此报错只出现一次.
