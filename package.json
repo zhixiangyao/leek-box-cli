@@ -55,7 +55,7 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
-    "@types/node": "22.20.2",
+    "@types/node": "22.20.3",
     "@types/react": "19.3.0",
     "lint-staged": "17.5.1",
     "oxfmt": "0.68.0",
@@ -64,7 +64,7 @@
     "tsx": "4.23.13",
     "typescript": "7.0.2",
     "vite": "8.3.0",
-    "vitest": "5.0.0"
+    "vitest": "5.0.1"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged && pnpm typecheck && pnpm test"
@@ -81,5 +81,5 @@
     "node": "^22.19.0 || >=24.0.0",
     "pnpm": ">=12.3.4"
   },
-  "packageManager": "pnpm@12.4.1"
+  "packageManager": "pnpm@12.4.2"
 }
