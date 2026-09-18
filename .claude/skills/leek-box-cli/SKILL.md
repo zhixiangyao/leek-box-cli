@@ -537,12 +537,11 @@ Card 负责:
 
 - 全屏或显式 width/height
 - 主题 border style 和 border color
-- 左上 title
-- 右上 extra
+- 左上 topLeft, 右上 topRight, 左下 bottomLeft, 右下 bottomRight (四角内容由 CardCorner 渲染, 绝对定位压在边框行上, 固定单行并裁剪溢出)
 - 内容 padding 和可选 `mask` (打开时用 SpaceMask 盖住其后内容)
 - footer
 
-Dialog 支持 `title`, `extra`, `hint` 和 `width`, footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
+Dialog 支持 `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `hint` 和 `width` (四角类型从 CardProps Pick 而来), footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
 
 弹窗宽度一律按 `Math.max(标题宽, Math.min(内容宽, CONTENT_WIDTH_CAP), hint 宽, 下限)` 计算:
 外层取各部分的**最大**值, `CONTENT_WIDTH_CAP` 只用来给内容单独设上限. 内容是列表时先

@@ -88,7 +88,7 @@ export default function StockAdd({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      title={<Text color={theme.primary}>{title}</Text>}
+      topLeft={<Text color={theme.primary}>{title}</Text>}
       footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
     >
       {content}

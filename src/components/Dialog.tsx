@@ -1,7 +1,6 @@
 import { Box, useWindowSize } from 'ink'
-import type { ReactNode } from 'react'
 
-import Card from './Card.tsx'
+import Card, { type CardProps } from './Card.tsx'
 import StatusBar from './StatusBar.tsx'
 
 /** 弹窗宽度冗余默认值 */
@@ -13,15 +12,12 @@ export const DIALOG_CHROME = 4
 type Props = {
   /** 默认为 true */
   bright?: boolean
-  title?: ReactNode
-  extra?: ReactNode
   hint?: string
-  width: number
-  children: ReactNode
-}
+} & Pick<CardProps, 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'width' | 'children'>
 
 export default function Dialog(props: Props) {
-  const { bright = true, title, extra, hint, width, children } = props
+  const { bright = true, hint } = props
+  const { topLeft, topRight, bottomLeft, bottomRight, width, children } = props
   const { rows, columns } = useWindowSize()
 
   return (
@@ -38,8 +34,10 @@ export default function Dialog(props: Props) {
       <Card
         mask
         bright={bright}
-        title={title}
-        extra={extra}
+        topLeft={topLeft}
+        topRight={topRight}
+        bottomLeft={bottomLeft}
+        bottomRight={bottomRight}
         width={width}
         footer={<StatusBar hint={hint} bright={bright} />}
       >

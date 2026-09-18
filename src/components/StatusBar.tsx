@@ -4,7 +4,9 @@ import { useClock } from '../hooks/useClock.ts'
 import { useTheme } from '../hooks/useTheme.ts'
 import Text from './Text.tsx'
 
-function Clock({ bright = false }: Pick<Props, 'bright'>) {
+type ClockProps = Pick<StatusBarProps, 'bright'>
+
+function Clock({ bright = false }: ClockProps) {
   const clock = useClock('date-time')
 
   return (
@@ -14,14 +16,14 @@ function Clock({ bright = false }: Pick<Props, 'bright'>) {
   )
 }
 
-type Props = {
+type StatusBarProps = {
   /** 默认为 false */
   bright?: boolean
   hint?: string
   showClock?: boolean
 }
 
-export default function StatusBar(props: Props) {
+export default function StatusBar(props: StatusBarProps) {
   const { bright = false, hint, showClock = false } = props
   const theme = useTheme()
 

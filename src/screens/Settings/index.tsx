@@ -35,7 +35,7 @@ export default function Settings({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      title={<Text color={theme.primary}>{title}</Text>}
+      topLeft={<Text color={theme.primary}>{title}</Text>}
       footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
     >
       <Text color={theme.primary}>{t('settings.section.appearance')}</Text>

@@ -26,7 +26,7 @@ export default function GridCell({ label, hint, selected, cursor }: Props) {
           {selected ? '[x] ' : '[ ] '}
           {label}
         </Text>
-        {hint ? <Text color="gray"> ({hint})</Text> : undefined}
+        {!!hint && <Text color="gray"> ({hint})</Text>}
       </Text>
     </GridCellSlot>
   )

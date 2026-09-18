@@ -68,9 +68,9 @@ export default function StockList({ title, hint }: Props) {
             onVisibleChange={stockList.handlesVisibleChange}
           />
 
-          {stockList.step.errorLine ? (
+          {!!stockList.step.errorLine && (
             <Text color="yellow">{t('stockList.refreshFailed', { error: stockList.step.errorLine })}</Text>
-          ) : undefined}
+          )}
         </>
       )
       break
@@ -81,13 +81,13 @@ export default function StockList({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      title={<Text color={theme.primary}>{title}</Text>}
-      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
-      extra={
+      topLeft={<Text color={theme.primary}>{title}</Text>}
+      topRight={
         stockList.step.type === 'table' && stockList.remainingCount > 0 ? (
           <Text>{t('stockList.remaining', { count: stockList.remainingCount })}</Text>
         ) : undefined
       }
+      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
     >
       {content}
     </Card>

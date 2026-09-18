@@ -27,7 +27,7 @@ export default function DialogStockDetail() {
 
   return (
     <Dialog
-      title={
+      topLeft={
         <Text bright>
           <StockLogo code={stock?.code} bright />
           <Text> </Text>
@@ -50,7 +50,7 @@ export default function DialogStockDetail() {
           </Text>
         </Text>
       }
-      extra={
+      topRight={
         <Text bright>
           {CHART_PERIOD_OPTIONS.map((option, index) => (
             <Text key={option.value} bright color={option.value === period ? 'cyan' : 'gray'}>

@@ -31,7 +31,7 @@ export default function DialogMenu() {
 
   return (
     <Dialog
-      title={
+      topLeft={
         <Text bright={bright} color={theme.primary}>
           {title}
         </Text>

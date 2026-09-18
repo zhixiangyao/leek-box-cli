@@ -41,7 +41,7 @@ export default function TextInput({ prompt, onSubmit, placeholder }: Props) {
           <Text>
             {value}
             <Text color="gray">█</Text>
-            {!value && placeholder ? placeholder : undefined}
+            {!value && placeholder}
           </Text>
         )}
       </Text>
