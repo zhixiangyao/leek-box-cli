@@ -1,7 +1,7 @@
 import { Newline } from 'ink'
 
-import type { Screen } from '../cli/registry.ts'
 import { useTranslation } from '../hooks/useTranslation.ts'
+import type { Screen } from '../navigation/registry.ts'
 import { useRouterStore } from '../stores/useRouterStore.ts'
 import Message, { type MessageTone } from './Message.tsx'
 import TextInput from './TextInput.tsx'

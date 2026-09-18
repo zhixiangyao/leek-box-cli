@@ -7,13 +7,11 @@ import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
+import { type ScreenComponentProps } from '../../navigation/registry.ts'
 import type { StockEntry } from '../../settings/schema.ts'
 import { useStockRemove } from './hooks/useStockRemove.ts'
 
-type Props = {
-  title: string
-  hint: string
-}
+type Props = ScreenComponentProps
 
 export default function StockRemove({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()

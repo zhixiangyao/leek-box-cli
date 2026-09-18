@@ -2,15 +2,11 @@ import meow from 'meow'
 
 import { applyLanguage, t } from '../i18n/core.ts'
 import { DEFAULT_LANGUAGE } from '../i18n/locale.ts'
+import { SCREEN_LIST, SCREEN_REGISTRY_ENTRIES } from '../navigation/registry.ts'
 import { loadExistingSettings } from '../settings/file.ts'
 import type { SettingsDocument } from '../settings/schema.ts'
-import { SCREEN_LIST, SCREEN_REGISTRY_ENTRIES } from './registry.ts'
 
-/**
- * 读取已有配置用于确定语言, 缺失或损坏一律按"无配置"处理:
- * 这里在 main 的 try 之外, 抛出会变成顶层 await 的未处理拒绝并让 -h 也失败,
- * 因此损坏文件的报错留给后面的 initializeSettings, 由 main 统一给出用户提示.
- */
+/** 读配置不创建文件, 读不到 (缺失或损坏) 就当没有配置: 不抛出, 报错留给后面的 initializeSettings */
 const tryLoadSettings = async (): Promise<SettingsDocument | undefined> => {
   try {
     return await loadExistingSettings()
@@ -38,14 +34,16 @@ ${t('cli.options')}
 /** 解析 CLI 参数 */
 export async function parseCli() {
   const settingsDocument = await tryLoadSettings()
+  // 语言要先就位: 此后任何一步抛错都由入口的 catch 报成 "运行失败", 文案按用户配置的语言渲染
   applyLanguage(settingsDocument?.language ?? DEFAULT_LANGUAGE)
   // help 文案必须在 meow() 之前生成
   const helpMessage = genHelpMessage()
-  const cli = meow(helpMessage, {
+  const cli = meow({
     importMeta: import.meta,
     commands: [...SCREEN_LIST],
     description: false,
     autoHelp: false,
+    help: helpMessage,
     helpIndent: 0,
     flags: {
       help: { type: 'boolean', shortFlag: 'h' },

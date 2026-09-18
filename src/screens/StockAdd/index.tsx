@@ -9,13 +9,11 @@ import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
 import { formatPrice } from '../../lib/format.ts'
+import { type ScreenComponentProps } from '../../navigation/registry.ts'
 import { isAddResultStep } from '../../stores/useStockAddStore.ts'
 import { useStockAdd } from './hooks/useStockAdd.ts'
 
-type Props = {
-  title: string
-  hint: string
-}
+type Props = ScreenComponentProps
 
 export default function StockAdd({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()

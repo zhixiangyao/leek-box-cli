@@ -1,19 +1,19 @@
 import { create } from 'zustand'
 
-import { type Item } from '../cli/menu.ts'
+import { type MenuItem } from '../navigation/menu.ts'
 
 type DialogMenuState = {
   open: boolean
-  currentType: Item['type']
+  highlightedType: MenuItem['type']
   toggle: () => void
   close: () => void
-  setCurrentType: (currentType: Item['type']) => void
+  setHighlightedType: (highlightedType: MenuItem['type']) => void
 }
 
 export const useDialogMenuStore = create<DialogMenuState>()((set) => ({
   open: false,
-  currentType: 'stock-list',
+  highlightedType: 'stock-list',
   toggle: () => set((state) => ({ open: !state.open })),
   close: () => set({ open: false }),
-  setCurrentType: (currentType) => set({ currentType }),
+  setHighlightedType: (highlightedType) => set({ highlightedType }),
 }))

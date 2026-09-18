@@ -6,9 +6,9 @@ import process from 'node:process'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 
 import { genHelpMessage, parseCli } from '../src/cli/meow.ts'
-import { SCREEN_REGISTRY_ENTRIES } from '../src/cli/registry.ts'
 import { createTranslator, getActiveLocale, t } from '../src/i18n/core.ts'
 import { detectLocale } from '../src/i18n/locale.ts'
+import { SCREEN_REGISTRY_ENTRIES } from '../src/navigation/registry.ts'
 import { settingsPath } from '../src/settings/file.ts'
 import { createDocument, DEFAULT_SETTINGS } from '../src/settings/schema.ts'
 
@@ -88,8 +88,8 @@ test('parseCli 在设置文件损坏时不抛错, 回退系统语言并照常生
   try {
     const { settingsDocument, helpMessage } = await parseWithArgv('--help')
 
-    // parseCli 在 main 的 try 之外: 这里抛出会变成未处理拒绝, 连 -h 都失败.
-    // 损坏文件的报错留给 main 里的 initializeSettings (见 tests/settings.test.ts).
+    // parseCli 自身不抛: 这里抛出会命中入口的 catch, 把 -h 也变成 "运行失败".
+    // 损坏文件的报错留给后面的 initializeSettings (见 tests/settings.test.ts).
     expect(settingsDocument).toBeUndefined()
     expect(getActiveLocale()).toBe(detectLocale())
     expect(helpMessage).toContain(t('cli.usage'))

@@ -20,20 +20,25 @@ description: leek-box-cli 项目架构, 开发规范和真实实现约束. 当�
 
 ```text
 src/main.tsx
-  初始路由, Ink render 和 settings persistence start/stop
+  入口接线: 调用 cli/run.ts 的 run(), Ink render 和 settings persistence start/stop
 
 src/app.tsx
-  无浮层时的 esc(开关菜单) 和 q(退出) 输入, 当前 screen 装配, 浮层的绘制顺序
+  无浮层时的 esc(开关菜单) 和 q(退出) 输入, 当前 screen 装配 (SCREEN_COMPONENTS 持组件映射), 浮层的绘制顺序
 
 src/i18n/
   国际化叶子模块. types.ts 是全部 i18n 类型与文案键的规范来源, locale.ts 定义 locale/language 常量与系统语言检测, core.ts 持有 active locale 与 t(), catalog/ 存放三份文案表
 
-src/cli/registry.ts
-  页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单. 文案字段是 MessageKey
+src/navigation/
+  页面导航域, 只依赖 i18n, 不 import screens 也不持有页面组件.
+  registry.ts 是页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单, 文案字段是 MessageKey;
+  menu.ts 是从注册表派生的菜单项 (含 reset/exit 两个应用级动作), 供 DialogMenu 与其 store 使用.
+  页面组件映射在 app.tsx 的 SCREEN_COMPONENTS, 因此 stores/components 引用本目录不会与 app.tsx 成环
 
-src/cli/meow.ts
-  meow 参数解析, parseCli() 先按已配置语言 applyLanguage 再生成 help, 处理 -h,
-  返回 helpMessage 与已读到的 settingsDocument (供 persistence 复用)
+src/cli/
+  只在命令行入口链路上用到的模块.
+  meow.ts 参数解析, parseCli() 先按已配置语言 applyLanguage 再生成 help, 处理 -h,
+  返回 helpMessage 与已读到的 settingsDocument (供 persistence 复用);
+  run.ts 启动流程: parseCli -> 打印 help 或交给注入的 startApp, 顶层异常统一成 "运行失败" 文案与退出码
 
 src/screens/<Feature>/index.tsx
   页面渲染, 只消费对应 feature hook 返回的状态和视图模型
@@ -80,7 +85,10 @@ tests/*.test.ts
 
 ```text
 screens/components -> hooks/stores -> settings/file -> settings/schema -> lib
-main -> cli/registry + settings/persistence -> stores -> settings/file
+screens -> navigation (只取 `ScreenComponentProps` 类型, 页面只接收已翻译的字符串; navigation 不反向 import screens)
+main -> cli/run + navigation/registry + settings/persistence -> stores -> settings/file
+cli/run -> cli/meow
+navigation -> i18n (只依赖 i18n 类型, 不 import screens; 引用 registry 的 store/component 因此不会与 app.tsx 成环)
 lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTranslation, main -> i18n
 ```
 
@@ -92,25 +100,34 @@ lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTransla
 
 ## CLI 启动和退出
 
-`src/main.tsx` 只保留以下职责:
+`src/cli/run.ts` 负责启动流程与顶层错误处理:
 
 1. `await` `src/cli/meow.ts` 的 `parseCli()`, 取出 command, showHelp, helpMessage 和 settingsDocument;
-   showHelp 时直接打印 helpMessage 并跳过应用启动.
-   parseCli 内部先用 `tryLoadSettings()` (对 `loadExistingSettings()` 的包装) 读取已有配置并
-   `applyLanguage`, 再调用 `genHelpMessage()` 生成文案, 因此 help 与界面同语言. 这一步只读文件
-   不创建文件, 读取失败 (缺失或损坏) 时回退系统语言. 这层包装必须留在 meow.ts: parseCli 在 main 的
-   try 之外, 抛出会变成顶层 await 的未处理拒绝, 并让 `-h` 一起失败; 损坏文件的报错留给后面的
-   `initializeSettings` (在 try 内) 统一给出用户提示, 因此报错只出现一次.
+   showHelp 时打印 helpMessage 并跳过应用启动.
+   parseCli 内部先用 `tryLoadSettings()` (对 `loadExistingSettings()` 的包装, 只读不创建) 读取已有配置,
+   紧接着 `applyLanguage`, 再调用 `genHelpMessage()` 生成文案, 因此 help 与界面同语言.
+   读取失败 (缺失或损坏) 时该包装返回 undefined, 语言回退系统语言. 这个包装必须留在 meow.ts
+   且自身不抛, 且 `applyLanguage` 必须紧跟其后: 此后任何一步抛错都由顶层的 catch 报成 "运行失败",
+   文案要按用户配置的语言渲染; 损坏文件的报错留给后面的 `initializeSettings` 统一给出用户提示,
+   因此报错只出现一次.
    help 文案必须在 `meow()` 之前生成: 未知命令时 meow 会自己打印它, 不能延后到 showHelp 分支.
-2. 把 `settingsDocument` 传给 `startSettingsPersistence()`, 复用 parseCli 已读到的文档,
+2. parseCli 与 startApp 的异常都在这里变成 `app.runFailed` 文案与 `process.exitCode = 1`:
+   抛到模块顶层会变成顶层 await 的未处理拒绝, 用户只看得到原始堆栈.
+3. 打印 help 前给 `process.stdout` 装 EPIPE 监听: 下游 `-h | head` 关闭管道时 Node 会在 stdout 上
+   异步抛出未处理的 'error' 事件并打印堆栈, 这既不是运行失败, 也接不到 try/catch.
+
+`src/main.tsx` 只保留入口接线, 并把 Ink 启动作为 `startApp` 注入给 `run()` (注入是为了让启动流程
+可测, Ink render 与持久化属于入口):
+
+1. 把 `settingsDocument` 传给 `startSettingsPersistence()`, 复用 parseCli 已读到的文档,
    使启动全程只读一次 settings.json. 复用判断写在 persistence 里
    (`preloadedDocument ?? (await initializeSettings())`), `initializeSettings()` 保持无参:
    "初始化" 不该带一个 "也许别初始化" 的开关. 文件缺失或损坏时该值是 undefined,
    由 initializeSettings 走正常的读取/创建流程并给出报错.
-3. 在 `render()` 前写入 router 初始 screen.
-4. 使用 alternate screen 启动 Ink.
-5. 等待 `instance.waitUntilExit()`.
-6. 在 finally 中调用 `settingsPersistence.stop()`.
+2. 在 `render()` 前写入 router 初始 screen.
+3. 使用 alternate screen 启动 Ink.
+4. 等待 `instance.waitUntilExit()`.
+5. 在 finally 中调用 `settingsPersistence.stop()`.
 
 标准启动:
 
@@ -128,19 +145,28 @@ await settingsPersistence.stop()
 
 ## 页面注册和路由
 
-`src/cli/registry.ts` 是页面元数据的唯一来源. 每项包含:
+`src/navigation/registry.ts` 是页面元数据的唯一来源. 每项包含:
 
-- `Component`
 - `title`
 - `description`
 - `hint`
 - `menuLabel`
 
-后四项是 `MessageKey`, 由 App / meow / DialogMenu 用 `t()` 解析.
+四项都是 `MessageKey`, 由 App / meow / DialogMenu 用 `t()` 解析.
 `ScreenComponentProps` 显式写作 `{ title: string; hint: string }`: 页面只接收已翻译的字符串,
-不能写成 `ScreenDefinition['title']`, 否则会把 `MessageKey` 当字符串传下去.
+不能写成 `ScreenMetadata['title']`, 否则会把 `MessageKey` 当字符串传下去. 各 screen 直接
+`type Props = ScreenComponentProps` 引用它 (只读类型, navigation 不反向 import screens),
+不各自重复写一遍 `{ title: string; hint: string }`.
 
-`Screen`, `SCREEN_LIST`, `isScreen()` 和 `toScreen()` 均从注册表派生. 新增页面只修改注册表, 不在 App, CLI help 或 DialogMenu 维护第二份映射.
+注册表**不持有页面组件**: 组件映射是 `src/app.tsx` 里的 `SCREEN_COMPONENTS`, 类型为
+`Record<Screen, ComponentType<ScreenComponentProps>>`. 这样 navigation 不 import screens,
+`useRouterStore` 与 `ActionResult` 引用 registry 时不会与 app.tsx 形成环 (改成值导入也不会).
+组件映射是唯一的第二份清单, 但它由 `Record<Screen, ...>` 强制穷尽: 新增页面时漏配组件,
+或多写了注册表里没有的键, 都编译不过; 因此没有为组件补齐再写一条运行时用例.
+
+`Screen`, `SCREEN_LIST`, `isScreen()` 和 `toScreen()` 均从注册表派生. 新增页面要动两处:
+注册表 (Screen 联合类型 + 四个 MessageKey) 与 app.tsx 的 `SCREEN_COMPONENTS`, 其余全部派生,
+CLI help, 菜单, 路由都不维护第二份映射. 新页面的文案键要在三份 catalog 补齐.
 
 当前页面:
 
@@ -195,7 +221,7 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 - 浮层打开后 esc 由各浮层自己处理: 详情和菜单 esc 直接关闭; DialogRemoveConfirm 在 done/error 阶段 esc 关闭, 删除进行中忽略; DialogConfirm 仅在错误态 esc 关闭.
 - 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
 - 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
-- DialogMenu 自己处理上下键, Enter 和数字快捷键. 高亮保存在 `useDialogMenuStore`, 菜单关闭时归零; 被 DialogConfirm 遮住时保留.
+- DialogMenu 自己处理上下键, Enter 和数字快捷键. 高亮 (`highlightedType`) 保存在 `useDialogMenuStore`, 菜单关闭时归零; 被 DialogConfirm 遮住时保留.
 - DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (浮层打开时底层输入一律失活), 无需判断菜单状态.
 - DialogRemoveConfirm 只在 confirm 阶段接受 n/y, done/error 阶段只接受 esc. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
 - DialogConfirm 目前用于菜单的"重置"入口: 确认后经 `settings/resetAll.ts` 的 `resetAll()` 重置设置文件为默认文档 (含默认自选股) 并同步设置与自选股内存; 确认失败时弹窗保留并进入错误态 (`config.isError`), 确认方经 `config.update` 把内容替换为失败信息. 错误态 hint 为 `关闭(esc)   重试(y)` (esc 关闭, n 忽略, y 重试), 确认态 hint 为 `取消(n)   确定(y)` 且不处理 esc. 确认弹窗关闭后菜单保持打开 (高亮位置保留).
@@ -557,7 +583,7 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 `api` / `chart` / `parsers` / `format` / `lib` / `quoteTable` / `yesNo` / `checkboxGrid` /
 `lock` / `persistence` / `resetAll` / `settings` / `settingsStore` / `stores` / `registry` /
-`meow` / `usePolling` / `layout` / `i18n`.
+`meow` / `run` / `usePolling` / `layout` / `i18n`.
 
 测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在布局测试之间使用 `getInitialState()` 恢复.
 

@@ -1,16 +1,16 @@
 import { expect, test } from 'vitest'
 
-import { isScreen, SCREEN_LIST, SCREEN_REGISTRY, toScreen } from '../src/cli/registry.ts'
 import { t } from '../src/i18n/core.ts'
+import { isScreen, SCREEN_LIST, SCREEN_REGISTRY, toScreen } from '../src/navigation/registry.ts'
 
 test('SCREEN_LIST 与注册表键保持一致', () => {
   expect(SCREEN_LIST).toStrictEqual(['stock-list', 'stock-add', 'stock-remove', 'settings'])
 })
 
-test('每个屏幕都定义了组件与展示文案', () => {
+// 组件侧不在这里断言: app.tsx 的 SCREEN_COMPONENTS 是 Record<Screen, ...>, 漏配或错配都编译不过
+test('每个屏幕都定义了展示文案', () => {
   for (const screen of SCREEN_LIST) {
     const definition = SCREEN_REGISTRY[screen]
-    expect(typeof definition.Component).toBe('function')
     expect(t(definition.title).length).toBeGreaterThan(0)
     expect(t(definition.menuLabel).length).toBeGreaterThan(0)
     expect(t(definition.hint)).toContain('退出(q)')

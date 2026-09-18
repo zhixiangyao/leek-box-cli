@@ -1,9 +1,9 @@
 import { useWindowSize } from 'ink'
 import stringWidth from 'string-width'
 
-import { ITEMS } from '../../cli/menu.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
+import { MENU_ITEMS } from '../../navigation/menu.ts'
 import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from '../Dialog.tsx'
 import Text from '../Text.tsx'
 import { useDialogMenu } from './hooks/useDialogMenu.ts'
@@ -12,7 +12,7 @@ import { useDialogMenu } from './hooks/useDialogMenu.ts'
 const CONTENT_WIDTH_CAP = 60
 
 export default function DialogMenu() {
-  const { bright, currentType } = useDialogMenu()
+  const { bright, highlightedType } = useDialogMenu()
   const theme = useTheme()
   const { t } = useTranslation()
   const { columns } = useWindowSize()
@@ -21,7 +21,7 @@ export default function DialogMenu() {
   const widest = Math.max(
     stringWidth(title),
     Math.min(
-      Math.max(...ITEMS.map((item, index) => stringWidth(`  ${index + 1}) ${t(item.label)}`))),
+      Math.max(...MENU_ITEMS.map((item, index) => stringWidth(`  ${index + 1}) ${t(item.label)}`))),
       CONTENT_WIDTH_CAP,
     ),
     stringWidth(hint),
@@ -40,8 +40,8 @@ export default function DialogMenu() {
       hint={hint}
       bright={bright}
     >
-      {ITEMS.map((item, index) => {
-        const selected = item.type === currentType
+      {MENU_ITEMS.map((item, index) => {
+        const selected = item.type === highlightedType
         return (
           <Text
             bright={bright}

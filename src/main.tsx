@@ -4,19 +4,14 @@ import { render } from 'ink'
 
 import App from './app.tsx'
 import { parseCli } from './cli/meow.ts'
-import { toScreen } from './cli/registry.ts'
+import { run, type StartAppParams } from './cli/run.ts'
 import { t } from './i18n/core.ts'
 import { errorMessage } from './lib/error.ts'
+import { toScreen } from './navigation/registry.ts'
 import { startSettingsPersistence } from './settings/persistence.ts'
-import type { SettingsDocument } from './settings/schema.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
 
-type MainParams = {
-  settingsDocument?: SettingsDocument
-  command?: string
-}
-
-async function main(params: MainParams) {
+async function startApp(params: StartAppParams) {
   const { settingsDocument, command } = params
   const settingsPersistence = await startSettingsPersistence(
     (error) => console.error(t('app.persistenceFailed', { error: errorMessage(error) })),
@@ -40,15 +35,4 @@ async function main(params: MainParams) {
   }
 }
 
-const { settingsDocument, helpMessage, command, showHelp } = await parseCli()
-
-if (showHelp) {
-  console.log(helpMessage)
-} else {
-  try {
-    await main({ settingsDocument, command })
-  } catch (error) {
-    console.error(t('app.runFailed', { error: errorMessage(error) }))
-    process.exitCode = 1
-  }
-}
+await run({ parseCli, startApp })

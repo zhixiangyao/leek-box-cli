@@ -5,13 +5,11 @@ import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
+import { type ScreenComponentProps } from '../../navigation/registry.ts'
 import { type ThemePalette } from '../../settings/schema.ts'
 import { type SettingRow, useSettings } from './hooks/useSettings.ts'
 
-type Props = {
-  title: string
-  hint: string
-}
+type Props = ScreenComponentProps
 
 function SettingRows({ rows, highlight }: { rows: SettingRow[]; highlight: ThemePalette['highlight'] }) {
   return rows.map((row) => (
