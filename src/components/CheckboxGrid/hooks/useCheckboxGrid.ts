@@ -1,16 +1,17 @@
 import { type DOMElement, useBoxMetrics, useInput } from 'ink'
 import { useRef, useState } from 'react'
 
-import { COLUMN_COUNT, type CursorDirection, nextCursor, rowWindow, scrollForCursor } from '../lib.ts'
+import { type CursorDirection, nextCursor, rowWindow, scrollForCursor } from '../lib.ts'
 
 type UseCheckboxGridParams<T> = {
   items: readonly T[]
   getKey: (item: T) => string
+  columnCount: number
   isActive: boolean
   onSubmit: (items: T[]) => void
 }
 
-export function useCheckboxGrid<T>({ items, getKey, isActive, onSubmit }: UseCheckboxGridParams<T>) {
+export function useCheckboxGrid<T>({ items, getKey, columnCount, isActive, onSubmit }: UseCheckboxGridParams<T>) {
   const gridRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(gridRef)
   const [cursor, setCursor] = useState(0)
@@ -19,8 +20,13 @@ export function useCheckboxGrid<T>({ items, getKey, isActive, onSubmit }: UseChe
 
   const total = items.length
   const visibleRows = boxMetrics.hasMeasured ? Math.max(1, Math.floor(boxMetrics.height)) : 1
-  const totalRows = Math.ceil(total / COLUMN_COUNT)
-  const visibleRange = rowWindow(totalRows, scrollOffset, visibleRows)
+  const totalRows = Math.ceil(total / columnCount)
+  // 先按光标钳制一次: 终端宽度变化会改变列数, 光标所在行随之变化, 否则光标会停在可视窗口之外
+  const visibleRange = rowWindow(
+    totalRows,
+    scrollForCursor(cursor, totalRows, scrollOffset, visibleRows, columnCount),
+    visibleRows,
+  )
 
   useInput(
     (input, key) => {
@@ -33,9 +39,9 @@ export function useCheckboxGrid<T>({ items, getKey, isActive, onSubmit }: UseChe
             : key.upArrow
               ? 'up'
               : 'down'
-        const cursorNext = nextCursor(cursor, total, direction)
+        const cursorNext = nextCursor(cursor, total, direction, columnCount)
         setCursor(cursorNext)
-        setScrollOffset(scrollForCursor(cursorNext, totalRows, scrollOffset, Math.max(1, visibleRows)))
+        setScrollOffset(scrollForCursor(cursorNext, totalRows, scrollOffset, Math.max(1, visibleRows), columnCount))
       } else if (input === ' ') {
         const item = items[cursor]
         if (!item) return

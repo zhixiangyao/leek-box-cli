@@ -1,3 +1,4 @@
+import { useWindowSize } from 'ink'
 import { type ReactNode } from 'react'
 
 import Card from '../../components/Card.tsx'
@@ -10,14 +11,19 @@ import { useTranslation } from '../../hooks/useTranslation.ts'
 import { type ScreenComponentProps } from '../../navigation/registry.ts'
 import type { StockEntry } from '../../settings/schema.ts'
 import { useStockRemove } from './hooks/useStockRemove.ts'
+import { gridColumnCount } from './lib.ts'
 
 type Props = ScreenComponentProps
 
 export default function StockRemove({ title, hint }: Props) {
+  const { columns } = useWindowSize()
+
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { t } = useTranslation()
   const { entries, errorMessage, resetToken, open } = useStockRemove()
+  const columnGap = 2
+  const columnCount = gridColumnCount(columns, columnGap)
   let content: ReactNode
 
   if (entries.length === 0) {
@@ -36,6 +42,8 @@ export default function StockRemove({ title, hint }: Props) {
         getKey={(entry) => entry.code}
         getLabel={(entry) => entry.name}
         getHint={(entry) => entry.code}
+        columnCount={columnCount}
+        columnGap={columnGap}
         isActive={!overlayOpen.open}
         onSubmit={open}
       />

@@ -181,11 +181,18 @@ CLI help, 菜单, 路由都不维护第二份映射. 新页面的文案键要在
 
 Screen 的 `index.tsx` 负责渲染. 页面状态, 输入和副作用放入 `hooks/useFeature.ts`.
 
+按终端尺寸派生的纯渲染参数 (如网格列数) 例外: 这类值就地写在 `index.tsx` 里, 不为了"分层"绕进 hook,
+因为它只影响这一次渲染, 既不是业务状态, 也不需要被 hook 或 store 持有. StockRemove 直接用
+`useWindowSize()` 取终端列数, 算出 `columnCount` 与 `columnGap` 交给 CheckboxGrid.
+`useStockList` 的 `useWindowSize()` 则留在 hook 里, 因为它要和选中行, 滚动位置一起算列宽.
+两处都允许, 判断依据是这个值要不要和业务状态一起参与计算.
+
 标准模式:
 
 ```text
 index.tsx
   调用 useFeature()
+  终端尺寸派生的渲染参数 (useWindowSize)
   按 step 或 view model 渲染
 
 hooks/useFeature.ts
@@ -203,7 +210,7 @@ useFeatureStore.ts
 
 Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器. `useSettingsStore` 是纯内存投影, 不注入依赖.
 
-删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅关闭弹窗并保留勾选, 可重新打开确认.
+删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交, 列数随终端宽度变化), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅关闭弹窗并保留勾选, 可重新打开确认.
 
 Settings 的规则:
 
@@ -547,6 +554,18 @@ SpaceMask 用在 card 被 `mask` 时铺出 `useWindowSize` 的 columns*rows 个�
 本地 `src/components/Text.tsx` 是项目文字入口. 它负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
 
 CheckboxGrid 是多选网格: 方向键移动, 空格勾选, 回车提交勾选项 (至少一个才触发). 内部处理光标滚动窗口, `isActive` 控制输入, 外部通过 key 重挂载 (resetToken 变化) 清空勾选.
+
+列数和列间距都不写死在组件里: `columnCount` (至少为 1) 与 `columnGap` (至少为 2) 都是必填 prop,
+组件不设默认值, 也不读终端尺寸, 只消费传入的值.
+
+StockRemove 在 `index.tsx` 里用 Ink 的 `useWindowSize()` 取终端列数, 再按
+`src/screens/StockRemove/lib.ts` 的 `gridColumnCount(columns, columnGap)` 推导列数:
+单元格等分 Card 内容区宽度 (`columns - TABLE_CHROME`), 取每格仍不小于最小单元格宽度的最大列数
+(最小单元格宽度 24 列, 即 `[x] 四字名称 (sh600000)` 的宽度), 最后钳制到 2..8.
+这样列数取整后单元格仍放得下条目, 不需要靠加宽单元格或截断来兜底.
+
+列数变化 (终端宽度变化) 会改变光标所在的行, 所以 hook 在渲染前用 `scrollForCursor` 再钳制一次滚动偏移,
+否则光标会落在可视窗口之外, 而空格勾选的仍是光标处那一条.
 
 ## TextInput 协议
 

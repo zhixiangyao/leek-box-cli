@@ -1,10 +1,7 @@
 export type CursorDirection = 'left' | 'right' | 'up' | 'down'
 
-/** 网格列数 */
-export const COLUMN_COUNT = 3
-
 /** 将条目按行优先切分为若干行, 每行最多 columns 个 */
-export function toGridRows<T>(items: readonly T[], columns = COLUMN_COUNT): T[][] {
+export function toGridRows<T>(items: readonly T[], columns: number): T[][] {
   const rows: T[][] = []
   for (let index = 0; index < items.length; index += columns) {
     rows.push(items.slice(index, index + columns))
@@ -13,21 +10,27 @@ export function toGridRows<T>(items: readonly T[], columns = COLUMN_COUNT): T[][
 }
 
 /** 方向键移动后的新光标下标, 越界时保持不动 */
-export function nextCursor(cursor: number, total: number, direction: CursorDirection): number {
+export function nextCursor(cursor: number, total: number, direction: CursorDirection, columns: number): number {
   if (total <= 0) return 0
   const clamped = Math.min(Math.max(cursor, 0), total - 1)
-  const column = clamped % COLUMN_COUNT
+  const column = clamped % columns
   if (direction === 'left') return column > 0 ? clamped - 1 : clamped
-  if (direction === 'right') return column < COLUMN_COUNT - 1 && clamped + 1 < total ? clamped + 1 : clamped
-  if (direction === 'up') return clamped - COLUMN_COUNT >= 0 ? clamped - COLUMN_COUNT : clamped
+  if (direction === 'right') return column < columns - 1 && clamped + 1 < total ? clamped + 1 : clamped
+  if (direction === 'up') return clamped - columns >= 0 ? clamped - columns : clamped
   // direction === 'down'
-  return clamped + COLUMN_COUNT < total ? clamped + COLUMN_COUNT : clamped
+  return clamped + columns < total ? clamped + columns : clamped
 }
 
 /** 保证光标所在行落在可视窗口内, 返回受钳制的滚动偏移 (行) */
-export function scrollForCursor(cursor: number, totalRows: number, scrollOffset: number, visibleRows: number): number {
+export function scrollForCursor(
+  cursor: number,
+  totalRows: number,
+  scrollOffset: number,
+  visibleRows: number,
+  columns: number,
+): number {
   const maxOffset = Math.max(0, totalRows - visibleRows)
-  const cursorRow = Math.floor(Math.max(cursor, 0) / COLUMN_COUNT)
+  const cursorRow = Math.floor(Math.max(cursor, 0) / columns)
   let next = Math.min(Math.max(scrollOffset, 0), maxOffset)
   if (cursorRow < next) next = cursorRow
   else if (cursorRow >= next + visibleRows) next = cursorRow - visibleRows + 1

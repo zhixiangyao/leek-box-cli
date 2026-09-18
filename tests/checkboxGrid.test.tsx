@@ -24,26 +24,40 @@ test('toGridRows 行优先切分, 末行可不足列数', () => {
 
 test('nextCursor 在网格内移动, 边界处保持不动', () => {
   // total 5, columns 3 => 行: [0,1,2],[3,4]
-  expect(nextCursor(0, 5, 'right')).toBe(1)
-  expect(nextCursor(2, 5, 'right')).toBe(2) // 行末不再右移
-  expect(nextCursor(4, 5, 'right')).toBe(4) // 已是最后一个
-  expect(nextCursor(4, 5, 'left')).toBe(3)
-  expect(nextCursor(3, 5, 'left')).toBe(3) // 行首不再左移
-  expect(nextCursor(0, 5, 'down')).toBe(3)
-  expect(nextCursor(3, 5, 'down')).toBe(3) // 下方无条目
-  expect(nextCursor(2, 5, 'down')).toBe(2) // 下方无条目 (index 5 不存在)
-  expect(nextCursor(4, 5, 'up')).toBe(1)
-  expect(nextCursor(1, 5, 'up')).toBe(1) // 顶行不再上移
-  expect(nextCursor(0, 0, 'down')).toBe(0) // 空列表
+  expect(nextCursor(0, 5, 'right', 3)).toBe(1)
+  expect(nextCursor(2, 5, 'right', 3)).toBe(2) // 行末不再右移
+  expect(nextCursor(4, 5, 'right', 3)).toBe(4) // 已是最后一个
+  expect(nextCursor(4, 5, 'left', 3)).toBe(3)
+  expect(nextCursor(3, 5, 'left', 3)).toBe(3) // 行首不再左移
+  expect(nextCursor(0, 5, 'down', 3)).toBe(3)
+  expect(nextCursor(3, 5, 'down', 3)).toBe(3) // 下方无条目
+  expect(nextCursor(2, 5, 'down', 3)).toBe(2) // 下方无条目 (index 5 不存在)
+  expect(nextCursor(4, 5, 'up', 3)).toBe(1)
+  expect(nextCursor(1, 5, 'up', 3)).toBe(1) // 顶行不再上移
+  expect(nextCursor(0, 0, 'down', 3)).toBe(0) // 空列表
+})
+
+test('nextCursor 的纵向步进跟随列数', () => {
+  // total 6, columns 2 => 行: [0,1],[2,3],[4,5]
+  expect(nextCursor(0, 6, 'down', 2)).toBe(2)
+  expect(nextCursor(2, 6, 'up', 2)).toBe(0)
+  expect(nextCursor(1, 6, 'right', 2)).toBe(1) // 行末不再右移
+  expect(nextCursor(5, 6, 'down', 2)).toBe(5) // 下方无条目
 })
 
 test('scrollForCursor 使光标行保持在可视窗口内', () => {
   // 10 行, 可视 3 行, maxOffset = 7
-  expect(scrollForCursor(0, 10, 5, 3)).toBe(0) // 光标在顶, 窗口回到顶
-  expect(scrollForCursor(27, 10, 0, 3)).toBe(7) // index 27 => 行 9, 贴底
-  expect(scrollForCursor(12, 10, 2, 3)).toBe(2) // index 12 => 行 4, 已在 [2,5) 内
-  expect(scrollForCursor(9, 10, 5, 3)).toBe(3) // index 9 => 行 3, 上滚到 3
-  expect(scrollForCursor(0, 2, 0, 3)).toBe(0) // 行数不超过可视, 恒 0
+  expect(scrollForCursor(0, 10, 5, 3, 3)).toBe(0) // 光标在顶, 窗口回到顶
+  expect(scrollForCursor(27, 10, 0, 3, 3)).toBe(7) // index 27 => 行 9, 贴底
+  expect(scrollForCursor(12, 10, 2, 3, 3)).toBe(2) // index 12 => 行 4, 已在 [2,5) 内
+  expect(scrollForCursor(9, 10, 5, 3, 3)).toBe(3) // index 9 => 行 3, 上滚到 3
+  expect(scrollForCursor(0, 2, 0, 3, 3)).toBe(0) // 行数不超过可视, 恒 0
+})
+
+test('scrollForCursor 按新列数重新定位光标行', () => {
+  // 6 行 12 个条目: columns 6 时光标 11 在行 1, columns 2 时同一光标落到行 5
+  expect(scrollForCursor(11, 6, 0, 3, 6)).toBe(0) // 行 1 已在 [0,3) 内
+  expect(scrollForCursor(11, 6, 0, 3, 2)).toBe(3) // 行 5 => 上滚到 3
 })
 
 test('rowWindow 将窗口起点钳制在有效范围内', () => {
@@ -105,7 +119,26 @@ const waitFor = async (check: () => boolean) => {
   throw new Error('timed out waiting for expected frame or state')
 }
 
-const renderGrid = (items: Item[], isActive: boolean, onSubmit: (selected: Item[]) => void, height = 12) => {
+/** 首个条目所在行, 用于断言同一行里的列排布 */
+const firstRow = (output: CaptureOutput) =>
+  latest(output)
+    .split('\n')
+    .find((line) => line.includes('股票00'))
+
+type GridOptions = {
+  height?: number
+  columnCount?: number
+  columnGap?: number
+}
+
+/** 默认按 90 列宽, 12 行高, 3 列 2 间距渲染, 用例按需覆盖 */
+const renderGrid = (
+  items: Item[],
+  isActive: boolean,
+  onSubmit: (selected: Item[]) => void,
+  options: GridOptions = {},
+) => {
+  const { height = 12, columnCount = 3, columnGap = 2 } = options
   const output = new CaptureOutput(90, height)
   const input = createInput()
   const instance = render(
@@ -114,6 +147,8 @@ const renderGrid = (items: Item[], isActive: boolean, onSubmit: (selected: Item[
         items={items}
         getKey={(item) => item.code}
         getLabel={(item) => item.name}
+        columnCount={columnCount}
+        columnGap={columnGap}
         isActive={isActive}
         onSubmit={onSubmit}
       />
@@ -161,7 +196,7 @@ test('CheckboxGrid: 空格勾选, 右移再勾选, 回车提交勾选项', async
 
 test('CheckboxGrid: 光标下移超出可视区域时向下滚动', async () => {
   const items = makeItems(45)
-  const { output, input, instance } = renderGrid(items, true, () => undefined, 8)
+  const { output, input, instance } = renderGrid(items, true, () => undefined, { height: 8 })
 
   try {
     // 等待测量完成 (可视 8 行时第 8 行 股票21 出现)
@@ -175,6 +210,49 @@ test('CheckboxGrid: 光标下移超出可视区域时向下滚动', async () => 
     await instance.waitUntilExit()
     instance.cleanup()
   }
+})
+
+test('CheckboxGrid: columnCount 决定每行列数与光标纵向步进', async () => {
+  const items = makeItems(6)
+  const submitted: Item[][] = []
+  const { output, input, instance } = renderGrid(items, true, (selected) => submitted.push(selected), {
+    columnCount: 2,
+  })
+
+  try {
+    await waitFor(() => firstRow(output) !== undefined)
+    expect(firstRow(output)).toContain('股票01') // 两列: 同行放下第二个条目
+    expect(firstRow(output)).not.toContain('股票02') // 第三项换行
+
+    await press(input, DOWN) // columns 2 => 下移两格到 股票02
+    await press(input, ' ')
+    await waitFor(() => latest(output).includes('[x] 股票02'))
+    await press(input, '\r')
+    await waitFor(() => submitted.length === 1)
+    expect(submitted[0]!.map((item) => item.code)).toStrictEqual(['c02'])
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+  }
+})
+
+test('CheckboxGrid: columnGap 决定两列之间的距离', async () => {
+  // 两列等分行宽, 第二列的起点随间距右移: 取同一行里两个条目的列差
+  const columnOffset = async (columnGap: number) => {
+    const { output, instance } = renderGrid(makeItems(4), true, () => undefined, { columnCount: 2, columnGap })
+    try {
+      await waitFor(() => firstRow(output) !== undefined)
+      const line = firstRow(output) ?? ''
+      return line.indexOf('股票01') - line.indexOf('股票00')
+    } finally {
+      instance.unmount()
+      await instance.waitUntilExit()
+      instance.cleanup()
+    }
+  }
+
+  expect(await columnOffset(20)).toBeGreaterThan(await columnOffset(2))
 })
 
 test('CheckboxGrid: isActive 为 false 时忽略输入', async () => {
