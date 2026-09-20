@@ -107,7 +107,7 @@ starts in English. A language chosen in Settings takes priority over the system 
 ## Requirements
 
 - [Node.js](https://nodejs.org/) >= 22.19.0 (or >= 24)
-- [pnpm](https://pnpm.io/) >= 12.3.4
+- [pnpm](https://pnpm.io/) >= 12.5.1
 
 Market data is retrieved with the native Node.js `fetch` API, with no external runtime dependency such as curl.
 
