@@ -9,6 +9,7 @@ import { promisify } from 'node:util'
 import { Box, render, Text, useApp, useInput } from 'ink'
 import { useEffect, useState } from 'react'
 
+import { keyDirection } from '../src/lib/keys.ts'
 import { parseYesNo } from '../src/lib/yesNo.ts'
 
 const execFileAsync = promisify(execFile)
@@ -191,8 +192,9 @@ function ReleaseApp() {
 
   useInput(
     (input, key) => {
-      if (key.upArrow) setSelected((index) => (index + KINDS.length - 1) % KINDS.length)
-      else if (key.downArrow) setSelected((index) => (index + 1) % KINDS.length)
+      const direction = keyDirection(input, key)
+      if (direction === 'up') setSelected((index) => (index + KINDS.length - 1) % KINDS.length)
+      else if (direction === 'down') setSelected((index) => (index + 1) % KINDS.length)
       else if (key.return) startRelease(KINDS[selected]!)
       else if (input === '1') startRelease('patch')
       else if (input === '2') startRelease('minor')
@@ -204,10 +206,12 @@ function ReleaseApp() {
   useInput(
     (input, key) => {
       const inputYesOrNo = parseYesNo(input)
+      const direction = keyDirection(input, key)
       if (inputYesOrNo === 'y') startPush()
       else if (inputYesOrNo === 'n') skipPush()
-      else if (key.upArrow || key.downArrow) setPushSelected((value) => (value === 0 ? 1 : 0))
-      else if (key.return) {
+      else if (direction === 'up' || direction === 'down') {
+        setPushSelected((value) => (value === 0 ? 1 : 0))
+      } else if (key.return) {
         if (pushSelected === 0) startPush()
         else skipPush()
       }
@@ -226,7 +230,7 @@ function ReleaseApp() {
   if (phase === 'select') {
     return (
       <Box flexDirection="column">
-        <Text>{`当前版本 v${current}. 选择发布类型 (Up/Down + Enter, 或按 1/2/3):`}</Text>
+        <Text>{`当前版本 v${current}. 选择发布类型 (Up/Down/j/k + Enter, 或按 1/2/3):`}</Text>
         {KINDS.map((kind, index) => (
           <Text key={kind} color={index === selected ? 'cyan' : undefined}>
             {`${index === selected ? '> ' : '  '}${index + 1}) ${KIND_LABELS[kind]}   v${current} -> v${previews[kind]}`}
@@ -244,7 +248,7 @@ function ReleaseApp() {
     return (
       <Box flexDirection="column">
         <Text color="green">{`已创建提交 ${result.message} 和标签 ${result.tag}`}</Text>
-        <Text>是否推送 commit 和 tag 到远端? (y/n, 或 Up/Down + Enter)</Text>
+        <Text>是否推送 commit 和 tag 到远端? (y/n, 或 Up/Down/j/k + Enter)</Text>
         <Text color={pushSelected === 0 ? 'cyan' : undefined}>
           {`${pushSelected === 0 ? '> ' : '  '}是, 推送到 origin`}
         </Text>

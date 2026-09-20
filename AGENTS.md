@@ -224,6 +224,7 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 - App 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`, 只在无浮层时处理 esc(开关菜单) 和 q(退出).
 - 浮层打开后 esc 由各浮层自己处理: 详情和菜单 esc 直接关闭; DialogRemoveConfirm 在 done/error 阶段 esc 关闭, 删除进行中忽略; DialogConfirm 仅在错误态 esc 关闭.
 - 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
+- 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection(input, key)`, 各处不再手写 `key.upArrow || input === 'k'`. hint 与监听并列展示 (`选择(↑/↓/j/k)`, 网格 `移动(↑/↓/←/→/hjkl)`); 该界面不响应的方向不要写进 hint (例如看板只接受上下, hint 就不含 `h`/`l`).
 - 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
 - DialogMenu 自己处理上下键, Enter 和数字快捷键. 高亮 (`highlightedType`) 保存在 `useDialogMenuStore`, 菜单关闭时归零; 被 DialogConfirm 遮住时保留.
 - DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (浮层打开时底层输入一律失活), 无需判断菜单状态.
@@ -316,10 +317,10 @@ Border style:
 Settings 键盘:
 
 ```text
-Up/Down       选择配置项
-Left/Right    减少或增加
-Enter         增加或切换 option
-d             恢复默认值
+Up/Down/k/j       选择配置项
+Left/Right/h/l    减少或增加
+Enter             增加或切换 option
+d                 恢复默认值
 ```
 
 `SETTING_ITEMS` 用 `group` 字段区分外观组和请求组, 不再用 `rows.slice(0, 3)` 切分.

@@ -1,4 +1,4 @@
-export type CursorDirection = 'left' | 'right' | 'up' | 'down'
+import type { CursorDirection } from '../../lib/keys.ts'
 
 /** 将条目按行优先切分为若干行, 每行最多 columns 个 */
 export function toGridRows<T>(items: readonly T[], columns: number): T[][] {

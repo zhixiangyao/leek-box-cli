@@ -38,6 +38,7 @@ const [
   { useStockListStore },
   { setActiveLocale },
   { DEFAULT_LOCALE, LOCALES },
+  { MENU_ITEMS },
 ] = await Promise.all([
   import('../src/stores/useStockAddStore.ts'),
   import('../src/stores/useStockRemoveStore.ts'),
@@ -50,6 +51,7 @@ const [
   import('../src/stores/useStockListStore.ts'),
   import('../src/i18n/core.ts'),
   import('../src/i18n/locale.ts'),
+  import('../src/navigation/menu.ts'),
 ])
 
 class CaptureOutput extends Writable {
@@ -101,6 +103,17 @@ const waitForFrame = async (
   }
 
   throw new Error(`Timed out waiting for frame. Latest output:\n${plain(output.frames.at(-1) ?? '')}`)
+}
+
+/** 按键只改变 store 状态而没有可断言的帧差异时, 轮询状态直到按键生效 */
+const waitForState = async (check: () => boolean) => {
+  const deadline = Date.now() + 2000
+  while (Date.now() < deadline) {
+    if (check()) return
+    await delay(10)
+  }
+
+  throw new Error('Timed out waiting for state')
 }
 
 const assertFrameSize = (frame: string, columns: number, rows: number) => {
@@ -552,6 +565,120 @@ test('App 在 en 下渲染英文页面标题, 表头与本地化单位', async (
     expect(text).not.toContain('亿')
     expect(text).not.toContain('万手')
     assertFrameSize(frame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的 vim 键: 看板 j/k 移动选中行, 菜单 j/k 移动高亮', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({
+        step: {
+          type: 'table',
+          rows: [
+            { kind: 'missing', code: 'sh600000', name: '浦发银行' },
+            { kind: 'missing', code: 'sz000001', name: '平安银行' },
+          ],
+        },
+        selectedCode: 'sh600000',
+      })
+    },
+  })
+
+  const instance = render(createElement(App), {
+    stdout: output as unknown as NodeJS.WriteStream,
+    stdin: input as unknown as NodeJS.ReadStream,
+    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
+    debug: true,
+    interactive: false,
+    patchConsole: false,
+  })
+
+  try {
+    const after = output.frames.length
+    const stockFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('浦发银行'))
+    // hint 与监听同步: j/k 展示在状态栏, 也只在这些键上生效
+    expect(plain(stockFrame)).toContain('选择(↑/↓/j/k)')
+
+    // 看板: j 下移一行, k 回到首行
+    input.write('j')
+    await waitForState(() => useStockListStore.getState().selectedCode === 'sz000001')
+    input.write('k')
+    await waitForState(() => useStockListStore.getState().selectedCode === 'sh600000')
+
+    // 菜单: 浮层打开时看板输入失活, j/k 只移动菜单高亮
+    const beforeMenu = output.frames.length
+    input.write('\x1B')
+    const menuFrame = await waitForFrame(output, beforeMenu, (candidate) => plain(candidate).includes('选择(↑/↓/j/k)'))
+    expect(plain(menuFrame)).toContain('菜单')
+
+    input.write('j')
+    await waitForState(() => useDialogMenuStore.getState().highlightedType === MENU_ITEMS[1]!.type)
+    input.write('k')
+    await waitForState(() => useDialogMenuStore.getState().highlightedType === MENU_ITEMS[0]!.type)
+    expect(useStockListStore.getState().selectedCode).toBe('sh600000')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的 vim 键: 设置页 j/k 选择配置项, h/l 调整数值', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = render(createElement(App), {
+    stdout: output as unknown as NodeJS.WriteStream,
+    stdin: input as unknown as NodeJS.ReadStream,
+    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
+    debug: true,
+    interactive: false,
+    patchConsole: false,
+  })
+
+  try {
+    let after = output.frames.length
+    useRouterStore.setState({ screen: 'settings' })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
+
+    // j 下移一项到 涨跌颜色, k 回到 主题色系
+    after = output.frames.length
+    input.write('j')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 涨跌颜色'))
+    after = output.frames.length
+    input.write('k')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
+
+    // h/l 在 option 类配置项上等价于 Left/Right: 切到下一个再切回来
+    after = output.frames.length
+    input.write('j')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 涨跌颜色'))
+    const initialMode = useSettingsStore.getState().trendColorMode
+    input.write('l')
+    await waitForState(() => useSettingsStore.getState().trendColorMode !== initialMode)
+    input.write('h')
+    await waitForState(() => useSettingsStore.getState().trendColorMode === initialMode)
   } finally {
     instance.unmount()
     await instance.waitUntilExit()

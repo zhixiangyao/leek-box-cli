@@ -194,6 +194,35 @@ test('CheckboxGrid: 空格勾选, 右移再勾选, 回车提交勾选项', async
   }
 })
 
+test('CheckboxGrid: vim 键 hjkl 与方向键等效, 边界处同样保持不动', async () => {
+  const items = makeItems(9)
+  const submitted: Item[][] = []
+  const { output, input, instance } = renderGrid(items, true, (selected) => submitted.push(selected))
+
+  try {
+    await waitFor(() => latest(output).includes('[ ] 股票00'))
+    await press(input, 'l') // 右移一列: 0 -> 1
+    await press(input, 'j') // 下移一行 (3 列 => +3): 1 -> 4
+    await press(input, ' ')
+    await waitFor(() => latest(output).includes('[x] 股票04'))
+    await press(input, 'k') // 上移一行: 4 -> 1
+    await press(input, 'h') // 左移一列: 1 -> 0
+    await press(input, ' ')
+    await waitFor(() => latest(output).includes('[x] 股票00'))
+    await press(input, 'h') // 行首不再左移
+    await press(input, 'k') // 顶行不再上移
+    await press(input, ' ') // 光标仍在 股票00: 取消勾选
+    await waitFor(() => latest(output).includes('[ ] 股票00'))
+    await press(input, '\r')
+    await waitFor(() => submitted.length === 1)
+    expect(submitted[0]!.map((item) => item.code)).toStrictEqual(['c04'])
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+  }
+})
+
 test('CheckboxGrid: 光标下移超出可视区域时向下滚动', async () => {
   const items = makeItems(45)
   const { output, input, instance } = renderGrid(items, true, () => undefined, { height: 8 })

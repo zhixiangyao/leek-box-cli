@@ -13,7 +13,7 @@ export const zhHans = {
   /* ---------- 页面注册表 ---------- */
   'screen.stockList.title': '自选股票看板',
   'screen.stockList.description': '自选股票看板',
-  'screen.stockList.hint': '菜单(esc)   刷新(r)   选择(↑/↓)   详情(enter)   退出(q)',
+  'screen.stockList.hint': '菜单(esc)   刷新(r)   选择(↑/↓/j/k)   详情(enter)   退出(q)',
   'screen.stockList.menuLabel': '自选股票看板',
   'screen.stockAdd.title': '添加自选股',
   'screen.stockAdd.description': '添加自选股',
@@ -21,16 +21,16 @@ export const zhHans = {
   'screen.stockAdd.menuLabel': '添加自选股',
   'screen.stockRemove.title': '删除自选股',
   'screen.stockRemove.description': '删除自选股',
-  'screen.stockRemove.hint': '菜单(esc)   移动(↑/↓/←/→)   选择(空格)   删除(enter)   退出(q)',
+  'screen.stockRemove.hint': '菜单(esc)   移动(↑/↓/←/→/hjkl)   选择(空格)   删除(enter)   退出(q)',
   'screen.stockRemove.menuLabel': '删除自选股',
   'screen.settings.title': '设置',
   'screen.settings.description': '配置主题, 涨跌颜色与请求参数',
-  'screen.settings.hint': '菜单(esc)   选择(↑/↓)   调整(←/→/enter)   默认值(d)   退出(q)',
+  'screen.settings.hint': '菜单(esc)   选择(↑/↓/j/k)   调整(←/→/h/l/enter)   默认值(d)   退出(q)',
   'screen.settings.menuLabel': '设置',
 
   /* ---------- 菜单与通用弹窗 ---------- */
   'menu.title': '菜单',
-  'menu.hint': '关闭(esc)   选择(↑/↓)   确认(enter)',
+  'menu.hint': '关闭(esc)   选择(↑/↓/j/k)   确认(enter)',
   'menu.reset': '重置',
   'menu.exit': '退出程序',
   'menu.resetConfirmTitle': '确认重置吗?',

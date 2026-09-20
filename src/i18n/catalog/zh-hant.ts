@@ -13,7 +13,7 @@ export const zhHant = {
   /* ---------- 頁面註冊表 ---------- */
   'screen.stockList.title': '自選股票看板',
   'screen.stockList.description': '自選股票看板',
-  'screen.stockList.hint': '選單(esc)   重新整理(r)   選擇(↑/↓)   詳情(enter)   離開(q)',
+  'screen.stockList.hint': '選單(esc)   重新整理(r)   選擇(↑/↓/j/k)   詳情(enter)   離開(q)',
   'screen.stockList.menuLabel': '自選股票看板',
   'screen.stockAdd.title': '新增自選股',
   'screen.stockAdd.description': '新增自選股',
@@ -21,16 +21,16 @@ export const zhHant = {
   'screen.stockAdd.menuLabel': '新增自選股',
   'screen.stockRemove.title': '刪除自選股',
   'screen.stockRemove.description': '刪除自選股',
-  'screen.stockRemove.hint': '選單(esc)   移動(↑/↓/←/→)   選擇(空格)   刪除(enter)   離開(q)',
+  'screen.stockRemove.hint': '選單(esc)   移動(↑/↓/←/→/hjkl)   選擇(空格)   刪除(enter)   離開(q)',
   'screen.stockRemove.menuLabel': '刪除自選股',
   'screen.settings.title': '設定',
   'screen.settings.description': '設定主題, 漲跌顏色與請求參數',
-  'screen.settings.hint': '選單(esc)   選擇(↑/↓)   調整(←/→/enter)   預設值(d)   離開(q)',
+  'screen.settings.hint': '選單(esc)   選擇(↑/↓/j/k)   調整(←/→/h/l/enter)   預設值(d)   離開(q)',
   'screen.settings.menuLabel': '設定',
 
   /* ---------- 選單與通用彈窗 ---------- */
   'menu.title': '選單',
-  'menu.hint': '關閉(esc)   選擇(↑/↓)   確認(enter)',
+  'menu.hint': '關閉(esc)   選擇(↑/↓/j/k)   確認(enter)',
   'menu.reset': '重設',
   'menu.exit': '離開程式',
   'menu.resetConfirmTitle': '確定要重設嗎?',

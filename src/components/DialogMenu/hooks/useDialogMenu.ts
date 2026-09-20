@@ -2,6 +2,7 @@ import { useApp, useInput } from 'ink'
 
 import { useTranslation } from '../../../hooks/useTranslation.ts'
 import { errorMessage } from '../../../lib/error.ts'
+import { keyDirection } from '../../../lib/keys.ts'
 import { type MenuItem, MENU_ITEMS } from '../../../navigation/menu.ts'
 import { settingsPath } from '../../../settings/file.ts'
 import { resetAll } from '../../../settings/resetAll.ts'
@@ -65,16 +66,17 @@ export function useDialogMenu() {
         setHighlightedType(item.type)
         choose(item)
       } else {
+        const direction = keyDirection(input, key)
         const currentItemIndex = MENU_ITEMS.findIndex((item) => item.type === highlightedType)
         const isFirstItem = currentItemIndex === 0
         const isLastItem = currentItemIndex === MENU_ITEMS.length - 1
         if (key.return) {
           const item = MENU_ITEMS[currentItemIndex]
           if (item) choose(item)
-        } else if (key.upArrow) {
+        } else if (direction === 'up') {
           const item = MENU_ITEMS.at(isFirstItem ? MENU_ITEMS.length - 1 : currentItemIndex - 1)
           if (item) setHighlightedType(item.type)
-        } else if (key.downArrow) {
+        } else if (direction === 'down') {
           const item = MENU_ITEMS.at(isLastItem ? 0 : currentItemIndex + 1)
           if (item) setHighlightedType(item.type)
         }

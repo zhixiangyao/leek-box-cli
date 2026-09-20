@@ -13,7 +13,7 @@ export const en = {
   /* ---------- Screen registry ---------- */
   'screen.stockList.title': 'Watchlist',
   'screen.stockList.description': 'Watchlist',
-  'screen.stockList.hint': 'Menu(esc)   Refresh(r)   Select(↑/↓)   Detail(enter)   Quit(q)',
+  'screen.stockList.hint': 'Menu(esc)   Refresh(r)   Select(↑/↓/j/k)   Detail(enter)   Quit(q)',
   'screen.stockList.menuLabel': 'Watchlist',
   'screen.stockAdd.title': 'Add stocks',
   'screen.stockAdd.description': 'Add stocks',
@@ -21,16 +21,16 @@ export const en = {
   'screen.stockAdd.menuLabel': 'Add stocks',
   'screen.stockRemove.title': 'Remove stocks',
   'screen.stockRemove.description': 'Remove stocks',
-  'screen.stockRemove.hint': 'Menu(esc)   Move(↑/↓/←/→)   Select(space)   Remove(enter)   Quit(q)',
+  'screen.stockRemove.hint': 'Menu(esc)   Move(↑/↓/←/→/hjkl)   Select(space)   Remove(enter)   Quit(q)',
   'screen.stockRemove.menuLabel': 'Remove stocks',
   'screen.settings.title': 'Settings',
   'screen.settings.description': 'Configure theme, trend colors and request options',
-  'screen.settings.hint': 'Menu(esc)   Select(↑/↓)   Adjust(←/→/enter)   Defaults(d)   Quit(q)',
+  'screen.settings.hint': 'Menu(esc)   Select(↑/↓/j/k)   Adjust(←/→/h/l/enter)   Defaults(d)   Quit(q)',
   'screen.settings.menuLabel': 'Settings',
 
   /* ---------- Menu and shared dialogs ---------- */
   'menu.title': 'Menu',
-  'menu.hint': 'Close(esc)   Select(↑/↓)   Confirm(enter)',
+  'menu.hint': 'Close(esc)   Select(↑/↓/j/k)   Confirm(enter)',
   'menu.reset': 'Reset',
   'menu.exit': 'Exit',
   'menu.resetConfirmTitle': 'Reset everything?',

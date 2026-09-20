@@ -80,7 +80,7 @@
 ## Features
 
 - **Real-time dashboard**: Displays the latest price, percentage change, price change, open, high, low, volume, turnover, turnover rate, and total market capitalization for every stock in your watchlist. Refreshes every 5 seconds by default.
-- **Row selection and details**: Use `↑`/`↓` to select a stock and `enter` to open its quote details and trend chart. Press `1`-`6` to switch between intraday, five-day, daily, weekly, monthly, and yearly views.
+- **Row selection and details**: Use `↑`/`↓` (or `j`/`k`) to select a stock and `enter` to open its quote details and trend chart. Press `1`-`6` to switch between intraday, five-day, daily, weekly, monthly, and yearly views.
 - **Multiple time frames**: Intraday and five-day minute charts refresh every 30 seconds. Daily, weekly, monthly, and yearly charts refresh every 5 minutes.
 - **Refresh controls**: Press `r` to refresh immediately. Configure the automatic refresh interval in Settings in 500 ms increments, from 1 to 60 seconds.
 - **Watchlist management**: Add or remove Shanghai, Shenzhen, and Beijing A-shares and ETFs. Stock codes can be entered as `600000`, `sh600000`, `600000.SH`, and other common formats.
@@ -90,9 +90,10 @@
 ## Controls
 
 - `esc`: Open the menu. If stock details are open, close them first; if the menu is open, close it.
-- In the menu, use `↑`/`↓`, `enter`, or a number key to select a page.
-- In the dashboard, use `↑`/`↓`, `enter`, and `r`.
-- In Settings, use `↑`/`↓` to select an item, `←`/`→` or `enter` to adjust it, and `d` to restore defaults.
+- In the menu, use `↑`/`↓` (or `j`/`k`), `enter`, or a number key to select a page.
+- In the dashboard, use `↑`/`↓` (or `j`/`k`), `enter`, and `r`.
+- On the remove-stocks screen, use `↑`/`↓`/`←`/`→` (or `h`/`j`/`k`/`l`) to move the cursor, `space` to toggle, and `enter` to submit.
+- In Settings, use `↑`/`↓` (or `j`/`k`) to select an item, `←`/`→` (or `h`/`l`) or `enter` to adjust it, and `d` to restore defaults.
 - In Settings, `Language` cycles through `Auto` / `简体中文` / `繁體中文` / `English`; `Auto` follows the system.
 - In stock details, press `1`-`6` to switch between `Intraday`, `Five-day`, `Daily`, `Weekly`, `Monthly`, and `Yearly`.
 - `q`: Exit when no menu or stock details overlay is open. It does nothing while an overlay is open to prevent accidental exits.
@@ -237,7 +238,7 @@ pnpm release
 The flow is:
 
 1. Verifies `package.json` has no uncommitted changes and reads the current version.
-2. Select the release type: `patch` (0.0.x), `minor` (0.x.0), or `major` (x.0.0); use `↑`/`↓` + `enter`, or press `1`/`2`/`3` directly.
+2. Select the release type: `patch` (0.0.x), `minor` (0.x.0), or `major` (x.0.0); use `↑`/`↓` (or `j`/`k`) + `enter`, or press `1`/`2`/`3` directly.
 3. Updates the `version` field in `package.json`, then creates a commit `chore(release): vX.Y.Z` and a tag `vX.Y.Z` (local only).
 4. Choose whether to push to the remote: the default is `No, keep local only` to prevent accidental pushes; choosing `Yes` pushes the current branch and the tag to `origin`.
 

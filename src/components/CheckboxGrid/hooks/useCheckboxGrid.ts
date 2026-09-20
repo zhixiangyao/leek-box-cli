@@ -1,7 +1,8 @@
 import { type DOMElement, useBoxMetrics, useInput } from 'ink'
 import { useRef, useState } from 'react'
 
-import { type CursorDirection, nextCursor, rowWindow, scrollForCursor } from '../lib.ts'
+import { keyDirection } from '../../../lib/keys.ts'
+import { nextCursor, rowWindow, scrollForCursor } from '../lib.ts'
 
 type UseCheckboxGridParams<T> = {
   items: readonly T[]
@@ -31,14 +32,8 @@ export function useCheckboxGrid<T>({ items, getKey, columnCount, isActive, onSub
   useInput(
     (input, key) => {
       if (key.ctrl) return
-      if (key.leftArrow || key.rightArrow || key.upArrow || key.downArrow) {
-        const direction: CursorDirection = key.leftArrow
-          ? 'left'
-          : key.rightArrow
-            ? 'right'
-            : key.upArrow
-              ? 'up'
-              : 'down'
+      const direction = keyDirection(input, key)
+      if (direction) {
         const cursorNext = nextCursor(cursor, total, direction, columnCount)
         setCursor(cursorNext)
         setScrollOffset(scrollForCursor(cursorNext, totalRows, scrollOffset, Math.max(1, visibleRows), columnCount))

@@ -6,6 +6,7 @@ import { useTranslation } from '../../../hooks/useTranslation.ts'
 import { LANGUAGES, LOCALE_NATIVE_NAMES } from '../../../i18n/locale.ts'
 import type { MessageKey, Translate } from '../../../i18n/types.ts'
 import { TREND_COLOR_MODES, type TrendColorMode } from '../../../lib/format.ts'
+import { keyDirection } from '../../../lib/keys.ts'
 import { BORDER_STYLES, THEME_PRESET_NAMES } from '../../../settings/schema.ts'
 import type { BorderStyle, NumericSettingKey, ThemePreset } from '../../../settings/schema.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
@@ -178,13 +179,14 @@ export function useSettings() {
   useInput(
     (input, key) => {
       if (key.ctrl) return
-      if (key.upArrow) {
+      const direction = keyDirection(input, key)
+      if (direction === 'up') {
         setSelectedIndex((current) => (current - 1 + SETTING_ITEMS.length) % SETTING_ITEMS.length)
-      } else if (key.downArrow) {
+      } else if (direction === 'down') {
         setSelectedIndex((current) => (current + 1) % SETTING_ITEMS.length)
-      } else if (key.leftArrow) {
+      } else if (direction === 'left') {
         adjustSelected(-1)
-      } else if (key.rightArrow || key.return) {
+      } else if (direction === 'right' || key.return) {
         adjustSelected(1)
       } else if (input === 'd') {
         resetSettings()

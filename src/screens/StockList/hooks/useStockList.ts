@@ -6,6 +6,7 @@ import { TABLE_CHROME } from '../../../components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from '../../../hooks/useOverlayOpen.ts'
 import { usePolling } from '../../../hooks/usePolling.ts'
 import { useTranslation } from '../../../hooks/useTranslation.ts'
+import { keyDirection } from '../../../lib/keys.ts'
 import { scaleColumns, stockListColumns } from '../../../lib/quoteTable.ts'
 import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
@@ -47,13 +48,14 @@ export function useStockList() {
         refresh()
       } else {
         if (step.type !== 'table' || !selectedCode) return
+        const direction = keyDirection(input, key)
 
         if (key.return) {
           const selectedRow = step.rows.find((item) => item.code === selectedCode)
           if (selectedRow) open(selectedRow.code, selectedRow.name)
-        } else if (key.upArrow) {
+        } else if (direction === 'up') {
           moveSelection(-1, visible)
-        } else if (key.downArrow) {
+        } else if (direction === 'down') {
           moveSelection(1, visible)
         }
       }
