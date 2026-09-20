@@ -54,7 +54,7 @@ export default function StockRemove({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      topLeft={<Text color={theme.primary}>{title}</Text>}
+      borderTopLeft={<Text color={theme.primary}>{title}</Text>}
       footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
     >
       {content}

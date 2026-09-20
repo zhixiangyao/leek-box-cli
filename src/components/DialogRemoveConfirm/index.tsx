@@ -30,7 +30,7 @@ export default function DialogRemoveConfirm() {
 
   return (
     <Dialog
-      topLeft={
+      borderTopLeft={
         <Text bright color={isError ? 'red' : theme.primary}>
           {title}
         </Text>

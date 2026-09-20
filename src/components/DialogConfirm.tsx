@@ -43,7 +43,7 @@ export default function DialogConfirm() {
 
   return (
     <Dialog
-      topLeft={
+      borderTopLeft={
         <Text bright color={theme.primary}>
           {title}
         </Text>

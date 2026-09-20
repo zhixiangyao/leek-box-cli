@@ -81,8 +81,8 @@ export default function StockList({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      topLeft={<Text color={theme.primary}>{title}</Text>}
-      topRight={
+      borderTopLeft={<Text color={theme.primary}>{title}</Text>}
+      borderTopRight={
         stockList.step.type === 'table' && stockList.remainingCount > 0 ? (
           <Text>{t('stockList.remaining', { count: stockList.remainingCount })}</Text>
         ) : undefined

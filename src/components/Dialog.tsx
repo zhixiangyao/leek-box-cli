@@ -13,11 +13,14 @@ type Props = {
   /** 默认为 true */
   bright?: boolean
   hint?: string
-} & Pick<CardProps, 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'width' | 'children'>
+} & Pick<
+  CardProps,
+  'borderTopLeft' | 'borderTopRight' | 'borderBottomLeft' | 'borderBottomRight' | 'width' | 'children'
+>
 
 export default function Dialog(props: Props) {
   const { bright = true, hint } = props
-  const { topLeft, topRight, bottomLeft, bottomRight, width, children } = props
+  const { borderTopLeft, borderTopRight, borderBottomLeft, borderBottomRight, width, children } = props
   const { rows, columns } = useWindowSize()
 
   return (
@@ -34,10 +37,10 @@ export default function Dialog(props: Props) {
       <Card
         mask
         bright={bright}
-        topLeft={topLeft}
-        topRight={topRight}
-        bottomLeft={bottomLeft}
-        bottomRight={bottomRight}
+        borderTopLeft={borderTopLeft}
+        borderTopRight={borderTopRight}
+        borderBottomLeft={borderBottomLeft}
+        borderBottomRight={borderBottomRight}
         width={width}
         footer={<StatusBar hint={hint} bright={bright} />}
       >

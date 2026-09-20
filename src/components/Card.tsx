@@ -12,17 +12,17 @@ export type CardProps = {
   /** 默认为 false */
   mask?: boolean
   fullScreen?: boolean
-  topLeft?: ReactNode
-  topRight?: ReactNode
-  bottomLeft?: ReactNode
-  bottomRight?: ReactNode
+  borderTopLeft?: ReactNode
+  borderTopRight?: ReactNode
+  borderBottomLeft?: ReactNode
+  borderBottomRight?: ReactNode
   footer?: ReactNode
   children: ReactNode
 } & Pick<BoxProps, 'width' | 'height'>
 
 export default function Card(props: CardProps) {
   const { bright = false, mask = false } = props
-  const { topLeft, topRight, bottomLeft, bottomRight, footer, children } = props
+  const { borderTopLeft, borderTopRight, borderBottomLeft, borderBottomRight, footer, children } = props
   const { fullScreen, width, height } = props
   const theme = useTheme()
   const { columns, rows } = useWindowSize()
@@ -37,24 +37,24 @@ export default function Card(props: CardProps) {
       borderColor={theme.primary}
       borderDimColor={bright === false}
     >
-      {topLeft && (
+      {borderTopLeft && (
         <CardCorner bright={bright} top={-1} left={1}>
-          {topLeft}
+          {borderTopLeft}
         </CardCorner>
       )}
-      {topRight && (
+      {borderTopRight && (
         <CardCorner bright={bright} top={-1} right={1}>
-          {topRight}
+          {borderTopRight}
         </CardCorner>
       )}
-      {bottomLeft && (
+      {borderBottomLeft && (
         <CardCorner bright={bright} bottom={-1} left={1}>
-          {bottomLeft}
+          {borderBottomLeft}
         </CardCorner>
       )}
-      {bottomRight && (
+      {borderBottomRight && (
         <CardCorner bright={bright} bottom={-1} right={1}>
-          {bottomRight}
+          {borderBottomRight}
         </CardCorner>
       )}
 
