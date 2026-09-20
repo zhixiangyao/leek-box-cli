@@ -44,7 +44,7 @@ src/screens/<Feature>/hooks/
   Zustand 订阅, 页面生命周期, Ink 输入, 测量和轮询接线
 
 src/components/
-  Card, Dialog, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量
+  Card, Dialog, AppLogo, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量
 
 src/hooks/
   usePolling, useOverlayOpen, useClock, useTheme, useTranslation
@@ -538,7 +538,16 @@ Card 负责:
 - 内容 padding 和可选 `mask` (打开时用 SpaceMask 盖住其后内容)
 - footer
 
-Dialog 支持 `borderTopLeft`, `borderTopRight`, `borderBottomLeft`, `borderBottomRight`, `hint` 和 `width` (四角类型从 CardProps Pick 而来), footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
+Dialog 支持 `above`, `borderTopLeft`, `borderTopRight`, `borderBottomLeft`, `borderBottomRight`, `hint` 和 `width` (四角类型从 CardProps Pick 而来), footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
+
+`above` 渲染在 Card 之上并与 Card 居中同轴, 与 Card 之间的一行间距由 Dialog 的 `marginBottom` 提供,
+槽位内容不自带外边距. 它是唯一不参与 Card 宽度也不在 Card `mask` 之内的浮层槽位: art 覆盖的单元格
+(含字母之间的空格) 由 Ink 逐格重写, 因此自身那一带不会与底层文字串行, 但 art 左右两侧仍是底层 screen
+的 dim 内容, 与窄 Card 浮在看板上的观感一致. 目前只有 DialogMenu 用它与 AppLogo 搭配.
+
+AppLogo 是应用 ASCII art (两行), 各行必须等宽, 且宽度不得超过 `MIN_TERMINAL_COLUMNS`
+(否则在恰好卡着宽度下限的终端上 art 会被裁). `tests/layout.test.ts` 有守卫用例锁定这两条;
+组件不铺 mask, 也不接受宽度参数.
 
 弹窗宽度一律按 `Math.max(标题宽, Math.min(内容宽, CONTENT_WIDTH_CAP), hint 宽, 下限)` 计算:
 外层取各部分的**最大**值, `CONTENT_WIDTH_CAP` 只用来给内容单独设上限. 内容是列表时先

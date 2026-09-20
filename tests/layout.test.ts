@@ -3,6 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { stripVTControlCharacters } from 'node:util'
 
 import { createElement, type ComponentProps, type ComponentType } from 'react'
+import stringWidth from 'string-width'
 import { expect, test, vi } from 'vitest'
 
 process.env['FORCE_COLOR'] = '1'
@@ -11,12 +12,14 @@ const [
   { render, Text: InkText },
   { default: App },
   { default: Card },
+  { LOGO_LINES },
   { MIN_TERMINAL_COLUMNS, MIN_TERMINAL_ROWS, TABLE_CHROME },
   { stockListColumns, tableWidth },
 ] = await Promise.all([
   import('ink'),
   import('../src/app.tsx'),
   import('../src/components/Card.tsx'),
+  import('../src/components/AppLogo.tsx'),
   import('../src/components/WindowSizeGuard.tsx'),
   import('../src/lib/quoteTable.ts'),
 ])
@@ -132,6 +135,16 @@ test('终端宽度下限覆盖全部语言的看板占宽', () => {
   }
 })
 
+/**
+ * art 是手写 ASCII, 居中靠父级 alignItems: 某行多一列就会错位半个差值, 且不会有任何报错.
+ * 宽度上限与终端宽度下限绑定: 卡着下限的终端上, 超宽 art 会被裁掉.
+ */
+test('Logo art 各行等宽且不超过终端宽度下限', () => {
+  const widths = LOGO_LINES.map((line) => stringWidth(line))
+  expect(new Set(widths).size).toBe(1)
+  expect(Math.max(...widths)).toBeLessThanOrEqual(MIN_TERMINAL_COLUMNS)
+})
+
 test('Card fullScreen 使用终端尺寸而非显式尺寸', async () => {
   const columns = 41
   const rows = 9
@@ -232,6 +245,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
       return text.includes('添加自选股') && text.includes('自选股票看板') && candidate.includes('\u001B[2m')
     })
     expect(plain(dimmedFrame)).toMatch(/菜单/)
+    expect(plain(dimmedFrame)).toContain(LOGO_LINES[0])
     assertFrameSize(dimmedFrame, columns, rows)
   } finally {
     instance.unmount()

@@ -1,4 +1,5 @@
 import { Box, useWindowSize } from 'ink'
+import type { ReactNode } from 'react'
 
 import Card, { type CardProps } from './Card.tsx'
 import StatusBar from './StatusBar.tsx'
@@ -13,13 +14,14 @@ type Props = {
   /** 默认为 true */
   bright?: boolean
   hint?: string
+  above?: ReactNode
 } & Pick<
   CardProps,
   'borderTopLeft' | 'borderTopRight' | 'borderBottomLeft' | 'borderBottomRight' | 'width' | 'children'
 >
 
 export default function Dialog(props: Props) {
-  const { bright = true, hint } = props
+  const { bright = true, hint, above } = props
   const { borderTopLeft, borderTopRight, borderBottomLeft, borderBottomRight, width, children } = props
   const { rows, columns } = useWindowSize()
 
@@ -34,6 +36,7 @@ export default function Dialog(props: Props) {
       alignItems="center"
       justifyContent="center"
     >
+      {above && <Box marginBottom={1}>{above}</Box>}
       <Card
         mask
         bright={bright}
