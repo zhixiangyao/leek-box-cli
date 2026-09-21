@@ -12,8 +12,8 @@ import DialogStockDetail from './components/DialogStockDetail/index.tsx'
 import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from './hooks/useOverlayOpen.ts'
 import { type Command } from './navigation/registry.ts'
+import { useCommandStore } from './stores/useCommandStore.ts'
 import { useDialogMenuStore } from './stores/useDialogMenuStore.ts'
-import { useRouterStore } from './stores/useRouterStore.ts'
 
 const COMMAND_COMPONENTS: Record<Command, ComponentType> = {
   'stock-list': StockList,
@@ -25,7 +25,7 @@ const COMMAND_COMPONENTS: Record<Command, ComponentType> = {
 export default function App() {
   const { exit } = useApp()
   const overlayOpen = useOverlayOpen()
-  const command = useRouterStore((state) => state.command)
+  const command = useCommandStore((state) => state.command)
   const open = useDialogMenuStore((state) => state.open)
   const CommandComponent = COMMAND_COMPONENTS[command]
 

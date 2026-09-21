@@ -32,7 +32,7 @@ const [
   { useDialogMenuStore },
   { useDialogRemoveConfirmStore },
   { useDialogConfirmStore },
-  { useRouterStore },
+  { useCommandStore },
   { useSettingsStore },
   { useDialogStockDetailStore },
   { useStockListStore },
@@ -45,7 +45,7 @@ const [
   import('../src/stores/useDialogMenuStore.ts'),
   import('../src/stores/useDialogRemoveConfirmStore.ts'),
   import('../src/stores/useDialogConfirmStore.ts'),
-  import('../src/stores/useRouterStore.ts'),
+  import('../src/stores/useCommandStore.ts'),
   import('../src/stores/useSettingsStore.ts'),
   import('../src/stores/useDialogStockDetailStore.ts'),
   import('../src/stores/useStockListStore.ts'),
@@ -131,7 +131,7 @@ const resetStores = () => {
   useDialogMenuStore.setState(useDialogMenuStore.getInitialState(), true)
   useDialogConfirmStore.setState(useDialogConfirmStore.getInitialState(), true)
   useDialogRemoveConfirmStore.setState(useDialogRemoveConfirmStore.getInitialState(), true)
-  useRouterStore.setState(useRouterStore.getInitialState(), true)
+  useCommandStore.setState(useCommandStore.getInitialState(), true)
   useSettingsStore.setState({ ...useSettingsStore.getInitialState(), language: DEFAULT_LOCALE }, true)
   useDialogStockDetailStore.setState(useDialogStockDetailStore.getInitialState(), true)
   useStockListStore.setState(useStockListStore.getInitialState(), true)
@@ -233,7 +233,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 
     assertFrameSize(stockFrame, columns, rows)
 
     let after = output.frames.length
-    useRouterStore.setState({ command: 'stock-add' })
+    useCommandStore.setState({ command: 'stock-add' })
     const addFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
     expect(plain(addFrame)).toContain(t('command.stockAdd.hint'))
     expect(plain(addFrame)).not.toMatch(/15:00 \(5000ms\)/)
@@ -241,7 +241,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 
     assertFrameSize(addFrame, columns, rows)
 
     after = output.frames.length
-    useRouterStore.setState({ command: 'stock-remove' })
+    useCommandStore.setState({ command: 'stock-remove' })
     const removeFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
     expect(plain(removeFrame)).toContain(t('command.stockRemove.hint'))
     expect(plain(removeFrame)).not.toMatch(/15:00 \(5000ms\)/)
@@ -249,7 +249,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 
     assertFrameSize(removeFrame, columns, rows)
 
     after = output.frames.length
-    useRouterStore.setState({ command: 'stock-add' })
+    useCommandStore.setState({ command: 'stock-add' })
     const brightFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
     expect(brightFrame).not.toContain('\u001B[2m')
 
@@ -299,7 +299,7 @@ test('删除确认弹窗按阶段处理按键: confirm 只接受 n/y, done/error
 
   try {
     let after = output.frames.length
-    useRouterStore.setState({ command: 'stock-remove' })
+    useCommandStore.setState({ command: 'stock-remove' })
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('浦发银行'))
 
@@ -661,7 +661,7 @@ test('App 的 vim 键: 设置命令 j/k 选择配置项, h/l 调整数值', asyn
 
   try {
     let after = output.frames.length
-    useRouterStore.setState({ command: 'settings' })
+    useCommandStore.setState({ command: 'settings' })
     const settingsFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
     expect(plain(settingsFrame)).toContain(t('command.settings.title'))
     expect(plain(settingsFrame)).toContain(t('command.settings.hint'))

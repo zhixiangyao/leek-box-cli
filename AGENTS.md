@@ -130,7 +130,7 @@ lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTransla
 
 ```ts
 const settingsPersistence = await startSettingsPersistence(onError, settingsDocument)
-useRouterStore.setState({ command: toCommand(cli.command) })
+useCommandStore.setState({ command: toCommand(cli.command) })
 const instance = render(<App />, { alternateScreen: true, concurrent: true })
 await instance.waitUntilExit()
 await settingsPersistence.stop()
@@ -155,7 +155,7 @@ await settingsPersistence.stop()
 注册表**不持有命令组件**: 组件映射是 `src/app.tsx` 里的 `COMMAND_COMPONENTS`, 类型为
 `Record<Command, ComponentType>`. 命令组件不接 props, navigation 也不向它传值, 因此没有
 `CommandComponentProps` 这类"已翻译字符串"入参类型: 注册表对外交出的只有 `MessageKey`, 由消费方自己
-`t()`. 这样 navigation 不 import commands, `useRouterStore` 与 `ActionResult` 引用 registry 时
+`t()`. 这样 navigation 不 import commands, `useCommandStore` 与 `ActionResult` 引用 registry 时
 不会与 app.tsx 形成环 (改成值导入也不会).
 组件映射是唯一的第二份清单, 但它由 `Record<Command, ...>` 强制穷尽: 新增命令时漏配组件,
 或多写了注册表里没有的键, 都编译不过; 因此没有为组件补齐再写一条运行时用例.
@@ -173,10 +173,10 @@ await settingsPersistence.stop()
 - `settings`
 
 无 command 或非法 command 进入 `stock-list`. 该默认值只写在注册表的 `DEFAULT_COMMAND`
-(`satisfies Command`, 保留字面量类型), `toCommand()` 的兜底与 `useRouterStore` 的初始 command 都取它;
+(`satisfies Command`, 保留字面量类型), `toCommand()` 的兜底与 `useCommandStore` 的初始 command 都取它;
 `COMMAND_LIST` 是 `readonly Command[]`, 直接传给 `meow()` 的 `commands`, 不做防御性拷贝.
 
-命令自持文案: 标题与 hint 都由命令自己解析, App 只按 `useRouterStore.command` 选出组件并渲染,
+命令自持文案: 标题与 hint 都由命令自己解析, App 只按 `useCommandStore.command` 选出组件并渲染,
 不往命令里传已翻译的字符串:
 
 ```tsx

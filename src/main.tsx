@@ -9,7 +9,7 @@ import { t } from './i18n/core.ts'
 import { errorMessage } from './lib/error.ts'
 import { toCommand } from './navigation/registry.ts'
 import { startSettingsPersistence } from './settings/persistence.ts'
-import { useRouterStore } from './stores/useRouterStore.ts'
+import { useCommandStore } from './stores/useCommandStore.ts'
 
 async function startApp(params: StartAppParams) {
   const { settingsDocument, command } = params
@@ -19,7 +19,7 @@ async function startApp(params: StartAppParams) {
   )
 
   try {
-    useRouterStore.setState({ command: toCommand(command) })
+    useCommandStore.setState({ command: toCommand(command) })
     const instance = render(<App />, {
       alternateScreen: true,
       concurrent: true,

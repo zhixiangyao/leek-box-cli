@@ -2,7 +2,7 @@ import { Newline } from 'ink'
 
 import { useTranslation } from '../hooks/useTranslation.ts'
 import type { Command } from '../navigation/registry.ts'
-import { useRouterStore } from '../stores/useRouterStore.ts'
+import { useCommandStore } from '../stores/useCommandStore.ts'
 import Message, { type MessageTone } from './Message.tsx'
 import TextInput from './TextInput.tsx'
 
@@ -15,11 +15,11 @@ type Props = {
 
 export default function ActionResult({ tone, msg, to, onReturn }: Props) {
   const { t } = useTranslation()
-  const goTo = useRouterStore((state) => state.goTo)
+  const setCommand = useCommandStore((state) => state.setCommand)
 
   const handleReturn = () => {
     void onReturn?.()
-    goTo(to)
+    setCommand(to)
   }
 
   return (

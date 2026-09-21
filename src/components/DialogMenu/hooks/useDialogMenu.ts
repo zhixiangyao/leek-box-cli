@@ -6,13 +6,13 @@ import { keyDirection } from '../../../lib/keys.ts'
 import { type MenuItem, MENU_ITEMS } from '../../../navigation/menu.ts'
 import { settingsPath } from '../../../settings/file.ts'
 import { resetAll } from '../../../settings/resetAll.ts'
+import { useCommandStore } from '../../../stores/useCommandStore.ts'
 import { useDialogConfirmStore } from '../../../stores/useDialogConfirmStore.ts'
 import { useDialogMenuStore } from '../../../stores/useDialogMenuStore.ts'
-import { useRouterStore } from '../../../stores/useRouterStore.ts'
 
 export function useDialogMenu() {
   const { t } = useTranslation()
-  const goTo = useRouterStore((state) => state.goTo)
+  const setCommand = useCommandStore((state) => state.setCommand)
   const highlightedType = useDialogMenuStore((state) => state.highlightedType)
   const close = useDialogMenuStore((state) => state.close)
   const setHighlightedType = useDialogMenuStore((state) => state.setHighlightedType)
@@ -50,7 +50,7 @@ export function useDialogMenu() {
 
       default: {
         close()
-        goTo(item.type)
+        setCommand(item.type)
         break
       }
     }
