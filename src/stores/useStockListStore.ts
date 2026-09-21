@@ -77,7 +77,6 @@ export function createStockListStore(dependencies: StockListDependencies = defau
     step: { type: 'loading' },
     selectedCode: undefined,
     scrollOffset: 0,
-
     refreshQuotes: async (signal?: AbortSignal) => {
       try {
         const entries = await dependencies.loadStocks()
@@ -131,7 +130,6 @@ export function createStockListStore(dependencies: StockListDependencies = defau
         )
       }
     },
-
     moveSelection: (delta: 1 | -1, visible: number) => {
       const { step, selectedCode, scrollOffset } = get()
       if (step.type !== 'table' || step.rows.length === 0) return
@@ -142,7 +140,6 @@ export function createStockListStore(dependencies: StockListDependencies = defau
         scrollOffset: anchoredScrollOffset(delta, currentIndex, step.rows.length, scrollOffset, visible),
       })
     },
-
     reset: () => {
       set({ step: { type: 'loading' }, selectedCode: undefined, scrollOffset: 0 })
     },

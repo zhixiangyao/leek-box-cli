@@ -17,8 +17,8 @@ type DialogRemoveConfirmState = {
   step: DialogRemoveConfirmStep
   targets: StockEntry[]
   open: (targets: StockEntry[]) => void
-  confirmDelete: () => Promise<void>
   close: () => void
+  confirmDelete: () => Promise<void>
 }
 
 export type DialogRemoveConfirmDependencies = {
@@ -35,12 +35,17 @@ export function createDialogRemoveConfirmStore(dependencies: DialogRemoveConfirm
   return create<DialogRemoveConfirmState>()((set, get) => ({
     step: { type: 'idle' },
     targets: [],
-
     open: (targets) => {
       if (get().step.type !== 'idle' || targets.length === 0) return
       set({ step: { type: 'confirm' }, targets })
     },
+    close: () => {
+      const type = get().step.type
 
+      if (type === 'removing') return
+
+      set({ step: { type: 'idle' }, targets: [] })
+    },
     confirmDelete: async () => {
       if (get().step.type !== 'confirm') return
       const codes = get().targets.map((entry) => entry.code)
@@ -68,14 +73,6 @@ export function createDialogRemoveConfirmStore(dependencies: DialogRemoveConfirm
       } catch (error) {
         set({ step: { type: 'error', message: t('dialogRemoveConfirm.failed', { error: errorMessage(error) }) } })
       }
-    },
-
-    close: () => {
-      const type = get().step.type
-
-      if (type === 'removing') return
-
-      set({ step: { type: 'idle' }, targets: [] })
     },
   }))
 }

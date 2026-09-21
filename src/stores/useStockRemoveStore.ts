@@ -23,7 +23,6 @@ export function createStockRemoveStore(dependencies: StockRemoveDependencies = d
     entries: [],
     errorMessage: undefined,
     resetToken: 0,
-
     loadEntries: async () => {
       set({ errorMessage: undefined })
       try {
@@ -33,7 +32,6 @@ export function createStockRemoveStore(dependencies: StockRemoveDependencies = d
         set({ entries: [], errorMessage: errorMessage(error) })
       }
     },
-
     removeByCodes: (codes) => {
       const drop = new Set(codes)
       set((state) => ({

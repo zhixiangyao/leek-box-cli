@@ -87,12 +87,10 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
       step: { type: 'input-code' },
       codeInput: FRESH_INPUT,
       confirmInput: FRESH_INPUT,
-
       reset: () => {
         generation += 1
         set({ step: { type: 'input-code' }, codeInput: FRESH_INPUT, confirmInput: FRESH_INPUT })
       },
-
       handleCodeInput: async (input: string) => {
         if (!isAddInputStep(get().step)) return
         const currentGeneration = generation
@@ -131,7 +129,6 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
           if (!isStale(currentGeneration)) set({ step: { type: 'error', message: errorMessage(error) } })
         }
       },
-
       handleConfirm: async (answer: string) => {
         const confirmation = parseYesNo(answer)
         if (!confirmation) {

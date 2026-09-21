@@ -7,17 +7,17 @@ export type DialogConfirmUpdate = Partial<Pick<NonNullable<DialogConfirmConfig>,
 type DialogConfirmState = {
   config: DialogConfirmConfig | undefined
   open: (config: DialogConfirmConfig) => void
-  update: (patch: DialogConfirmUpdate) => void
   close: () => void
+  update: (patch: DialogConfirmUpdate) => void
 }
 
 export const useDialogConfirmStore = create<DialogConfirmState>()((set) => ({
   config: undefined,
   open: (config) => set({ config }),
+  close: () => set({ config: undefined }),
   update: (patch) =>
     set((state) => {
       if (!state.config) return state
       return { config: { ...state.config, ...patch } }
     }),
-  close: () => set({ config: undefined }),
 }))
