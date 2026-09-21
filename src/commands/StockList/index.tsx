@@ -9,13 +9,10 @@ import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
 import { headerRow, missingRow, quoteRow } from '../../lib/quoteTable.ts'
-import { type CommandComponentProps } from '../../navigation/registry.ts'
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import { useStockList } from './hooks/useStockList.ts'
 
-type Props = CommandComponentProps
-
-export default function StockList({ title, hint }: Props) {
+export default function StockList() {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { t } = useTranslation()
@@ -81,13 +78,13 @@ export default function StockList({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      borderTopLeft={<Text color={theme.primary}>{title}</Text>}
+      borderTopLeft={<Text color={theme.primary}>{t('command.stockList.title')}</Text>}
       borderTopRight={
         stockList.step.type === 'table' && stockList.remainingCount > 0 ? (
           <Text>{t('stockList.remaining', { count: stockList.remainingCount })}</Text>
         ) : undefined
       }
-      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
+      footer={<StatusBar showClock hint={t('command.stockList.hint')} bright={!overlayOpen.open} />}
     >
       {content}
     </Card>

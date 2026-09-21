@@ -8,14 +8,11 @@ import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
-import { type CommandComponentProps } from '../../navigation/registry.ts'
 import type { StockEntry } from '../../settings/schema.ts'
 import { useStockRemove } from './hooks/useStockRemove.ts'
 import { gridColumnCount } from './lib.ts'
 
-type Props = CommandComponentProps
-
-export default function StockRemove({ title, hint }: Props) {
+export default function StockRemove() {
   const { columns } = useWindowSize()
 
   const overlayOpen = useOverlayOpen()
@@ -54,8 +51,8 @@ export default function StockRemove({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      borderTopLeft={<Text color={theme.primary}>{title}</Text>}
-      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
+      borderTopLeft={<Text color={theme.primary}>{t('command.stockRemove.title')}</Text>}
+      footer={<StatusBar showClock hint={t('command.stockRemove.hint')} bright={!overlayOpen.open} />}
     >
       {content}
     </Card>

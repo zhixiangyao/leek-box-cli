@@ -11,8 +11,7 @@ test('每个命令都定义了展示文案', () => {
   for (const command of COMMAND_LIST) {
     const definition = COMMAND_REGISTRY[command]
     expect(t(definition.title).length).toBeGreaterThan(0)
-    expect(t(definition.menuLabel).length).toBeGreaterThan(0)
-    expect(t(definition.hint)).toContain('退出(q)')
+    expect(t(definition.description).length).toBeGreaterThan(0)
   }
 })
 

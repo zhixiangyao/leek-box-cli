@@ -11,12 +11,11 @@ import DialogRemoveConfirm from './components/DialogRemoveConfirm/index.tsx'
 import DialogStockDetail from './components/DialogStockDetail/index.tsx'
 import WindowSizeGuard from './components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from './hooks/useOverlayOpen.ts'
-import { useTranslation } from './hooks/useTranslation.ts'
-import { COMMAND_REGISTRY, type Command, type CommandComponentProps } from './navigation/registry.ts'
+import { type Command } from './navigation/registry.ts'
 import { useDialogMenuStore } from './stores/useDialogMenuStore.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
 
-const COMMAND_COMPONENTS: Record<Command, ComponentType<CommandComponentProps>> = {
+const COMMAND_COMPONENTS: Record<Command, ComponentType> = {
   'stock-list': StockList,
   'stock-add': StockAdd,
   'stock-remove': StockRemove,
@@ -25,11 +24,9 @@ const COMMAND_COMPONENTS: Record<Command, ComponentType<CommandComponentProps>> 
 
 export default function App() {
   const { exit } = useApp()
-  const { t } = useTranslation()
   const overlayOpen = useOverlayOpen()
   const command = useRouterStore((state) => state.command)
   const open = useDialogMenuStore((state) => state.open)
-  const { title, hint } = COMMAND_REGISTRY[command]
   const CommandComponent = COMMAND_COMPONENTS[command]
 
   useInput(
@@ -42,7 +39,7 @@ export default function App() {
 
   return (
     <WindowSizeGuard>
-      <CommandComponent title={t(title)} hint={t(hint)} />
+      <CommandComponent />
 
       {overlayOpen.dialogMenuOpen && <DialogMenu />}
       {overlayOpen.dialogStockDetailOpen && <DialogStockDetail />}

@@ -6,7 +6,7 @@ export type MenuItem = { type: Command | 'exit' | 'reset'; label: MessageKey }
 export const MENU_ITEMS: MenuItem[] = [
   ...COMMAND_REGISTRY_ENTRIES.map<MenuItem>(([command, metadata]) => ({
     type: command,
-    label: metadata.menuLabel,
+    label: metadata.title,
   })),
   { type: 'reset', label: 'menu.reset' },
   { type: 'exit', label: 'menu.exit' },

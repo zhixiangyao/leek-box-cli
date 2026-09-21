@@ -5,11 +5,8 @@ import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
-import { type CommandComponentProps } from '../../navigation/registry.ts'
 import { type ThemePalette } from '../../settings/schema.ts'
 import { type SettingRow, useSettings } from './hooks/useSettings.ts'
-
-type Props = CommandComponentProps
 
 function SettingRows({ rows, highlight }: { rows: SettingRow[]; highlight: ThemePalette['highlight'] }) {
   return rows.map((row) => (
@@ -26,7 +23,7 @@ function SettingRows({ rows, highlight }: { rows: SettingRow[]; highlight: Theme
   ))
 }
 
-export default function Settings({ title, hint }: Props) {
+export default function Settings() {
   const theme = useTheme()
   const { t } = useTranslation()
   const { overlayOpen, appearanceRows, requestRows } = useSettings()
@@ -35,8 +32,8 @@ export default function Settings({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      borderTopLeft={<Text color={theme.primary}>{title}</Text>}
-      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
+      borderTopLeft={<Text color={theme.primary}>{t('command.settings.title')}</Text>}
+      footer={<StatusBar showClock hint={t('command.settings.hint')} bright={!overlayOpen.open} />}
     >
       <Text color={theme.primary}>{t('settings.section.appearance')}</Text>
       <SettingRows rows={appearanceRows} highlight={theme.highlight} />

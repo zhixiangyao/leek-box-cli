@@ -82,7 +82,7 @@ tests/*.test.ts
 
 ```text
 commands/components -> hooks/stores -> settings/file -> settings/schema -> lib
-commands -> navigation (只取 `CommandComponentProps` 类型, 命令只接收已翻译的字符串; navigation 不反向 import commands)
+components -> navigation (ActionResult 取 `Command` 类型, DialogMenu 读 `MENU_ITEMS`; navigation 不反向 import commands)
 main -> cli/run + navigation/registry + settings/persistence -> stores -> settings/file
 cli/run -> cli/meow
 navigation -> i18n (只依赖 i18n 类型, 不 import commands; 引用 registry 的 store/component 因此不会与 app.tsx 成环)
@@ -146,24 +146,24 @@ await settingsPersistence.stop()
 
 - `title`
 - `description`
-- `hint`
-- `menuLabel`
 
-四项都是 `MessageKey`, 由 App / meow / DialogMenu 用 `t()` 解析.
-`CommandComponentProps` 显式写作 `{ title: string; hint: string }`: 命令只接收已翻译的字符串,
-不能写成 `CommandMetadata['title']`, 否则会把 `MessageKey` 当字符串传下去. 各 command 直接
-`type Props = CommandComponentProps` 引用它 (只读类型, navigation 不反向 import commands),
-不各自重复写一遍 `{ title: string; hint: string }`.
+两项都由 meow 的 CLI help 用 `t()` 解析, `title` 另外被 DialogMenu 当作菜单 label (两者都从
+`COMMAND_REGISTRY_ENTRIES` 派生). 界面上的标题和 hint 不走注册表: 各命令组件自己
+`t('command.xxx.title')` / `t('command.xxx.hint')` (见下面"命令自持文案"), 因此注册表里的 `title`
+不是给命令组件读的; 同一句文案在两边各写一次 `MessageKey` 是刻意的.
 
 注册表**不持有命令组件**: 组件映射是 `src/app.tsx` 里的 `COMMAND_COMPONENTS`, 类型为
-`Record<Command, ComponentType<CommandComponentProps>>`. 这样 navigation 不 import commands,
-`useRouterStore` 与 `ActionResult` 引用 registry 时不会与 app.tsx 形成环 (改成值导入也不会).
+`Record<Command, ComponentType>`. 命令组件不接 props, navigation 也不向它传值, 因此没有
+`CommandComponentProps` 这类"已翻译字符串"入参类型: 注册表对外交出的只有 `MessageKey`, 由消费方自己
+`t()`. 这样 navigation 不 import commands, `useRouterStore` 与 `ActionResult` 引用 registry 时
+不会与 app.tsx 形成环 (改成值导入也不会).
 组件映射是唯一的第二份清单, 但它由 `Record<Command, ...>` 强制穷尽: 新增命令时漏配组件,
 或多写了注册表里没有的键, 都编译不过; 因此没有为组件补齐再写一条运行时用例.
 
-`Command`, `COMMAND_LIST`, `isCommand()` 和 `toCommand()` 均从注册表派生. 新增命令要动两处:
-注册表 (Command 联合类型 + 四个 MessageKey) 与 app.tsx 的 `COMMAND_COMPONENTS`, 其余全部派生,
-CLI help, 菜单, 路由都不维护第二份映射. 新命令的文案键要在三份 catalog 补齐.
+`Command`, `COMMAND_LIST`, `isCommand()` 和 `toCommand()` 均从注册表派生. 新增命令要动三处:
+注册表 (Command 联合类型 + `title` / `description` 两个 MessageKey), app.tsx 的 `COMMAND_COMPONENTS`,
+以及命令自己 `index.tsx` 里的 title / hint 键; 其余全部派生, CLI help, 菜单, 路由都不维护第二份映射.
+新命令的文案键要在三份 catalog 补齐.
 
 当前命令:
 
@@ -175,6 +175,20 @@ CLI help, 菜单, 路由都不维护第二份映射. 新命令的文案键要在
 无 command 或非法 command 进入 `stock-list`. 该默认值只写在注册表的 `DEFAULT_COMMAND`
 (`satisfies Command`, 保留字面量类型), `toCommand()` 的兜底与 `useRouterStore` 的初始 command 都取它;
 `COMMAND_LIST` 是 `readonly Command[]`, 直接传给 `meow()` 的 `commands`, 不做防御性拷贝.
+
+命令自持文案: 标题与 hint 都由命令自己解析, App 只按 `useRouterStore.command` 选出组件并渲染,
+不往命令里传已翻译的字符串:
+
+```tsx
+<Card
+  borderTopLeft={<Text color={theme.primary}>{t('command.stockList.title')}</Text>}
+  footer={<StatusBar showClock hint={t('command.stockList.hint')} bright={!overlayOpen.open} />}
+>
+```
+
+因此 commands 与 navigation 之间没有 import 边, 命令的文案 (含 hint 里列的按键与监听是否一致) 就地可读.
+代价是同一句文案在注册表与组件里各有一份 `MessageKey`: 键名写错由 `MessageKey` 类型拦住, 张冠李戴
+(例如 StockAdd 用了 stockList 的键) 由 `tests/layout.test.ts` 逐命令断言标题与 hint 整串兜住.
 
 ## Command, hook 和 store 分层
 

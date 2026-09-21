@@ -12,19 +12,15 @@ export type Message = {
   'command.stockList.title': string
   'command.stockList.description': string
   'command.stockList.hint': string
-  'command.stockList.menuLabel': string
   'command.stockAdd.title': string
   'command.stockAdd.description': string
   'command.stockAdd.hint': string
-  'command.stockAdd.menuLabel': string
   'command.stockRemove.title': string
   'command.stockRemove.description': string
   'command.stockRemove.hint': string
-  'command.stockRemove.menuLabel': string
   'command.settings.title': string
   'command.settings.description': string
   'command.settings.hint': string
-  'command.settings.menuLabel': string
 
   /* ---------- 菜单与通用弹窗 ---------- */
   'menu.title': string

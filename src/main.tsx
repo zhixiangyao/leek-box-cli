@@ -17,15 +17,12 @@ async function startApp(params: StartAppParams) {
     (error) => console.error(t('app.persistenceFailed', { error: errorMessage(error) })),
     settingsDocument,
   )
-  const termProgram = process.env['TERM_PROGRAM']
-  const incrementalRendering = !!termProgram && ['kiro', 'vscode'].includes(termProgram)
 
   try {
     useRouterStore.setState({ command: toCommand(command) })
     const instance = render(<App />, {
       alternateScreen: true,
       concurrent: true,
-      incrementalRendering,
       maxFps: 45,
     })
     await instance.waitUntilExit()

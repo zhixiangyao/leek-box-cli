@@ -36,7 +36,7 @@ const [
   { useSettingsStore },
   { useDialogStockDetailStore },
   { useStockListStore },
-  { setActiveLocale },
+  { setActiveLocale, t },
   { DEFAULT_LOCALE, LOCALES },
   { MENU_ITEMS },
 ] = await Promise.all([
@@ -227,7 +227,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 
       const text = plain(candidate)
       return text.includes('自选股票看板') && text.includes('名称') && text.includes('代码')
     })
-    expect(plain(stockFrame)).toMatch(/刷新\(r\)/)
+    expect(plain(stockFrame)).toContain(t('command.stockList.hint'))
     expect(plain(stockFrame)).not.toMatch(/间隔\(-\/\+\)/)
     expect(plain(stockFrame).indexOf('名称')).toBeLessThan(plain(stockFrame).indexOf('代码'))
     assertFrameSize(stockFrame, columns, rows)
@@ -235,6 +235,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 
     let after = output.frames.length
     useRouterStore.setState({ command: 'stock-add' })
     const addFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
+    expect(plain(addFrame)).toContain(t('command.stockAdd.hint'))
     expect(plain(addFrame)).not.toMatch(/15:00 \(5000ms\)/)
     expect(plain(addFrame)).toMatch(/请输入股票代码/)
     assertFrameSize(addFrame, columns, rows)
@@ -242,6 +243,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 
     after = output.frames.length
     useRouterStore.setState({ command: 'stock-remove' })
     const removeFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
+    expect(plain(removeFrame)).toContain(t('command.stockRemove.hint'))
     expect(plain(removeFrame)).not.toMatch(/15:00 \(5000ms\)/)
     expect(plain(removeFrame)).toMatch(/删除测试股/)
     assertFrameSize(removeFrame, columns, rows)
@@ -660,7 +662,9 @@ test('App 的 vim 键: 设置命令 j/k 选择配置项, h/l 调整数值', asyn
   try {
     let after = output.frames.length
     useRouterStore.setState({ command: 'settings' })
-    await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
+    const settingsFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
+    expect(plain(settingsFrame)).toContain(t('command.settings.title'))
+    expect(plain(settingsFrame)).toContain(t('command.settings.hint'))
 
     // j 下移一项到 涨跌颜色, k 回到 主题色系
     after = output.frames.length

@@ -9,13 +9,10 @@ import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
 import { formatPrice } from '../../lib/format.ts'
-import { type CommandComponentProps } from '../../navigation/registry.ts'
 import { isAddResultStep } from '../../stores/useStockAddStore.ts'
 import { useStockAdd } from './hooks/useStockAdd.ts'
 
-type Props = CommandComponentProps
-
-export default function StockAdd({ title, hint }: Props) {
+export default function StockAdd() {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { t } = useTranslation()
@@ -88,8 +85,8 @@ export default function StockAdd({ title, hint }: Props) {
     <Card
       fullScreen
       bright={!overlayOpen.open}
-      borderTopLeft={<Text color={theme.primary}>{title}</Text>}
-      footer={<StatusBar showClock hint={hint} bright={!overlayOpen.open} />}
+      borderTopLeft={<Text color={theme.primary}>{t('command.stockAdd.title')}</Text>}
+      footer={<StatusBar showClock hint={t('command.stockAdd.hint')} bright={!overlayOpen.open} />}
     >
       {content}
     </Card>
