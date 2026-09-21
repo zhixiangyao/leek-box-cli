@@ -14,7 +14,7 @@ type PollingControl = {
 
 /**
  * 实例级自调度轮询. intervalMs 表示相邻任务的最小启动间隔. 组件卸载或
- * restartKey 变化时会取消当前请求和定时器, 避免不同页面实例共享状态.
+ * restartKey 变化时会取消当前请求和定时器, 避免不同命令实例共享状态.
  */
 export function usePolling(
   task: (signal: AbortSignal) => Promise<void>,

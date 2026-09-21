@@ -10,23 +10,23 @@ export const en = {
   'cli.version': 'Show version',
   'cli.help': 'Show help',
 
-  /* ---------- Screen registry ---------- */
-  'screen.stockList.title': 'Watchlist',
-  'screen.stockList.description': 'Watchlist',
-  'screen.stockList.hint': 'Menu(esc)   Refresh(r)   Select(↑/↓/j/k)   Detail(enter)   Quit(q)',
-  'screen.stockList.menuLabel': 'Watchlist',
-  'screen.stockAdd.title': 'Add stocks',
-  'screen.stockAdd.description': 'Add stocks',
-  'screen.stockAdd.hint': 'Menu(esc)   Quit(q)',
-  'screen.stockAdd.menuLabel': 'Add stocks',
-  'screen.stockRemove.title': 'Remove stocks',
-  'screen.stockRemove.description': 'Remove stocks',
-  'screen.stockRemove.hint': 'Menu(esc)   Move(↑/↓/←/→/hjkl)   Select(space)   Remove(enter)   Quit(q)',
-  'screen.stockRemove.menuLabel': 'Remove stocks',
-  'screen.settings.title': 'Settings',
-  'screen.settings.description': 'Configure theme, trend colors and request options',
-  'screen.settings.hint': 'Menu(esc)   Select(↑/↓/j/k)   Adjust(←/→/h/l/enter)   Defaults(d)   Quit(q)',
-  'screen.settings.menuLabel': 'Settings',
+  /* ---------- Command registry ---------- */
+  'command.stockList.title': 'Watchlist',
+  'command.stockList.description': 'Watchlist',
+  'command.stockList.hint': 'Menu(esc)   Refresh(r)   Select(↑/↓/j/k)   Detail(enter)   Quit(q)',
+  'command.stockList.menuLabel': 'Watchlist',
+  'command.stockAdd.title': 'Add stocks',
+  'command.stockAdd.description': 'Add stocks',
+  'command.stockAdd.hint': 'Menu(esc)   Quit(q)',
+  'command.stockAdd.menuLabel': 'Add stocks',
+  'command.stockRemove.title': 'Remove stocks',
+  'command.stockRemove.description': 'Remove stocks',
+  'command.stockRemove.hint': 'Menu(esc)   Move(↑/↓/←/→/hjkl)   Select(space)   Remove(enter)   Quit(q)',
+  'command.stockRemove.menuLabel': 'Remove stocks',
+  'command.settings.title': 'Settings',
+  'command.settings.description': 'Configure theme, trend colors and request options',
+  'command.settings.hint': 'Menu(esc)   Select(↑/↓/j/k)   Adjust(←/→/h/l/enter)   Defaults(d)   Quit(q)',
+  'command.settings.menuLabel': 'Settings',
 
   /* ---------- Menu and shared dialogs ---------- */
   'menu.title': 'Menu',
@@ -120,7 +120,7 @@ export const en = {
   'table.column.marketCap': 'Market Cap',
   'table.unknownColumn': 'Unknown quote column: {key}',
 
-  /* ---------- Settings screen ---------- */
+  /* ---------- Settings command ---------- */
   'settings.section.appearance': 'Appearance',
   'settings.section.request': 'Requests and refresh',
   'settings.note.minimumDuration':

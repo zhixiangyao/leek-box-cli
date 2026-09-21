@@ -140,7 +140,7 @@ const resetStores = () => {
 
 /**
  * 宽度下限必须与界面语言无关: 若按当前 locale 推导, 在恰好满足中文下限的终端上
- * 切到英文就会被守卫拦住, 而设置页也在守卫之内, 语言再也改不回来.
+ * 切到英文就会被守卫拦住, 而设置命令也在守卫之内, 语言再也改不回来.
  */
 test('终端宽度下限覆盖全部语言的看板占宽', () => {
   for (const locale of LOCALES) {
@@ -192,7 +192,7 @@ test('Card fullScreen 使用终端尺寸而非显式尺寸', async () => {
   }
 })
 
-test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 chrome 正确', async () => {
+test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 chrome 正确', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -233,21 +233,21 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
     assertFrameSize(stockFrame, columns, rows)
 
     let after = output.frames.length
-    useRouterStore.setState({ screen: 'stock-add' })
+    useRouterStore.setState({ command: 'stock-add' })
     const addFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
     expect(plain(addFrame)).not.toMatch(/15:00 \(5000ms\)/)
     expect(plain(addFrame)).toMatch(/请输入股票代码/)
     assertFrameSize(addFrame, columns, rows)
 
     after = output.frames.length
-    useRouterStore.setState({ screen: 'stock-remove' })
+    useRouterStore.setState({ command: 'stock-remove' })
     const removeFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
     expect(plain(removeFrame)).not.toMatch(/15:00 \(5000ms\)/)
     expect(plain(removeFrame)).toMatch(/删除测试股/)
     assertFrameSize(removeFrame, columns, rows)
 
     after = output.frames.length
-    useRouterStore.setState({ screen: 'stock-add' })
+    useRouterStore.setState({ command: 'stock-add' })
     const brightFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
     expect(brightFrame).not.toContain('\u001B[2m')
 
@@ -297,7 +297,7 @@ test('删除确认弹窗按阶段处理按键: confirm 只接受 n/y, done/error
 
   try {
     let after = output.frames.length
-    useRouterStore.setState({ screen: 'stock-remove' })
+    useRouterStore.setState({ command: 'stock-remove' })
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('浦发银行'))
 
@@ -476,7 +476,7 @@ test('App 的 esc 接线: 菜单开关切换', async () => {
     let after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('自选股票看板'))
 
-    // esc 打开菜单: 背景变暗, 高亮同步为当前页面
+    // esc 打开菜单: 背景变暗, 高亮同步为当前命令
     after = output.frames.length
     input.write('\x1B')
     await waitForFrame(output, after, (candidate) => candidate.includes('\x1B[2m'))
@@ -495,7 +495,7 @@ test('App 的 esc 接线: 菜单开关切换', async () => {
   }
 })
 
-test('App 在 en 下渲染英文页面标题, 表头与本地化单位', async () => {
+test('App 在 en 下渲染英文命令标题, 表头与本地化单位', async () => {
   const columns = tableWidth(stockListColumns('en')) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -553,7 +553,7 @@ test('App 在 en 下渲染英文页面标题, 表头与本地化单位', async (
     const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('Market Cap'))
     const text = plain(frame)
 
-    // 页面标题与表头
+    // 命令标题与表头
     expect(text).toContain('Watchlist')
     expect(text).toContain('Change %')
     expect(text).toContain('Turnover %')
@@ -635,7 +635,7 @@ test('App 的 vim 键: 看板 j/k 移动选中行, 菜单 j/k 移动高亮', asy
   }
 })
 
-test('App 的 vim 键: 设置页 j/k 选择配置项, h/l 调整数值', async () => {
+test('App 的 vim 键: 设置命令 j/k 选择配置项, h/l 调整数值', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -659,7 +659,7 @@ test('App 的 vim 键: 设置页 j/k 选择配置项, h/l 调整数值', async (
 
   try {
     let after = output.frames.length
-    useRouterStore.setState({ screen: 'settings' })
+    useRouterStore.setState({ command: 'settings' })
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
 
     // j 下移一项到 涨跌颜色, k 回到 主题色系

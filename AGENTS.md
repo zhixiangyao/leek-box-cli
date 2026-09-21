@@ -7,7 +7,7 @@
 ## 核心原则
 
 - 以当前源码为唯一事实来源, 不保留未上线版本的兼容层, migration, deprecated alias 或旧文件格式 fallback.
-- 页面渲染, 输入接线, 业务状态和持久化分层, 不把所有逻辑放进 screen 组件.
+- 命令渲染, 输入接线, 业务状态和持久化分层, 不把所有逻辑放进 command 组件.
 - 共享状态使用 Zustand, React 生命周期和 Ink hooks 留在 React hook 层.
 - 文件写入使用锁和原子替换, 所有 settings 与 stocks 修改必须在锁内读取最新文档后合并.
 - 所有中文文案, 注释和文档使用 ASCII 标点, 禁止中文全角标点和 U+3000 空格.
@@ -20,16 +20,16 @@ src/main.tsx
   入口接线: 调用 cli/run.ts 的 run(), Ink render 和 settings persistence start/stop
 
 src/app.tsx
-  无浮层时的 esc(打开菜单) 和 q(退出) 输入, 当前 screen 装配 (SCREEN_COMPONENTS 持组件映射), 浮层的绘制顺序
+  无浮层时的 esc(打开菜单) 和 q(退出) 输入, 当前 command 装配 (COMMAND_COMPONENTS 持组件映射), 浮层的绘制顺序
 
 src/i18n/
   国际化叶子模块. types.ts 是全部 i18n 类型与文案键的规范来源, locale.ts 定义 locale/language 常量与系统语言检测, core.ts 持有 active locale 与 t(), catalog/ 存放三份文案表
 
 src/navigation/
-  页面导航域, 只依赖 i18n, 不 import screens 也不持有页面组件.
-  registry.ts 是页面唯一注册表, 派生 Screen, SCREEN_LIST, CLI help 和菜单, 文案字段是 MessageKey;
+  命令导航域, 只依赖 i18n, 不 import commands 也不持有命令组件.
+  registry.ts 是命令唯一注册表, 派生 Command, COMMAND_LIST, CLI help 和菜单, 文案字段是 MessageKey;
   menu.ts 是从注册表派生的菜单项 (含 reset/exit 两个应用级动作), 供 DialogMenu 与其 store 使用.
-  页面组件映射在 app.tsx 的 SCREEN_COMPONENTS, 因此 stores/components 引用本目录不会与 app.tsx 成环
+  命令组件映射在 app.tsx 的 COMMAND_COMPONENTS, 因此 stores/components 引用本目录不会与 app.tsx 成环
 
 src/cli/
   只在命令行入口链路上用到的模块.
@@ -37,11 +37,11 @@ src/cli/
   返回 helpMessage 与已读到的 settingsDocument (供 persistence 复用);
   run.ts 启动流程: parseCli -> 打印 help 或交给注入的 startApp, 顶层异常统一成 "运行失败" 文案与退出码
 
-src/screens/<Feature>/index.tsx
-  页面渲染, 只消费对应 feature hook 返回的状态和视图模型
+src/commands/<Feature>/index.tsx
+  命令渲染, 只消费对应 feature hook 返回的状态和视图模型
 
-src/screens/<Feature>/hooks/
-  Zustand 订阅, 页面生命周期, Ink 输入, 测量和轮询接线
+src/commands/<Feature>/hooks/
+  Zustand 订阅, 命令生命周期, Ink 输入, 测量和轮询接线
 
 src/components/
   Card, Dialog, AppLogo, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量
@@ -81,11 +81,11 @@ tests/*.test.ts
 依赖方向保持为:
 
 ```text
-screens/components -> hooks/stores -> settings/file -> settings/schema -> lib
-screens -> navigation (只取 `ScreenComponentProps` 类型, 页面只接收已翻译的字符串; navigation 不反向 import screens)
+commands/components -> hooks/stores -> settings/file -> settings/schema -> lib
+commands -> navigation (只取 `CommandComponentProps` 类型, 命令只接收已翻译的字符串; navigation 不反向 import commands)
 main -> cli/run + navigation/registry + settings/persistence -> stores -> settings/file
 cli/run -> cli/meow
-navigation -> i18n (只依赖 i18n 类型, 不 import screens; 引用 registry 的 store/component 因此不会与 app.tsx 成环)
+navigation -> i18n (只依赖 i18n 类型, 不 import commands; 引用 registry 的 store/component 因此不会与 app.tsx 成环)
 lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTranslation, main -> i18n
 ```
 
@@ -93,7 +93,7 @@ lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTransla
 都是向下的. i18n 不得导入 `src/lib`, `src/settings` 或 `src/stores`; 反过来 `src/lib` 与
 `src/settings` 也不得为了拿文案类型而反过来定义领域类型 (见 `BorderStyle` 的做法).
 
-中性组件不得导入具体 screen. React 生命周期, `useInput`, Ink ref 和布局测量不得进入 store, `src/lib` 或 `src/settings`.
+中性组件不得导入具体 command. React 生命周期, `useInput`, Ink ref 和布局测量不得进入 store, `src/lib` 或 `src/settings`.
 
 ## CLI 启动和退出
 
@@ -121,8 +121,8 @@ lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTransla
    (`preloadedDocument ?? (await initializeSettings())`), `initializeSettings()` 保持无参:
    "初始化" 不该带一个 "也许别初始化" 的开关. 文件缺失或损坏时该值是 undefined,
    由 initializeSettings 走正常的读取/创建流程并给出报错.
-2. 在 `render()` 前写入 router 初始 screen.
-3. 使用 alternate screen 启动 Ink.
+2. 在 `render()` 前写入 router 初始 command.
+3. 使用 alternate terminal buffer 启动 Ink.
 4. 等待 `instance.waitUntilExit()`.
 5. 在 finally 中调用 `settingsPersistence.stop()`.
 
@@ -130,7 +130,7 @@ lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTransla
 
 ```ts
 const settingsPersistence = await startSettingsPersistence(onError, settingsDocument)
-useRouterStore.setState({ screen: toScreen(cli.command) })
+useRouterStore.setState({ command: toCommand(cli.command) })
 const instance = render(<App />, { alternateScreen: true, concurrent: true })
 await instance.waitUntilExit()
 await settingsPersistence.stop()
@@ -138,11 +138,11 @@ await settingsPersistence.stop()
 
 初始化 settings 必须发生在 render 之前. 首屏, 首次轮询和首次 API 请求必须读取已经 hydrate 的配置.
 
-退出使用 Ink `useApp().exit()`. 不调用 `process.exit()`. 异步持久化失败通过 `process.exitCode` 表示, 并保证 alternate screen 正常清理.
+退出使用 Ink `useApp().exit()`. 不调用 `process.exit()`. 异步持久化失败通过 `process.exitCode` 表示, 并保证 alternate terminal buffer 正常清理.
 
-## 页面注册和路由
+## 命令注册和路由
 
-`src/navigation/registry.ts` 是页面元数据的唯一来源. 每项包含:
+`src/navigation/registry.ts` 是命令元数据的唯一来源. 每项包含:
 
 - `title`
 - `description`
@@ -150,35 +150,35 @@ await settingsPersistence.stop()
 - `menuLabel`
 
 四项都是 `MessageKey`, 由 App / meow / DialogMenu 用 `t()` 解析.
-`ScreenComponentProps` 显式写作 `{ title: string; hint: string }`: 页面只接收已翻译的字符串,
-不能写成 `ScreenMetadata['title']`, 否则会把 `MessageKey` 当字符串传下去. 各 screen 直接
-`type Props = ScreenComponentProps` 引用它 (只读类型, navigation 不反向 import screens),
+`CommandComponentProps` 显式写作 `{ title: string; hint: string }`: 命令只接收已翻译的字符串,
+不能写成 `CommandMetadata['title']`, 否则会把 `MessageKey` 当字符串传下去. 各 command 直接
+`type Props = CommandComponentProps` 引用它 (只读类型, navigation 不反向 import commands),
 不各自重复写一遍 `{ title: string; hint: string }`.
 
-注册表**不持有页面组件**: 组件映射是 `src/app.tsx` 里的 `SCREEN_COMPONENTS`, 类型为
-`Record<Screen, ComponentType<ScreenComponentProps>>`. 这样 navigation 不 import screens,
+注册表**不持有命令组件**: 组件映射是 `src/app.tsx` 里的 `COMMAND_COMPONENTS`, 类型为
+`Record<Command, ComponentType<CommandComponentProps>>`. 这样 navigation 不 import commands,
 `useRouterStore` 与 `ActionResult` 引用 registry 时不会与 app.tsx 形成环 (改成值导入也不会).
-组件映射是唯一的第二份清单, 但它由 `Record<Screen, ...>` 强制穷尽: 新增页面时漏配组件,
+组件映射是唯一的第二份清单, 但它由 `Record<Command, ...>` 强制穷尽: 新增命令时漏配组件,
 或多写了注册表里没有的键, 都编译不过; 因此没有为组件补齐再写一条运行时用例.
 
-`Screen`, `SCREEN_LIST`, `isScreen()` 和 `toScreen()` 均从注册表派生. 新增页面要动两处:
-注册表 (Screen 联合类型 + 四个 MessageKey) 与 app.tsx 的 `SCREEN_COMPONENTS`, 其余全部派生,
-CLI help, 菜单, 路由都不维护第二份映射. 新页面的文案键要在三份 catalog 补齐.
+`Command`, `COMMAND_LIST`, `isCommand()` 和 `toCommand()` 均从注册表派生. 新增命令要动两处:
+注册表 (Command 联合类型 + 四个 MessageKey) 与 app.tsx 的 `COMMAND_COMPONENTS`, 其余全部派生,
+CLI help, 菜单, 路由都不维护第二份映射. 新命令的文案键要在三份 catalog 补齐.
 
-当前页面:
+当前命令:
 
 - `stock-list`
 - `stock-add`
 - `stock-remove`
 - `settings`
 
-无 command 或非法 command 进入 `stock-list`. 该默认值只写在注册表的 `DEFAULT_SCREEN`
-(`satisfies Screen`, 保留字面量类型), `toScreen()` 的兜底与 `useRouterStore` 的初始 screen 都取它;
-`SCREEN_LIST` 是 `readonly Screen[]`, 直接传给 `meow()` 的 `commands`, 不做防御性拷贝.
+无 command 或非法 command 进入 `stock-list`. 该默认值只写在注册表的 `DEFAULT_COMMAND`
+(`satisfies Command`, 保留字面量类型), `toCommand()` 的兜底与 `useRouterStore` 的初始 command 都取它;
+`COMMAND_LIST` 是 `readonly Command[]`, 直接传给 `meow()` 的 `commands`, 不做防御性拷贝.
 
-## Screen, hook 和 store 分层
+## Command, hook 和 store 分层
 
-Screen 的 `index.tsx` 负责渲染. 页面状态, 输入和副作用放入 `hooks/useFeature.ts`.
+Command 的 `index.tsx` 负责渲染. 命令状态, 输入和副作用放入 `hooks/useFeature.ts`.
 
 按终端尺寸派生的纯渲染参数 (如网格列数) 例外: 这类值就地写在 `index.tsx` 里, 不为了"分层"绕进 hook,
 因为它只影响这一次渲染, 既不是业务状态, 也不需要被 hook 或 store 持有. StockRemove 直接用
@@ -213,9 +213,9 @@ Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(de
 
 Settings 的规则:
 
-- `src/screens/Settings/index.tsx` 只负责分组渲染.
-- `src/screens/Settings/hooks/useSettings.ts` 负责选中项, 键盘输入, option 循环, duration 格式化和行视图模型.
-- UI 只更新 `useSettingsStore`, 不在 screen 中直接写文件. 写盘分两条路径: 增量设置变更由 `settingsPersistence` 订阅合并为 patch 保存; 整档操作 (自选股增删改) 由 store 动作调用 `settings/file.ts` 的锁内函数. 全量重置是组合命令 `settings/resetAll.ts` 的 `resetAll()`: 先重置文件, 文件失败则抛出且内存不变; 成功后再恢复设置内存默认值并重新载入自选股.
+- `src/commands/Settings/index.tsx` 只负责分组渲染.
+- `src/commands/Settings/hooks/useSettings.ts` 负责选中项, 键盘输入, option 循环, duration 格式化和行视图模型.
+- UI 只更新 `useSettingsStore`, 不在 command 中直接写文件. 写盘分两条路径: 增量设置变更由 `settingsPersistence` 订阅合并为 patch 保存; 整档操作 (自选股增删改) 由 store 动作调用 `settings/file.ts` 的锁内函数. 全量重置是组合命令 `settings/resetAll.ts` 的 `resetAll()`: 先重置文件, 文件失败则抛出且内存不变; 成功后再恢复设置内存默认值并重新载入自选股.
 
 React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxStore.getState()`. 不在多个 store 中保存同一配置字段.
 
@@ -227,8 +227,8 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 - 浮层打开后 esc 由各浮层自己处理: 详情和菜单 esc 直接关闭; DialogRemoveConfirm 在 done/error 阶段 esc 关闭, 删除进行中忽略; DialogConfirm 仅在错误态 esc 关闭.
 - 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
 - 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection(input, key)`, 各处不再手写 `key.upArrow || input === 'k'`. hint 与监听并列展示 (`选择(↑/↓/j/k)`, 网格 `移动(↑/↓/←/→/hjkl)`); 该界面不响应的方向不要写进 hint (例如看板只接受上下, hint 就不含 `h`/`l`).
-- 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
-- DialogMenu 自己处理上下键, Enter 和数字快捷键. 菜单的开关就是 `useDialogMenuStore` 的 `highlightedType` (`MenuItem['type'] | undefined`), 没有第二个布尔: `open(highlightedType)` 打开并定位高亮, `close()` 置回 `undefined`, `useOverlayOpen` 据此判定 `dialogMenuOpen`. 因此 store 既不持有"是否打开", 也不持有第二份默认页面: 打开时的高亮由 App 的 esc 传入当前 screen (`open(screen)`). `useDialogMenu` 在 `highlightedType` 为 `undefined` 时早返回 (DialogMenu 只在非 `undefined` 时挂载, 该分支是防御), 之后收窄为 `MenuItem['type']`, 而 `MENU_ITEMS` 覆盖该类型的全部取值 (注册表 + reset/exit), `findIndex` 必命中, 不存在负索引或"无高亮"分支. 被 DialogConfirm 遮住时菜单保持挂载且高亮不变.
+- 底层 command 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
+- DialogMenu 自己处理上下键, Enter 和数字快捷键. 菜单的开关就是 `useDialogMenuStore` 的 `highlightedType` (`MenuItem['type'] | undefined`), 没有第二个布尔: `open(highlightedType)` 打开并定位高亮, `close()` 置回 `undefined`, `useOverlayOpen` 据此判定 `dialogMenuOpen`. 因此 store 既不持有"是否打开", 也不持有第二份默认命令: 打开时的高亮由 App 的 esc 传入当前 command (`open(command)`). `useDialogMenu` 在 `highlightedType` 为 `undefined` 时早返回 (DialogMenu 只在非 `undefined` 时挂载, 该分支是防御), 之后收窄为 `MenuItem['type']`, 而 `MENU_ITEMS` 覆盖该类型的全部取值 (注册表 + reset/exit), `findIndex` 必命中, 不存在负索引或"无高亮"分支. 被 DialogConfirm 遮住时菜单保持挂载且高亮不变.
 - DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (浮层打开时底层输入一律失活), 无需判断菜单状态.
 - DialogRemoveConfirm 只在 confirm 阶段接受 n/y, done/error 阶段只接受 esc. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
 - DialogConfirm 目前用于菜单的"重置"入口: 确认后经 `settings/resetAll.ts` 的 `resetAll()` 重置设置文件为默认文档 (含默认自选股) 并同步设置与自选股内存; 确认失败时弹窗保留并进入错误态 (`config.isError`), 确认方经 `config.update` 把内容替换为失败信息. 错误态 hint 为 `关闭(esc)   重试(y)` (esc 关闭, n 忽略, y 重试), 确认态 hint 为 `取消(n)   确定(y)` 且不处理 esc. 确认弹窗关闭后菜单保持打开 (高亮位置保留).
@@ -313,7 +313,7 @@ Border style:
 - Text 在未显式传 color 时使用主题 foreground.
 - StatusBar bright 状态使用主题 accent.
 - Menu 选中项使用主题 highlight.
-- 页面标题使用主题 primary.
+- 命令标题使用主题 primary.
 - 涨跌色, error, warning 和 success 属于语义色, 显式 color 优先于主题默认色.
 
 Settings 键盘:
@@ -351,7 +351,7 @@ d                 恢复默认值
   只依赖 `language` 变化重算, 因此系统语言检测不会进入渲染热路径.
 
 文案键是扁平点号命名 (`settings.row.language.label`), 按区域分组:
-`app` / `cli` / `screen` / `menu` / `dialog*` / `stock*` / `chart.period` / `table` / `settings` / `api` / `common`.
+`app` / `cli` / `command` / `menu` / `dialog*` / `stock*` / `chart.period` / `table` / `settings` / `api` / `common`.
 
 插值与复数:
 
@@ -393,7 +393,7 @@ d                 恢复默认值
 **缓存的列定义是共享的, 调用方不得就地修改** (`scaleColumns` 需要改宽度时会复制).
 
 `WindowSizeGuard` 的 `MIN_TERMINAL_COLUMNS` 取**全部 locale** 看板列宽的最大值 + `TABLE_CHROME`,
-不按当前 locale 推导. 原因是宽度守卫包住了全部页面, 设置页也在里面: 若下限随语言变化,
+不按当前 locale 推导. 原因是宽度守卫包住了全部命令, 设置命令也在里面: 若下限随语言变化,
 在恰好满足中文下限 (116 列) 的终端上切到英文 (需要 119 列) 会被守卫拦住, 语言就再也改不回来,
 只能手动编辑 settings.json. 代价是中文用户也需要 119 列, 换取"任一语言都不会把自己锁在外面".
 新增或加宽某个 locale 的列时会自然抬高全局下限, `tests/layout.test.ts` 有用例校验覆盖关系.
@@ -531,7 +531,7 @@ StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, �
 
 ## Card, Dialog 和 Text
 
-每个 screen 自己渲染 full-screen Card 和 StatusBar. App 只渲染当前 screen, 然后按序堆叠渲染浮层: DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm (最后绘制即最上层). 浮层输入由各自的 isActive 门控; DialogConfirm 打开时其余浮层变暗 (bright=false) 且输入失活, 仅确认弹窗保持明亮, 视觉与输入上只保留一个活动弹窗, 其余浮层保留挂载与状态.
+每个 command 自己渲染 full-terminal Card 和 StatusBar. App 只渲染当前 command, 然后按序堆叠渲染浮层: DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm (最后绘制即最上层). 浮层输入由各自的 isActive 门控; DialogConfirm 打开时其余浮层变暗 (bright=false) 且输入失活, 仅确认弹窗保持明亮, 视觉与输入上只保留一个活动弹窗, 其余浮层保留挂载与状态.
 
 Card 负责:
 
@@ -541,11 +541,11 @@ Card 负责:
 - 内容 padding 和可选 `mask` (打开时用 SpaceMask 盖住其后内容)
 - footer
 
-Dialog 支持 `above`, `borderTopLeft`, `borderTopRight`, `borderBottomLeft`, `borderBottomRight`, `hint` 和 `width` (四角类型从 CardProps Pick 而来), footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-screen Box 居中 Card, 外层保持透明, 让底层 screen 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
+Dialog 支持 `above`, `borderTopLeft`, `borderTopRight`, `borderBottomLeft`, `borderBottomRight`, `hint` 和 `width` (四角类型从 CardProps Pick 而来), footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-terminal Box 居中 Card, 外层保持透明, 让底层 command 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
 
 `above` 渲染在 Card 之上并与 Card 居中同轴, 与 Card 之间的一行间距由 Dialog 的 `marginBottom` 提供,
 槽位内容不自带外边距. 它是唯一不参与 Card 宽度也不在 Card `mask` 之内的浮层槽位: art 覆盖的单元格
-(含字母之间的空格) 由 Ink 逐格重写, 因此自身那一带不会与底层文字串行, 但 art 左右两侧仍是底层 screen
+(含字母之间的空格) 由 Ink 逐格重写, 因此自身那一带不会与底层文字串行, 但 art 左右两侧仍是底层 command
 的 dim 内容, 与窄 Card 浮在看板上的观感一致. 目前只有 DialogMenu 用它与 AppLogo 搭配.
 
 AppLogo 是应用 ASCII art (两行), 各行必须等宽, 且宽度不得超过 `MIN_TERMINAL_COLUMNS`
@@ -567,7 +567,7 @@ CheckboxGrid 是多选网格: 方向键移动, 空格勾选, 回车提交勾选�
 组件不设默认值, 也不读终端尺寸, 只消费传入的值.
 
 StockRemove 在 `index.tsx` 里用 Ink 的 `useWindowSize()` 取终端列数, 再按
-`src/screens/StockRemove/lib.ts` 的 `gridColumnCount(columns, columnGap)` 推导列数:
+`src/commands/StockRemove/lib.ts` 的 `gridColumnCount(columns, columnGap)` 推导列数:
 单元格等分 Card 内容区宽度 (`columns - TABLE_CHROME`), 取每格仍不小于最小单元格宽度的最大列数
 (最小单元格宽度 24 列, 即 `[x] 四字名称 (sh600000)` 的宽度), 最后钳制到 2..8.
 这样列数取整后单元格仍放得下条目, 不需要靠加宽单元格或截断来兜底.
@@ -586,7 +586,7 @@ TextInput 的 value 和 submitted 是组件本地状态. 业务 store 保存:
 }
 ```
 
-resetToken 变化时清空输入并重新激活. 页面给不同步骤添加 token 前缀, 例如 `code-1` 和 `confirm-1`. 不依赖 React key 强制 remount.
+resetToken 变化时清空输入并重新激活. 命令给不同步骤添加 token 前缀, 例如 `code-1` 和 `confirm-1`. 不依赖 React key 强制 remount.
 
 TextInput 和全局快捷键没有事件冒泡停止机制. 新增自由文本编辑模式时, 必须同步设计全局 q/esc 的 keyboard ownership, 避免输入字符触发退出或菜单.
 
@@ -663,5 +663,5 @@ script -qec "stty cols 160 rows 40; pnpm dev" /dev/null
 - 不新增第二份文案来源: 显示文案只放 catalog, 组件与常量表存 `MessageKey` 并在渲染处解析.
 - 不直接修改 Zustand store 内部字段来绕过 action, 测试 setup 和明确初始化除外.
 - 表格宽度由列元数据推导, CJK 宽度使用项目本地函数.
-- screen 不复制 Card, StatusBar, registry 或 persistence 逻辑.
+- command 不复制 Card, StatusBar, registry 或 persistence 逻辑.
 - 所有退出走 Ink, 所有持久化退出前 flush.

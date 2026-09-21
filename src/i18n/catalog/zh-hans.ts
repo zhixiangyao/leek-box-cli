@@ -10,23 +10,23 @@ export const zhHans = {
   'cli.version': '查看版本',
   'cli.help': '查看帮助',
 
-  /* ---------- 页面注册表 ---------- */
-  'screen.stockList.title': '自选股票看板',
-  'screen.stockList.description': '自选股票看板',
-  'screen.stockList.hint': '菜单(esc)   刷新(r)   选择(↑/↓/j/k)   详情(enter)   退出(q)',
-  'screen.stockList.menuLabel': '自选股票看板',
-  'screen.stockAdd.title': '添加自选股',
-  'screen.stockAdd.description': '添加自选股',
-  'screen.stockAdd.hint': '菜单(esc)   退出(q)',
-  'screen.stockAdd.menuLabel': '添加自选股',
-  'screen.stockRemove.title': '删除自选股',
-  'screen.stockRemove.description': '删除自选股',
-  'screen.stockRemove.hint': '菜单(esc)   移动(↑/↓/←/→/hjkl)   选择(空格)   删除(enter)   退出(q)',
-  'screen.stockRemove.menuLabel': '删除自选股',
-  'screen.settings.title': '设置',
-  'screen.settings.description': '配置主题, 涨跌颜色与请求参数',
-  'screen.settings.hint': '菜单(esc)   选择(↑/↓/j/k)   调整(←/→/h/l/enter)   默认值(d)   退出(q)',
-  'screen.settings.menuLabel': '设置',
+  /* ---------- 命令注册表 ---------- */
+  'command.stockList.title': '自选股票看板',
+  'command.stockList.description': '自选股票看板',
+  'command.stockList.hint': '菜单(esc)   刷新(r)   选择(↑/↓/j/k)   详情(enter)   退出(q)',
+  'command.stockList.menuLabel': '自选股票看板',
+  'command.stockAdd.title': '添加自选股',
+  'command.stockAdd.description': '添加自选股',
+  'command.stockAdd.hint': '菜单(esc)   退出(q)',
+  'command.stockAdd.menuLabel': '添加自选股',
+  'command.stockRemove.title': '删除自选股',
+  'command.stockRemove.description': '删除自选股',
+  'command.stockRemove.hint': '菜单(esc)   移动(↑/↓/←/→/hjkl)   选择(空格)   删除(enter)   退出(q)',
+  'command.stockRemove.menuLabel': '删除自选股',
+  'command.settings.title': '设置',
+  'command.settings.description': '配置主题, 涨跌颜色与请求参数',
+  'command.settings.hint': '菜单(esc)   选择(↑/↓/j/k)   调整(←/→/h/l/enter)   默认值(d)   退出(q)',
+  'command.settings.menuLabel': '设置',
 
   /* ---------- 菜单与通用弹窗 ---------- */
   'menu.title': '菜单',
@@ -102,7 +102,7 @@ export const zhHans = {
   'table.column.marketCap': '总市值',
   'table.unknownColumn': '未知行情列: {key}',
 
-  /* ---------- 设置页 ---------- */
+  /* ---------- 设置命令 ---------- */
   'settings.section.appearance': '外观',
   'settings.section.request': '请求与刷新',
   'settings.note.minimumDuration': '请求最短耗时用于避免加载状态闪烁, 且不会超过请求超时.',
@@ -177,7 +177,7 @@ export const zhHans = {
   'common.watchlistEmpty': '自选股为空, 按 esc 打开菜单添加自选股.',
   'common.suspended': '停牌',
   'common.noData': '无数据',
-  'common.returnPrompt': '按 Enter 返回操作页...',
+  'common.returnPrompt': '按 Enter 返回上一操作...',
   'windowGuard.tooSmall': '终端尺寸过小:',
   'windowGuard.required': '所需最小尺寸:',
   'windowGuard.width': '宽度 = {value}',

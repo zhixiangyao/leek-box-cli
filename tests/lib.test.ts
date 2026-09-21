@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest'
 
+import { visibleWindow } from '../src/commands/StockList/lib.ts'
+import { gridColumnCount } from '../src/commands/StockRemove/lib.ts'
 import { keyDirection } from '../src/lib/keys.ts'
-import { visibleWindow } from '../src/screens/StockList/lib.ts'
-import { gridColumnCount } from '../src/screens/StockRemove/lib.ts'
 
 test('visibleWindow 将两端的偏移量限制在有效范围内', () => {
   expect(visibleWindow(3, 10, 5)).toStrictEqual({ start: 0, end: 3 })
@@ -20,7 +20,7 @@ test('visibleWindow 保留窗口在偏移量处而不与选中行绑定', () => 
   expect(visibleWindow(10, 0, 3)).toStrictEqual({ start: 0, end: 3 })
 })
 
-// 屏幕上实际使用的列间距
+// 命令上实际使用的列间距
 const GAP = 2
 
 test('gridColumnCount 按终端宽度放下尽可能多的最小单元格', () => {

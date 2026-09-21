@@ -14,7 +14,7 @@
 [![pnpm](https://img.shields.io/github/package-json/packageManager/zhixiangyao/leek-box-cli)](https://pnpm.io/)
 [![License: MIT](https://img.shields.io/github/license/zhixiangyao/leek-box-cli)](https://github.com/zhixiangyao/leek-box-cli)
 
-## Screenshots
+## Interface snapshots
 
 ### Stock Watchlist
 
@@ -31,7 +31,7 @@
   </tr>
   <tr>
     <td><img src="scrennshots/en/dialog-menu.png" alt="Menu dialog"></td>
-    <td><img src="scrennshots/en/settings.png" alt="Settings screen"></td>
+    <td><img src="scrennshots/en/settings.png" alt="Settings command"></td>
   </tr>
 </table>
 
@@ -90,9 +90,9 @@
 ## Controls
 
 - `esc`: Open the menu. If stock details are open, close them first; if the menu is open, close it.
-- In the menu, use `↑`/`↓` (or `j`/`k`), `enter`, or a number key to select a page.
+- In the menu, use `↑`/`↓` (or `j`/`k`), `enter`, or a number key to select a command.
 - In the dashboard, use `↑`/`↓` (or `j`/`k`), `enter`, and `r`.
-- On the remove-stocks screen, use `↑`/`↓`/`←`/`→` (or `h`/`j`/`k`/`l`) to move the cursor, `space` to toggle, and `enter` to submit.
+- On the remove-stocks command, use `↑`/`↓`/`←`/`→` (or `h`/`j`/`k`/`l`) to move the cursor, `space` to toggle, and `enter` to submit.
 - In Settings, use `↑`/`↓` (or `j`/`k`) to select an item, `←`/`→` (or `h`/`l`) or `enter` to adjust it, and `d` to restore defaults.
 - In Settings, `Language` cycles through `Auto` / `简体中文` / `繁體中文` / `English`; `Auto` follows the system.
 - In stock details, press `1`-`6` to switch between `Intraday`, `Five-day`, `Daily`, `Weekly`, `Monthly`, and `Yearly`.
@@ -162,7 +162,7 @@ pnpm build
 pnpm preview
 ```
 
-You can also select the initial page with a subcommand:
+You can also select the initial command with a subcommand:
 
 ```bash
 leek-box-cli               # Stock watchlist dashboard

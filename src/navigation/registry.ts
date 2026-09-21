@@ -1,52 +1,53 @@
 import type { MessageKey } from '../i18n/types.ts'
 
-export type Screen = 'stock-list' | 'stock-add' | 'stock-remove' | 'settings'
+export type Command = 'stock-list' | 'stock-add' | 'stock-remove' | 'settings'
 
-export type ScreenComponentProps = { title: string; hint: string }
+export type CommandComponentProps = { title: string; hint: string }
 
-type ScreenMetadata = {
+type CommandMetadata = {
   title: MessageKey
   description: MessageKey
   hint: MessageKey
   menuLabel: MessageKey
 }
 
-export const SCREEN_REGISTRY = {
+export const COMMAND_REGISTRY = {
   ['stock-list']: {
-    title: 'screen.stockList.title',
-    description: 'screen.stockList.description',
-    hint: 'screen.stockList.hint',
-    menuLabel: 'screen.stockList.menuLabel',
+    title: 'command.stockList.title',
+    description: 'command.stockList.description',
+    hint: 'command.stockList.hint',
+    menuLabel: 'command.stockList.menuLabel',
   },
   ['stock-add']: {
-    title: 'screen.stockAdd.title',
-    description: 'screen.stockAdd.description',
-    hint: 'screen.stockAdd.hint',
-    menuLabel: 'screen.stockAdd.menuLabel',
+    title: 'command.stockAdd.title',
+    description: 'command.stockAdd.description',
+    hint: 'command.stockAdd.hint',
+    menuLabel: 'command.stockAdd.menuLabel',
   },
   ['stock-remove']: {
-    title: 'screen.stockRemove.title',
-    description: 'screen.stockRemove.description',
-    hint: 'screen.stockRemove.hint',
-    menuLabel: 'screen.stockRemove.menuLabel',
+    title: 'command.stockRemove.title',
+    description: 'command.stockRemove.description',
+    hint: 'command.stockRemove.hint',
+    menuLabel: 'command.stockRemove.menuLabel',
   },
   ['settings']: {
-    title: 'screen.settings.title',
-    description: 'screen.settings.description',
-    hint: 'screen.settings.hint',
-    menuLabel: 'screen.settings.menuLabel',
+    title: 'command.settings.title',
+    description: 'command.settings.description',
+    hint: 'command.settings.hint',
+    menuLabel: 'command.settings.menuLabel',
   },
-} satisfies Record<Screen, ScreenMetadata>
+} satisfies Record<Command, CommandMetadata>
 
-export const SCREEN_LIST = Object.keys(SCREEN_REGISTRY) as readonly Screen[]
+export const COMMAND_LIST = Object.keys(COMMAND_REGISTRY) as readonly Command[]
 
-export const DEFAULT_SCREEN = 'stock-list' satisfies Screen
+export const DEFAULT_COMMAND = 'stock-list' satisfies Command
 
-export const SCREEN_REGISTRY_ENTRIES = SCREEN_LIST.map<[Screen, ScreenMetadata]>((screen) => [
-  screen,
-  SCREEN_REGISTRY[screen],
+export const COMMAND_REGISTRY_ENTRIES = COMMAND_LIST.map<[Command, CommandMetadata]>((command) => [
+  command,
+  COMMAND_REGISTRY[command],
 ])
 
-export const isScreen = (value: string | undefined): value is Screen => !!value && SCREEN_LIST.includes(value as Screen)
+export const isCommand = (value: string | undefined): value is Command =>
+  !!value && COMMAND_LIST.includes(value as Command)
 
-export const toScreen = (value: string | undefined): Screen => (isScreen(value) ? value : DEFAULT_SCREEN)
+export const toCommand = (value: string | undefined): Command => (isCommand(value) ? value : DEFAULT_COMMAND)

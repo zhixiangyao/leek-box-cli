@@ -1,11 +1,11 @@
 import type { MessageKey } from '../i18n/types.ts'
-import { type Screen, SCREEN_REGISTRY_ENTRIES } from './registry.ts'
+import { type Command, COMMAND_REGISTRY_ENTRIES } from './registry.ts'
 
-export type MenuItem = { type: Screen | 'exit' | 'reset'; label: MessageKey }
+export type MenuItem = { type: Command | 'exit' | 'reset'; label: MessageKey }
 
 export const MENU_ITEMS: MenuItem[] = [
-  ...SCREEN_REGISTRY_ENTRIES.map<MenuItem>(([screen, metadata]) => ({
-    type: screen,
+  ...COMMAND_REGISTRY_ENTRIES.map<MenuItem>(([command, metadata]) => ({
+    type: command,
     label: metadata.menuLabel,
   })),
   { type: 'reset', label: 'menu.reset' },

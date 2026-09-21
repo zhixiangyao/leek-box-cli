@@ -1,13 +1,13 @@
 import { create } from 'zustand'
 
-import { DEFAULT_SCREEN, type Screen } from '../navigation/registry.ts'
+import { DEFAULT_COMMAND, type Command } from '../navigation/registry.ts'
 
 type RouterState = {
-  screen: Screen
-  goTo: (screen: Screen) => void
+  command: Command
+  goTo: (command: Command) => void
 }
 
 export const useRouterStore = create<RouterState>()((set) => ({
-  screen: DEFAULT_SCREEN,
-  goTo: (screen) => set({ screen }),
+  command: DEFAULT_COMMAND,
+  goTo: (command) => set({ command }),
 }))

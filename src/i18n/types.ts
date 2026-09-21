@@ -8,23 +8,23 @@ export type Message = {
   'cli.version': string
   'cli.help': string
 
-  /* ---------- 页面注册表 ---------- */
-  'screen.stockList.title': string
-  'screen.stockList.description': string
-  'screen.stockList.hint': string
-  'screen.stockList.menuLabel': string
-  'screen.stockAdd.title': string
-  'screen.stockAdd.description': string
-  'screen.stockAdd.hint': string
-  'screen.stockAdd.menuLabel': string
-  'screen.stockRemove.title': string
-  'screen.stockRemove.description': string
-  'screen.stockRemove.hint': string
-  'screen.stockRemove.menuLabel': string
-  'screen.settings.title': string
-  'screen.settings.description': string
-  'screen.settings.hint': string
-  'screen.settings.menuLabel': string
+  /* ---------- 命令注册表 ---------- */
+  'command.stockList.title': string
+  'command.stockList.description': string
+  'command.stockList.hint': string
+  'command.stockList.menuLabel': string
+  'command.stockAdd.title': string
+  'command.stockAdd.description': string
+  'command.stockAdd.hint': string
+  'command.stockAdd.menuLabel': string
+  'command.stockRemove.title': string
+  'command.stockRemove.description': string
+  'command.stockRemove.hint': string
+  'command.stockRemove.menuLabel': string
+  'command.settings.title': string
+  'command.settings.description': string
+  'command.settings.hint': string
+  'command.settings.menuLabel': string
 
   /* ---------- 菜单与通用弹窗 ---------- */
   'menu.title': string
@@ -100,7 +100,7 @@ export type Message = {
   'table.column.marketCap': string
   'table.unknownColumn': string
 
-  /* ---------- 设置页 ---------- */
+  /* ---------- 设置命令 ---------- */
   'settings.section.appearance': string
   'settings.section.request': string
   'settings.note.minimumDuration': string

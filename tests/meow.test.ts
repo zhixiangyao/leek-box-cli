@@ -8,7 +8,7 @@ import { afterAll, beforeAll, expect, test } from 'vitest'
 import { genHelpMessage, parseCli } from '../src/cli/meow.ts'
 import { createTranslator, getActiveLocale, t } from '../src/i18n/core.ts'
 import { detectLocale } from '../src/i18n/locale.ts'
-import { SCREEN_REGISTRY_ENTRIES } from '../src/navigation/registry.ts'
+import { COMMAND_REGISTRY_ENTRIES } from '../src/navigation/registry.ts'
 import { settingsPath } from '../src/settings/file.ts'
 import { createDocument, DEFAULT_SETTINGS } from '../src/settings/schema.ts'
 
@@ -40,7 +40,7 @@ afterAll(async () => {
 
 test('genHelpMessage 列出全部注册命令及其描述', () => {
   const help = genHelpMessage()
-  for (const [command, { description }] of SCREEN_REGISTRY_ENTRIES) {
+  for (const [command, { description }] of COMMAND_REGISTRY_ENTRIES) {
     expect(help).toContain(command)
     expect(help).toContain(t(description))
   }

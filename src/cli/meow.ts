@@ -2,7 +2,7 @@ import meow from 'meow'
 
 import { applyLanguage, t } from '../i18n/core.ts'
 import { DEFAULT_LANGUAGE } from '../i18n/locale.ts'
-import { SCREEN_LIST, SCREEN_REGISTRY_ENTRIES } from '../navigation/registry.ts'
+import { COMMAND_LIST, COMMAND_REGISTRY_ENTRIES } from '../navigation/registry.ts'
 import { loadExistingSettings } from '../settings/file.ts'
 import type { SettingsDocument } from '../settings/schema.ts'
 
@@ -16,7 +16,7 @@ const tryLoadSettings = async (): Promise<SettingsDocument | undefined> => {
 }
 
 export function genHelpMessage(): string {
-  const commandHelp = SCREEN_REGISTRY_ENTRIES.map(
+  const commandHelp = COMMAND_REGISTRY_ENTRIES.map(
     ([command, { description }]) => `  ${command.padEnd(13)}${t(description)}`,
   ).join('\n')
 
@@ -40,7 +40,7 @@ export async function parseCli() {
   const helpMessage = genHelpMessage()
   const cli = meow({
     importMeta: import.meta,
-    commands: SCREEN_LIST,
+    commands: COMMAND_LIST,
     description: false,
     autoHelp: false,
     help: helpMessage,

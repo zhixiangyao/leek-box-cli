@@ -7,7 +7,7 @@ import { parseCli } from './cli/meow.ts'
 import { run, type StartAppParams } from './cli/run.ts'
 import { t } from './i18n/core.ts'
 import { errorMessage } from './lib/error.ts'
-import { toScreen } from './navigation/registry.ts'
+import { toCommand } from './navigation/registry.ts'
 import { startSettingsPersistence } from './settings/persistence.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
 
@@ -21,7 +21,7 @@ async function startApp(params: StartAppParams) {
   const incrementalRendering = !!termProgram && ['kiro', 'vscode'].includes(termProgram)
 
   try {
-    useRouterStore.setState({ screen: toScreen(command) })
+    useRouterStore.setState({ command: toCommand(command) })
     const instance = render(<App />, {
       alternateScreen: true,
       concurrent: true,

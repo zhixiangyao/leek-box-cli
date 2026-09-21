@@ -9,11 +9,11 @@ import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
 import { headerRow, missingRow, quoteRow } from '../../lib/quoteTable.ts'
-import { type ScreenComponentProps } from '../../navigation/registry.ts'
+import { type CommandComponentProps } from '../../navigation/registry.ts'
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import { useStockList } from './hooks/useStockList.ts'
 
-type Props = ScreenComponentProps
+type Props = CommandComponentProps
 
 export default function StockList({ title, hint }: Props) {
   const overlayOpen = useOverlayOpen()
