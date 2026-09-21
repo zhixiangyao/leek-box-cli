@@ -252,7 +252,7 @@ test('App 在路由切换和菜单 overlay 期间保持 Screen 自有的全屏 c
     expect(brightFrame).not.toContain('\u001B[2m')
 
     after = output.frames.length
-    useDialogMenuStore.setState({ open: true })
+    useDialogMenuStore.getState().open('stock-add')
     const dimmedFrame = await waitForFrame(output, after, (candidate) => {
       const text = plain(candidate)
       return text.includes('添加自选股') && text.includes('自选股票看板') && candidate.includes('\u001B[2m')
@@ -476,17 +476,17 @@ test('App 的 esc 接线: 菜单开关切换', async () => {
     let after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('自选股票看板'))
 
-    // esc 打开菜单: 背景变暗
+    // esc 打开菜单: 背景变暗, 高亮同步为当前页面
     after = output.frames.length
     input.write('\x1B')
     await waitForFrame(output, after, (candidate) => candidate.includes('\x1B[2m'))
-    expect(useDialogMenuStore.getState().open).toBe(true)
+    expect(useDialogMenuStore.getState().highlightedType).toBe('stock-list')
 
     // esc 再次按下关闭菜单: 背景恢复
     after = output.frames.length
     input.write('\x1B')
     await waitForFrame(output, after, (candidate) => !candidate.includes('\x1B[2m'))
-    expect(useDialogMenuStore.getState().open).toBe(false)
+    expect(useDialogMenuStore.getState().highlightedType).toBeUndefined()
   } finally {
     instance.unmount()
     await instance.waitUntilExit()

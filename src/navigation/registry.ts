@@ -38,7 +38,9 @@ export const SCREEN_REGISTRY = {
   },
 } satisfies Record<Screen, ScreenMetadata>
 
-export const SCREEN_LIST = Object.keys(SCREEN_REGISTRY) as Screen[]
+export const SCREEN_LIST = Object.keys(SCREEN_REGISTRY) as readonly Screen[]
+
+export const DEFAULT_SCREEN = 'stock-list' satisfies Screen
 
 export const SCREEN_REGISTRY_ENTRIES = SCREEN_LIST.map<[Screen, ScreenMetadata]>((screen) => [
   screen,
@@ -47,4 +49,4 @@ export const SCREEN_REGISTRY_ENTRIES = SCREEN_LIST.map<[Screen, ScreenMetadata]>
 
 export const isScreen = (value: string | undefined): value is Screen => !!value && SCREEN_LIST.includes(value as Screen)
 
-export const toScreen = (value: string | undefined): Screen => (isScreen(value) ? value : 'stock-list')
+export const toScreen = (value: string | undefined): Screen => (isScreen(value) ? value : DEFAULT_SCREEN)

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { Screen } from '../navigation/registry.ts'
+import { DEFAULT_SCREEN, type Screen } from '../navigation/registry.ts'
 
 type RouterState = {
   screen: Screen
@@ -8,6 +8,6 @@ type RouterState = {
 }
 
 export const useRouterStore = create<RouterState>()((set) => ({
-  screen: 'stock-list',
+  screen: DEFAULT_SCREEN,
   goTo: (screen) => set({ screen }),
 }))

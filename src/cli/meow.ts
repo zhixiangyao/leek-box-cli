@@ -17,7 +17,7 @@ const tryLoadSettings = async (): Promise<SettingsDocument | undefined> => {
 
 export function genHelpMessage(): string {
   const commandHelp = SCREEN_REGISTRY_ENTRIES.map(
-    ([command, definition]) => `  ${command.padEnd(13)}${t(definition.description)}`,
+    ([command, { description }]) => `  ${command.padEnd(13)}${t(description)}`,
   ).join('\n')
 
   return `${t('cli.usage')}
@@ -40,7 +40,7 @@ export async function parseCli() {
   const helpMessage = genHelpMessage()
   const cli = meow({
     importMeta: import.meta,
-    commands: [...SCREEN_LIST],
+    commands: SCREEN_LIST,
     description: false,
     autoHelp: false,
     help: helpMessage,

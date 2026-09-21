@@ -20,7 +20,7 @@ src/main.tsx
   入口接线: 调用 cli/run.ts 的 run(), Ink render 和 settings persistence start/stop
 
 src/app.tsx
-  无浮层时的 esc(开关菜单) 和 q(退出) 输入, 当前 screen 装配 (SCREEN_COMPONENTS 持组件映射), 浮层的绘制顺序
+  无浮层时的 esc(打开菜单) 和 q(退出) 输入, 当前 screen 装配 (SCREEN_COMPONENTS 持组件映射), 浮层的绘制顺序
 
 src/i18n/
   国际化叶子模块. types.ts 是全部 i18n 类型与文案键的规范来源, locale.ts 定义 locale/language 常量与系统语言检测, core.ts 持有 active locale 与 t(), catalog/ 存放三份文案表
@@ -172,7 +172,9 @@ CLI help, 菜单, 路由都不维护第二份映射. 新页面的文案键要在
 - `stock-remove`
 - `settings`
 
-无 command 或非法 command 进入 `stock-list`.
+无 command 或非法 command 进入 `stock-list`. 该默认值只写在注册表的 `DEFAULT_SCREEN`
+(`satisfies Screen`, 保留字面量类型), `toScreen()` 的兜底与 `useRouterStore` 的初始 screen 都取它;
+`SCREEN_LIST` 是 `readonly Screen[]`, 直接传给 `meow()` 的 `commands`, 不做防御性拷贝.
 
 ## Screen, hook 和 store 分层
 
@@ -221,12 +223,12 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 
 共享 overlay 包含菜单, 股票详情, 删除确认和通用确认弹窗 (DialogConfirm).
 
-- App 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`, 只在无浮层时处理 esc(开关菜单) 和 q(退出).
+- App 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`, 只在无浮层时处理 esc(打开菜单) 和 q(退出).
 - 浮层打开后 esc 由各浮层自己处理: 详情和菜单 esc 直接关闭; DialogRemoveConfirm 在 done/error 阶段 esc 关闭, 删除进行中忽略; DialogConfirm 仅在错误态 esc 关闭.
 - 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
 - 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection(input, key)`, 各处不再手写 `key.upArrow || input === 'k'`. hint 与监听并列展示 (`选择(↑/↓/j/k)`, 网格 `移动(↑/↓/←/→/hjkl)`); 该界面不响应的方向不要写进 hint (例如看板只接受上下, hint 就不含 `h`/`l`).
 - 底层 screen 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
-- DialogMenu 自己处理上下键, Enter 和数字快捷键. 高亮 (`highlightedType`) 保存在 `useDialogMenuStore`, 菜单关闭时归零; 被 DialogConfirm 遮住时保留.
+- DialogMenu 自己处理上下键, Enter 和数字快捷键. 菜单的开关就是 `useDialogMenuStore` 的 `highlightedType` (`MenuItem['type'] | undefined`), 没有第二个布尔: `open(highlightedType)` 打开并定位高亮, `close()` 置回 `undefined`, `useOverlayOpen` 据此判定 `dialogMenuOpen`. 因此 store 既不持有"是否打开", 也不持有第二份默认页面: 打开时的高亮由 App 的 esc 传入当前 screen (`open(screen)`). `useDialogMenu` 在 `highlightedType` 为 `undefined` 时早返回 (DialogMenu 只在非 `undefined` 时挂载, 该分支是防御), 之后收窄为 `MenuItem['type']`, 而 `MENU_ITEMS` 覆盖该类型的全部取值 (注册表 + reset/exit), `findIndex` 必命中, 不存在负索引或"无高亮"分支. 被 DialogConfirm 遮住时菜单保持挂载且高亮不变.
 - DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (浮层打开时底层输入一律失活), 无需判断菜单状态.
 - DialogRemoveConfirm 只在 confirm 阶段接受 n/y, done/error 阶段只接受 esc. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
 - DialogConfirm 目前用于菜单的"重置"入口: 确认后经 `settings/resetAll.ts` 的 `resetAll()` 重置设置文件为默认文档 (含默认自选股) 并同步设置与自选股内存; 确认失败时弹窗保留并进入错误态 (`config.isError`), 确认方经 `config.update` 把内容替换为失败信息. 错误态 hint 为 `关闭(esc)   重试(y)` (esc 关闭, n 忽略, y 重试), 确认态 hint 为 `取消(n)   确定(y)` 且不处理 esc. 确认弹窗关闭后菜单保持打开 (高亮位置保留).

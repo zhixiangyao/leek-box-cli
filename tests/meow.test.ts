@@ -40,9 +40,9 @@ afterAll(async () => {
 
 test('genHelpMessage 列出全部注册命令及其描述', () => {
   const help = genHelpMessage()
-  for (const [command, definition] of SCREEN_REGISTRY_ENTRIES) {
+  for (const [command, { description }] of SCREEN_REGISTRY_ENTRIES) {
     expect(help).toContain(command)
-    expect(help).toContain(t(definition.description))
+    expect(help).toContain(t(description))
   }
   expect(help).toContain('--help')
   expect(help).toContain('--version')

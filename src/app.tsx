@@ -16,8 +16,6 @@ import StockRemove from './screens/StockRemove/index.tsx'
 import { useDialogMenuStore } from './stores/useDialogMenuStore.ts'
 import { useRouterStore } from './stores/useRouterStore.ts'
 
-const noop = () => {}
-
 const SCREEN_COMPONENTS: Record<Screen, ComponentType<ScreenComponentProps>> = {
   'stock-list': StockList,
   'stock-add': StockAdd,
@@ -30,17 +28,13 @@ export default function App() {
   const { t } = useTranslation()
   const overlayOpen = useOverlayOpen()
   const screen = useRouterStore((state) => state.screen)
-  const open = useDialogMenuStore((state) => (state.open ? noop : state.toggle))
-  const setHighlightedType = useDialogMenuStore((state) => state.setHighlightedType)
+  const open = useDialogMenuStore((state) => state.open)
   const { title, hint } = SCREEN_REGISTRY[screen]
   const ScreenComponent = SCREEN_COMPONENTS[screen]
 
   useInput(
     (input, key) => {
-      if (key.escape) {
-        open()
-        setHighlightedType(screen)
-      }
+      if (key.escape) open(screen)
       if (input === 'q') exit()
     },
     { isActive: !overlayOpen.open },

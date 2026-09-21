@@ -58,6 +58,7 @@ export function useDialogMenu() {
 
   useInput(
     (input, key) => {
+      if (highlightedType === undefined) return
       if (key.escape) close()
       else if (/^[1-9]$/.test(input)) {
         const index = Number(input) - 1
