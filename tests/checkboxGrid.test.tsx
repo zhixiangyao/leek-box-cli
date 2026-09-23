@@ -6,7 +6,14 @@ import { Box, render } from 'ink'
 import { expect, test } from 'vitest'
 
 import CheckboxGrid from '../src/components/CheckboxGrid/index.tsx'
-import { nextCursor, rowWindow, scrollForCursor, toGridRows } from '../src/components/CheckboxGrid/lib.ts'
+import {
+  gridColumnCount,
+  nextCursor,
+  rowWindow,
+  scrollForCursor,
+  toGridRows,
+} from '../src/components/CheckboxGrid/lib.ts'
+import { TABLE_CHROME } from '../src/components/WindowSizeGuard.tsx'
 
 process.env['FORCE_COLOR'] = '1'
 
@@ -65,6 +72,30 @@ test('rowWindow 将窗口起点钳制在有效范围内', () => {
   expect(rowWindow(10, 99, 3)).toStrictEqual({ start: 7, end: 10 })
   expect(rowWindow(10, 4, 3)).toStrictEqual({ start: 4, end: 7 })
   expect(rowWindow(0, 0, 5)).toStrictEqual({ start: 0, end: 0 })
+})
+
+// 命令上实际使用的列间距
+const GAP = 2
+
+test('gridColumnCount 按内容区宽度放下尽可能多的最小单元格', () => {
+  // 内容区宽度 = 终端宽度 - TABLE_CHROME, 每列占最小单元格宽度 24 再加列间距
+  expect(gridColumnCount(80 - TABLE_CHROME, GAP)).toBe(3) // 内容区 76: 3 * 24 + 2 * 2 = 76, 刚好放下
+  expect(gridColumnCount(79 - TABLE_CHROME, GAP)).toBe(2)
+  expect(gridColumnCount(119 - TABLE_CHROME, GAP)).toBe(4) // 宽度守卫给出的最小终端宽度
+  expect(gridColumnCount(140 - TABLE_CHROME, GAP)).toBe(5)
+  expect(gridColumnCount(164 - TABLE_CHROME, GAP)).toBe(6)
+})
+
+test('gridColumnCount 把列间距计入每格宽度', () => {
+  // 内容区 136: 间距 2 时 5 * 24 + 4 * 2 = 128 放得下, 间距 12 时 5 * 24 + 4 * 12 = 168 放不下
+  expect(gridColumnCount(140 - TABLE_CHROME, 2)).toBe(5)
+  expect(gridColumnCount(140 - TABLE_CHROME, 12)).toBe(4)
+})
+
+test('gridColumnCount 将列数钳制在上下限内', () => {
+  expect(gridColumnCount(0 - TABLE_CHROME, GAP)).toBe(2) // 内容区宽度为负 (终端宽度未知)
+  expect(gridColumnCount(40 - TABLE_CHROME, GAP)).toBe(2) // 内容区 36: 只能放 1 列, 由下限兜住
+  expect(gridColumnCount(400 - TABLE_CHROME, GAP)).toBe(8) // 内容区 396: 远超上限
 })
 
 type Item = { code: string; name: string }

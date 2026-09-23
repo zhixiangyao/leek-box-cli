@@ -592,11 +592,14 @@ CheckboxGrid 是多选网格: 方向键移动, 空格勾选, 回车提交勾选�
 列数和列间距都不写死在组件里: `columnCount` (至少为 1) 与 `columnGap` (至少为 2) 都是必填 prop,
 组件不设默认值, 也不读终端尺寸, 只消费传入的值.
 
-StockRemove 在 `index.tsx` 里用 Ink 的 `useWindowSize()` 取终端列数, 再按
-`src/commands/StockRemove/lib.ts` 的 `gridColumnCount(columns, columnGap)` 推导列数:
-单元格等分 Card 内容区宽度 (`columns - TABLE_CHROME`), 取每格仍不小于最小单元格宽度的最大列数
+列数推导函数 `gridColumnCount(contentWidth, columnGap)` 与其它网格几何一起放在
+`CheckboxGrid/lib.ts`: 按内容区宽度取每格仍不小于最小单元格宽度的最大列数
 (最小单元格宽度 24 列, 即 `[x] 四字名称 (sh600000)` 的宽度), 最后钳制到 2..8.
-这样列数取整后单元格仍放得下条目, 不需要靠加宽单元格或截断来兜底.
+它不读终端尺寸, 内容区宽度由调用方算好传入.
+
+StockRemove 在 `index.tsx` 里用 Ink 的 `useWindowSize()` 取终端列数, 再按
+`gridColumnCount(columns - TABLE_CHROME, columnGap)` 推导列数: 单元格等分 Card 内容区宽度
+(`columns - TABLE_CHROME`), 这样列数取整后单元格仍放得下条目, 不需要靠加宽单元格或截断来兜底.
 
 列数变化 (终端宽度变化) 会改变光标所在的行, 所以 hook 在渲染前用 `scrollForCursor` 再钳制一次滚动偏移,
 否则光标会落在可视窗口之外, 而空格勾选的仍是光标处那一条.

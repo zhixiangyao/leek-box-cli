@@ -3,14 +3,15 @@ import { type ReactNode } from 'react'
 
 import Card from '../../components/Card.tsx'
 import CheckboxGrid from '../../components/CheckboxGrid/index.tsx'
+import { gridColumnCount } from '../../components/CheckboxGrid/lib.ts'
 import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
+import { TABLE_CHROME } from '../../components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
 import type { StockEntry } from '../../settings/schema.ts'
 import { useStockRemove } from './hooks/useStockRemove.ts'
-import { gridColumnCount } from './lib.ts'
 
 export default function StockRemove() {
   const { columns } = useWindowSize()
@@ -20,7 +21,7 @@ export default function StockRemove() {
   const { t } = useTranslation()
   const { entries, errorMessage, resetToken, open } = useStockRemove()
   const columnGap = 2
-  const columnCount = gridColumnCount(columns, columnGap)
+  const columnCount = gridColumnCount(columns - TABLE_CHROME, columnGap)
   let content: ReactNode
 
   if (entries.length === 0) {

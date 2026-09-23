@@ -51,3 +51,21 @@ export function rowWindow(
   const start = Math.min(Math.max(scrollOffset, 0), maxStart)
   return { start, end: start + visibleRows }
 }
+
+/** 单元格最小宽度 (列): 容纳 `[x] 四字名称 (sh600000)` 并余 1 列, 列数取整后仍不至于让单元格截断 */
+const MIN_CELL_WIDTH = 24
+
+/** 内容区过窄时仍保持两列 */
+const MIN_COLUMN_COUNT = 2
+
+/** 内容区过宽时不再增加列数, 避免单元格被拉得过散 */
+const MAX_COLUMN_COUNT = 8
+
+/**
+ * 按内容区宽度推导网格列数: 单元格等分内容区,
+ * 取每格仍不小于 MIN_CELL_WIDTH 的最大列数.
+ */
+export function gridColumnCount(contentWidth: number, columnGap: number): number {
+  const count = Math.floor((contentWidth + columnGap) / (MIN_CELL_WIDTH + columnGap))
+  return Math.min(Math.max(count, MIN_COLUMN_COUNT), MAX_COLUMN_COUNT)
+}
