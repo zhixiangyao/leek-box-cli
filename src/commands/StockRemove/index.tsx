@@ -49,7 +49,7 @@ export default function StockRemove() {
 
   return (
     <Card
-      fullScreen
+      full
       bright={!overlayOpen.open}
       borderTopLeft={<Text color={theme.primary}>{t('command.stockRemove.title')}</Text>}
       footer={<StatusBar showClock hint={t('command.stockRemove.hint')} bright={!overlayOpen.open} />}

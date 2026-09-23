@@ -1,22 +1,18 @@
 import { type ReactNode } from 'react'
 
 import Card from '../../components/Card.tsx'
-import QuoteRow from '../../components/QuoteRow.tsx'
-import ScrollBox from '../../components/ScrollBox.tsx'
 import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
-import { headerRow, missingRow, quoteRow } from '../../lib/quoteTable.ts'
-import { useSettingsStore } from '../../stores/useSettingsStore.ts'
+import StockTable from './components/StockTable.tsx'
 import { useStockList } from './hooks/useStockList.ts'
 
 export default function StockList() {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { t } = useTranslation()
-  const trendColorMode = useSettingsStore((state) => state.trendColorMode)
   const stockList = useStockList()
   let content: ReactNode
 
@@ -42,26 +38,15 @@ export default function StockList() {
     }
 
     case 'table': {
-      const rows = stockList.step.rows
+      const list = stockList.step.rows
       content = (
         <>
-          <QuoteRow segments={headerRow(stockList.scaledColumns)} />
-
-          <ScrollBox
-            list={rows}
+          <StockTable
+            columns={stockList.scaledColumns}
             scrollOffset={stockList.scrollOffset}
-            customRender={(row) => (
-              <QuoteRow
-                key={row.code}
-                segments={
-                  row.kind === 'quote'
-                    ? quoteRow(stockList.scaledColumns, row.quote, trendColorMode)
-                    : missingRow(stockList.scaledColumns, row.code, row.name)
-                }
-                selected={row.code === stockList.selectedCode}
-              />
-            )}
-            onWindowChange={({ end }) => stockList.handlesWindowChange(rows.length - end)}
+            list={list}
+            selectedCode={stockList.selectedCode}
+            onWindowChange={({ end }) => stockList.handlesWindowChange(list.length - end)}
             onVisibleChange={stockList.handlesVisibleChange}
           />
 
@@ -76,7 +61,7 @@ export default function StockList() {
 
   return (
     <Card
-      fullScreen
+      full
       bright={!overlayOpen.open}
       borderTopLeft={<Text color={theme.primary}>{t('command.stockList.title')}</Text>}
       borderTopRight={

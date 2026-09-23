@@ -1,17 +1,17 @@
 import { expect, test } from 'vitest'
 
 import { t } from '../src/i18n/core.ts'
-import { isCommand, COMMAND_LIST, COMMAND_REGISTRY, toCommand } from '../src/navigation/registry.ts'
+import { COMMAND_LIST, COMMAND_REGISTRY, isCommand, toCommand } from '../src/navigation/registry.ts'
 
 test('COMMAND_LIST 与注册表键保持一致', () => {
   expect(COMMAND_LIST).toStrictEqual(['stock-list', 'stock-add', 'stock-remove', 'settings'])
 })
 
-test('每个命令都定义了展示文案', () => {
+test('COMMAND_LIST 的每个命令都定义了展示文案', () => {
   for (const command of COMMAND_LIST) {
     const definition = COMMAND_REGISTRY[command]
-    expect(t(definition.title).length).toBeGreaterThan(0)
-    expect(t(definition.description).length).toBeGreaterThan(0)
+    expect(t(definition.title).length, command).toBeGreaterThan(0)
+    expect(t(definition.description).length, command).toBeGreaterThan(0)
   }
 })
 

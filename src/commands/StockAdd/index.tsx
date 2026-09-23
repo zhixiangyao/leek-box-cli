@@ -83,7 +83,7 @@ export default function StockAdd() {
 
   return (
     <Card
-      fullScreen
+      full
       bright={!overlayOpen.open}
       borderTopLeft={<Text color={theme.primary}>{t('command.stockAdd.title')}</Text>}
       footer={<StatusBar showClock hint={t('command.stockAdd.hint')} bright={!overlayOpen.open} />}

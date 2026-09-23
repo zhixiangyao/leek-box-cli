@@ -30,7 +30,7 @@ export default function Settings() {
 
   return (
     <Card
-      fullScreen
+      full
       bright={!overlayOpen.open}
       borderTopLeft={<Text color={theme.primary}>{t('command.settings.title')}</Text>}
       footer={<StatusBar showClock hint={t('command.settings.hint')} bright={!overlayOpen.open} />}

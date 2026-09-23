@@ -1,5 +1,5 @@
-import { Box, type BoxProps, useWindowSize } from 'ink'
-import type { ReactNode } from 'react'
+import { Box, type BoxProps, type DOMElement, useBoxMetrics } from 'ink'
+import { useRef, type ReactNode } from 'react'
 
 import { useTheme } from '../hooks/useTheme.ts'
 import { useSettingsStore } from '../stores/useSettingsStore.ts'
@@ -11,28 +11,32 @@ export type CardProps = {
   bright?: boolean
   /** 默认为 false */
   mask?: boolean
-  fullScreen?: boolean
+  full?: boolean
+  width?: BoxProps['width']
+  height?: BoxProps['height']
   borderTopLeft?: ReactNode
   borderTopRight?: ReactNode
   borderBottomLeft?: ReactNode
   borderBottomRight?: ReactNode
   footer?: ReactNode
   children: ReactNode
-} & Pick<BoxProps, 'width' | 'height'>
+}
 
 export default function Card(props: CardProps) {
   const { bright = false, mask = false } = props
   const { borderTopLeft, borderTopRight, borderBottomLeft, borderBottomRight, footer, children } = props
-  const { fullScreen, width, height } = props
+  const { full, width, height } = props
   const theme = useTheme()
-  const { columns, rows } = useWindowSize()
   const borderStyle = useSettingsStore((state) => state.borderStyle)
+  const containerRef = useRef<DOMElement>(null)
+  const boxMetrics = useBoxMetrics(containerRef)
 
   return (
     <Box
+      ref={containerRef}
       flexDirection="column"
-      width={fullScreen ? columns : width}
-      height={fullScreen ? rows : height}
+      width={full ? '100%' : width}
+      height={full ? '100%' : height}
       borderStyle={borderStyle}
       borderColor={theme.primary}
       borderDimColor={bright === false}
@@ -59,7 +63,9 @@ export default function Card(props: CardProps) {
       )}
 
       <Box flexGrow={1} overflow={mask ? 'hidden' : undefined}>
-        {mask && <SpaceMask bright={bright} width={columns} height={rows} />}
+        {mask && boxMetrics.hasMeasured && (
+          <SpaceMask bright={bright} width={boxMetrics.width} height={boxMetrics.height} />
+        )}
 
         <Box flexGrow={1} flexDirection="column" padding={1}>
           {children}

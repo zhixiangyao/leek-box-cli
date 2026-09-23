@@ -9,7 +9,7 @@ import { expect, test, vi } from 'vitest'
 process.env['FORCE_COLOR'] = '1'
 
 const [
-  { render, Text: InkText },
+  { render, Box: InkBox, Text: InkText },
   { default: App },
   { default: Card },
   { LOGO_LINES },
@@ -158,19 +158,24 @@ test('Logo art 各行等宽且不超过终端宽度下限', () => {
   expect(Math.max(...widths)).toBeLessThanOrEqual(MIN_TERMINAL_COLUMNS)
 })
 
-test('Card fullScreen 使用终端尺寸而非显式尺寸', async () => {
+/** full 是 100% x 100%, 必须有一个给定尺寸的祖先 (应用里由 WindowSizeGuard 提供) */
+test('Card full 占满给定尺寸的父盒而非显式尺寸', async () => {
   const columns = 41
   const rows = 9
   const output = new CaptureOutput(columns, rows)
   const instance = render(
     createElement(
-      TestCard,
-      {
-        fullScreen: true,
-        width: 7,
-        height: 3,
-      },
-      createElement(InkText, null, 'content'),
+      InkBox,
+      { width: columns, height: rows },
+      createElement(
+        TestCard,
+        {
+          full: true,
+          width: 7,
+          height: 3,
+        },
+        createElement(InkText, null, 'content'),
+      ),
     ),
     {
       stdout: output as unknown as NodeJS.WriteStream,

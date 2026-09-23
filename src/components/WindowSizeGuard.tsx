@@ -26,7 +26,13 @@ export default function WindowSizeGuard({ children }: Props) {
   const widthOk = columns >= MIN_TERMINAL_COLUMNS
   const heightOk = rows >= MIN_TERMINAL_ROWS
 
-  if (widthOk && heightOk) return children
+  if (widthOk && heightOk) {
+    return (
+      <Box width={columns} height={rows} flexDirection="column">
+        {children}
+      </Box>
+    )
+  }
 
   return (
     <Box width={columns} height={rows} flexDirection="column" alignItems="center" justifyContent="center">

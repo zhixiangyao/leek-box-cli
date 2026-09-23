@@ -43,8 +43,12 @@ src/commands/<Feature>/index.tsx
 src/commands/<Feature>/hooks/
   Zustand 订阅, 命令生命周期, Ink 输入, 测量和轮询接线
 
+src/commands/<Feature>/components/
+  该命令专用的展示组件, 不跨命令复用, 只接 props 与窄 selector 订阅, 不持有业务状态.
+  目前只有 StockList 抽出这一层: 表格渲染较大, 抽走后 index.tsx 回到按 step 选内容的角色
+
 src/components/
-  Card, Dialog, AppLogo, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量
+  Card, Dialog, AppLogo, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量, 并在尺寸达标分支把 children 包进一个终端尺寸的 Box, 作为 `full` Card 百分比尺寸的基准
 
 src/hooks/
   usePolling, useOverlayOpen, useClock, useTheme, useTranslation
@@ -220,6 +224,9 @@ useFeatureStore.ts
   异步业务动作
   可注入依赖
 ```
+
+命令可以把展示部分抽成 `src/commands/<Feature>/components/` 下的组件: 它只接 props 和窄 selector 订阅,
+不持有业务状态, 也不接 `useInput` (目前只有 StockList 的 StockTable).
 
 Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器. `useSettingsStore` 是纯内存投影, 不注入依赖.
 
@@ -549,11 +556,16 @@ StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, �
 
 Card 负责:
 
-- 全屏或显式 width/height
+- `full` 或显式 width/height
 - 主题 border style 和 border color
 - 左上 borderTopLeft, 右上 borderTopRight, 左下 borderBottomLeft, 右下 borderBottomRight (四角内容由 CardCorner 渲染, 绝对定位压在边框行上, 固定单行并裁剪溢出)
 - 内容 padding 和可选 `mask` (打开时用 SpaceMask 盖住其后内容)
 - footer
+
+`full` 把 width 和 height 都写成 100%, Card 因此不再读 `useWindowSize`; 代价是必须有一个给定尺寸的祖先,
+由 `WindowSizeGuard` 尺寸达标分支包出的 Box 充当 (命令的 Card 一定在守卫之内). 脱离这个祖先渲染 `full`
+Card 时 `height: '100%'` 解析不到确定值, 会退回内容高度: ink 只给 root node 设宽度, 不设高度,
+所以这条契约由测试显式提供一个给定尺寸的父盒来锁定.
 
 Dialog 支持 `above`, `borderTopLeft`, `borderTopRight`, `borderBottomLeft`, `borderBottomRight`, `hint` 和 `width` (四角类型从 CardProps Pick 而来), footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-terminal Box 居中 Card, 外层保持透明, 让底层 command 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域, 盖住被压住的浮层内容.
 
@@ -571,7 +583,7 @@ AppLogo 是应用 ASCII art (两行), 各行必须等宽, 且宽度不得超过 
 `Math.max(...每项宽度)` 再套 cap, 不要把整串宽度直接丢进 `Math.min`, 那样取到的是最短项, 弹窗会偏窄
 (文案换语言变长后更明显).
 
-SpaceMask 用在 card 被 `mask` 时铺出 `useWindowSize` 的 columns*rows 个空格 (absolute + flexDirection column, 每行一个 Text), 再由 Card 的 `overflow: hidden` 裁剪到 content 区域. Card 不再接受 `backgroundColor`, 遮蔽一律走 `mask`.
+SpaceMask 用在 card 被 `mask` 时铺出 Card 自己 `useBoxMetrics` 量到的 width*height 个空格 (absolute + flexDirection column, 每行一个 Text), 再由 Card 的 `overflow: hidden` 裁剪到 content 区域; 测量完成前 (`hasMeasured` 为 false, 即首帧) 不渲染, 与 ScrollBox, CheckboxGrid 用 `hasMeasured` 兜底的写法一致. Card 不再接受 `backgroundColor`, 遮蔽一律走 `mask`.
 
 本地 `src/components/Text.tsx` 是项目文字入口. 它负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
 

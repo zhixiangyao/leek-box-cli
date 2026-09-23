@@ -12,7 +12,7 @@ const visibleWindow = (total: number, scrollOffset: number, visible: number): Wi
   return { start, end: start + visible }
 }
 
-type Props<T> = {
+export type ScrollBoxProps<T> = {
   list: T[]
   scrollOffset: number
   customRender: (item: T) => ReactNode
@@ -20,7 +20,7 @@ type Props<T> = {
   onVisibleChange?: (value: number) => void
 }
 
-export default function ScrollBox<T>(props: Props<T>) {
+export default function ScrollBox<T>(props: ScrollBoxProps<T>) {
   const { list, scrollOffset, customRender, onWindowChange, onVisibleChange } = props
   const containerRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(containerRef)

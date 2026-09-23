@@ -25,8 +25,8 @@ export function useStockList() {
   const reset = useStockListStore((state) => state.reset)
   const open = useDialogStockDetailStore((state) => state.open)
   const columnsForLocale = stockListColumns(locale)
-  const contentColumns = columns - TABLE_CHROME - (columnsForLocale.length - 1)
-  const scaledColumns = scaleColumns(columnsForLocale, contentColumns)
+  const contentWidth = columns - TABLE_CHROME - (columnsForLocale.length - 1)
+  const scaledColumns = scaleColumns(columnsForLocale, contentWidth)
   const [visible, setVisible] = useState(DEFAULT_VISIBLE)
   const [remainingCount, setRemainingCount] = useState(0)
   const { refresh } = usePolling(refreshQuotes, { intervalMs: pollIntervalMs })
@@ -63,5 +63,13 @@ export function useStockList() {
     { isActive: !overlayOpen.open },
   )
 
-  return { step, selectedCode, scrollOffset, scaledColumns, remainingCount, handlesVisibleChange, handlesWindowChange }
+  return {
+    step,
+    selectedCode,
+    scrollOffset,
+    scaledColumns,
+    remainingCount,
+    handlesVisibleChange,
+    handlesWindowChange,
+  }
 }
