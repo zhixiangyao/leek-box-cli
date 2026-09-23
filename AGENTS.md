@@ -86,7 +86,7 @@ tests/*.test.ts
 
 ```text
 commands/components -> hooks/stores -> settings/file -> settings/schema -> lib
-components -> navigation (ActionResult 取 `Command` 类型, DialogMenu 读 `MENU_ITEMS`; navigation 不反向 import commands)
+components -> navigation (DialogMenu 读 `MENU_ITEMS`; navigation 不反向 import commands)
 main -> cli/run + navigation/registry + settings/persistence -> stores -> settings/file
 cli/run -> cli/meow
 navigation -> i18n (只依赖 i18n 类型, 不 import commands; 引用 registry 的 store/component 因此不会与 app.tsx 成环)
@@ -159,7 +159,7 @@ await settingsPersistence.stop()
 注册表**不持有命令组件**: 组件映射是 `src/app.tsx` 里的 `COMMAND_COMPONENTS`, 类型为
 `Record<Command, ComponentType>`. 命令组件不接 props, navigation 也不向它传值, 因此没有
 `CommandComponentProps` 这类"已翻译字符串"入参类型: 注册表对外交出的只有 `MessageKey`, 由消费方自己
-`t()`. 这样 navigation 不 import commands, `useCommandStore` 与 `ActionResult` 引用 registry 时
+`t()`. 这样 navigation 不 import commands, `useCommandStore` 与 `cli/meow` 引用 registry 时
 不会与 app.tsx 形成环 (改成值导入也不会).
 组件映射是唯一的第二份清单, 但它由 `Record<Command, ...>` 强制穷尽: 新增命令时漏配组件,
 或多写了注册表里没有的键, 都编译不过; 因此没有为组件补齐再写一条运行时用例.
@@ -249,6 +249,7 @@ React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxS
 - 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
 - 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection(input, key)`, 各处不再手写 `key.upArrow || input === 'k'`. hint 与监听并列展示 (`选择(↑/↓/j/k)`, 网格 `移动(↑/↓/←/→/hjkl)`); 该界面不响应的方向不要写进 hint (例如看板只接受上下, hint 就不含 `h`/`l`).
 - 底层 command 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
+- 共享输入组件的 `isActive` 由 command 传入 `!overlayOpen.open`, 组件不自己读浮层状态: `CheckboxGrid` 必填, `TextInput` 可选并默认为 true.
 - DialogMenu 自己处理上下键, Enter 和数字快捷键. 菜单的开关就是 `useDialogMenuStore` 的 `highlightedType` (`MenuItem['type'] | undefined`), 没有第二个布尔: `open(highlightedType)` 打开并定位高亮, `close()` 置回 `undefined`, `useOverlayOpen` 据此判定 `dialogMenuOpen`. 因此 store 既不持有"是否打开", 也不持有第二份默认命令: 打开时的高亮由 App 的 esc 传入当前 command (`open(command)`). `useDialogMenu` 在 `highlightedType` 为 `undefined` 时早返回 (DialogMenu 只在非 `undefined` 时挂载, 该分支是防御), 之后收窄为 `MenuItem['type']`, 而 `MENU_ITEMS` 覆盖该类型的全部取值 (注册表 + reset/exit), `findIndex` 必命中, 不存在负索引或"无高亮"分支. 被 DialogConfirm 遮住时菜单保持挂载且高亮不变.
 - DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (浮层打开时底层输入一律失活), 无需判断菜单状态.
 - DialogRemoveConfirm 只在 confirm 阶段接受 n/y, done/error 阶段只接受 esc. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
@@ -606,6 +607,12 @@ StockRemove 在 `index.tsx` 里用 Ink 的 `useWindowSize()` 取终端列数, �
 
 ## TextInput 协议
 
+TextInput 的 props 是 `{ prompt, onSubmit, placeholder?, isActive? }`: `isActive` 默认为 true, 由 command 传入
+`!overlayOpen.open` (组件不自己读浮层状态), 组件内部再叠加 `!submitted`, 因此回车后输入框不再接受按键并
+收起光标. 返回入口 `ActionResult` 复用这两个字段 (`Pick<TextInputProps, 'isActive' | 'onSubmit'>`), 自己不
+import command 或 store: "按 Enter 返回" 的行为由命令的 hook 提供, 例如 `useStockAdd()` 的 `handleSubmit`
+(reset + 切回本命令).
+
 TextInput 的 value 和 submitted 是组件本地状态. 业务 store 保存:
 
 ```ts
@@ -638,8 +645,8 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 测试使用 Vitest. 测试文件按被测对象分文件, 均位于 `tests/`:
 
 `api` / `chart` / `parsers` / `format` / `lib` / `quoteTable` / `yesNo` / `checkboxGrid` /
-`lock` / `persistence` / `resetAll` / `settings` / `settingsStore` / `stores` / `registry` /
-`meow` / `run` / `usePolling` / `layout` / `i18n`.
+`textInput` / `lock` / `persistence` / `resetAll` / `settings` / `settingsStore` / `stores` /
+`registry` / `meow` / `run` / `usePolling` / `layout` / `i18n`.
 
 测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在布局测试之间使用 `getInitialState()` 恢复.
 

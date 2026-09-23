@@ -16,7 +16,7 @@ export default function StockAdd() {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { t } = useTranslation()
-  const { step, codeInput, confirmInput, handleCodeInput, handleConfirm, reset } = useStockAdd()
+  const { step, codeInput, confirmInput, handleCodeInput, handleConfirm, handleSubmit } = useStockAdd()
   let content: ReactNode
 
   if (isAddResultStep(step)) {
@@ -27,7 +27,7 @@ export default function StockAdd() {
             entries: step.entries.map((entry) => `${entry.name} (${entry.code})`).join(', '),
           })
         : step.message
-    content = <ActionResult tone={tone} msg={msg} to="stock-add" onReturn={reset} />
+    content = <ActionResult tone={tone} msg={msg} isActive={!overlayOpen.open} onSubmit={handleSubmit} />
   } else {
     switch (step.type) {
       case 'input-code': {
@@ -38,6 +38,7 @@ export default function StockAdd() {
               key={`code-${codeInput.resetToken}`}
               prompt={t('stockAdd.codePrompt')}
               placeholder={<Text color="gray">{t('stockAdd.codePlaceholder')}</Text>}
+              isActive={!overlayOpen.open}
               onSubmit={handleCodeInput}
             />
           </>
@@ -67,6 +68,7 @@ export default function StockAdd() {
             <TextInput
               key={`confirm-${confirmInput.resetToken}`}
               prompt={t('stockAdd.confirmPrompt')}
+              isActive={!overlayOpen.open}
               onSubmit={handleConfirm}
             />
           </>

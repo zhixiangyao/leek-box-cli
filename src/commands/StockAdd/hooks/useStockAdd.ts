@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 
+import { useCommandStore } from '../../../stores/useCommandStore.ts'
 import { useStockAddStore } from '../../../stores/useStockAddStore.ts'
 
 export function useStockAdd() {
@@ -9,6 +10,12 @@ export function useStockAdd() {
   const handleCodeInput = useStockAddStore((state) => state.handleCodeInput)
   const handleConfirm = useStockAddStore((state) => state.handleConfirm)
   const reset = useStockAddStore((state) => state.reset)
+  const setCommand = useCommandStore((state) => state.setCommand)
+
+  function handleSubmit() {
+    reset()
+    setCommand('stock-add')
+  }
 
   useEffect(() => {
     reset()
@@ -20,6 +27,6 @@ export function useStockAdd() {
     confirmInput,
     handleCodeInput,
     handleConfirm,
-    reset,
+    handleSubmit,
   }
 }
