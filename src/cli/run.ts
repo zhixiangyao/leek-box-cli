@@ -2,6 +2,7 @@ import process from 'node:process'
 
 import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
+import { APP_VERSION } from '../lib/version.ts'
 import type { SettingsDocument } from '../settings/schema.ts'
 import { parseCli } from './meow.ts'
 
@@ -19,15 +20,15 @@ export type RunDependencies = {
 
 /**
  * stdout 上的 EPIPE 是异步 'error' 事件 (下游 `-h | head` 关掉管道), 接不到 try/catch.
- * 只装给一次性的 help 输出: 应用启动路径不装, 免得 TUI 在 stdout 断开后一直挂着.
+ * 只装给一次性的 help/version 输出: 应用启动路径不装, 免得 TUI 在 stdout 断开后一直挂着.
  */
 const ignoreBrokenPipe = (error: NodeJS.ErrnoException): void => {
   if (error.code !== 'EPIPE') throw error
 }
 
-const printHelpIgnoringBrokenPipe = (helpMessage: string): void => {
+const printOnceIgnoringBrokenPipe = (text: string): void => {
   process.stdout.on('error', ignoreBrokenPipe)
-  console.log(helpMessage)
+  console.log(text)
 }
 
 /**
@@ -36,9 +37,14 @@ const printHelpIgnoringBrokenPipe = (helpMessage: string): void => {
  */
 export const run = async ({ parseCli, startApp }: RunDependencies): Promise<void> => {
   try {
-    const { settingsDocument, helpMessage, command, showHelp } = await parseCli()
+    const { settingsDocument, helpMessage, command, showHelp, showVersion } = await parseCli()
+    // version 先于 help
+    if (showVersion) {
+      printOnceIgnoringBrokenPipe(APP_VERSION)
+      return
+    }
     if (showHelp) {
-      printHelpIgnoringBrokenPipe(helpMessage)
+      printOnceIgnoringBrokenPipe(helpMessage)
       return
     }
     await startApp({ settingsDocument, command })

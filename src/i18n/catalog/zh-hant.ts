@@ -157,6 +157,9 @@ export const zhHant = {
   'settings.error.stockName': '第 {index} 項 name 無效',
   'settings.error.stockAddedAt': '第 {index} 項 addedAt 無效',
   'settings.error.stockCodeDuplicate': '第 {index} 項 code 重複: {code}',
+  'settings.error.schemaVersion': 'schemaVersion 無效, 當前支援的格式版本是 {supported}',
+  'settings.error.schemaVersionNewer':
+    '設定檔由更新版本的程式寫入: {path} (格式 v{version}, 當前支援到 v{supported}), 請升級後重試',
   'settings.error.corruptFile': '設定檔損毀: {path} ({error})',
   'settings.lock.invalidMetadata': 'lock metadata 無效',
   'settings.lock.busy': '檔案正被其他行程占用, 請稍後重試',

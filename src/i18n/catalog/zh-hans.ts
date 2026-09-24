@@ -157,6 +157,9 @@ export const zhHans = {
   'settings.error.stockName': '第 {index} 项 name 无效',
   'settings.error.stockAddedAt': '第 {index} 项 addedAt 无效',
   'settings.error.stockCodeDuplicate': '第 {index} 项 code 重复: {code}',
+  'settings.error.schemaVersion': 'schemaVersion 无效, 当前支持的格式版本是 {supported}',
+  'settings.error.schemaVersionNewer':
+    '配置文件由更新版本的程序写入: {path} (格式 v{version}, 当前支持到 v{supported}), 请升级后重试',
   'settings.error.corruptFile': '设置文件损坏: {path} ({error})',
   'settings.lock.invalidMetadata': 'lock metadata 无效',
   'settings.lock.busy': '文件正被其他进程占用, 请稍后重试',

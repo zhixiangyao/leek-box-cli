@@ -184,6 +184,8 @@ File structure:
 
 ```json
 {
+  "schemaVersion": 1,
+  "appVersion": "<app version>",
   "language": "auto",
   "theme": {
     "preset": "classic",
@@ -210,6 +212,8 @@ File structure:
 The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates `language`, `theme`, and `request`, as well as each stock's `code`, `name`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
 
 `language` is one of `auto`, `zh-hans`, `zh-hant`, or `en`. Like `theme.trendColorMode`, the field may be omitted, in which case it is treated as `auto`.
+`schemaVersion` is the document format version and `appVersion` is the app version that wrote the file (both may be omitted and default to the current version; `<app version>` in the example is a placeholder).
+If `schemaVersion` is higher than this build supports (a config written by a newer release, then a downgrade), the app refuses to read it, prints the config path and asks you to upgrade, so that a rewrite in the older format cannot silently drop fields it does not understand.
 
 ## Development Scripts
 

@@ -176,6 +176,9 @@ export const en = {
   'settings.error.stockName': 'Item {index} has an invalid name',
   'settings.error.stockAddedAt': 'Item {index} has an invalid addedAt',
   'settings.error.stockCodeDuplicate': 'Item {index} has a duplicate code: {code}',
+  'settings.error.schemaVersion': 'Invalid schemaVersion, the supported format version is {supported}',
+  'settings.error.schemaVersionNewer':
+    'This config was written by a newer version: {path} (format v{version}, this build supports v{supported}), please upgrade and retry',
   'settings.error.corruptFile': 'Corrupt settings file: {path} ({error})',
   'settings.lock.invalidMetadata': 'lock metadata is invalid',
   'settings.lock.busy': 'The file is locked by another process, try again later',

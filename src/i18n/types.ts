@@ -155,6 +155,8 @@ export type Message = {
   'settings.error.stockName': string
   'settings.error.stockAddedAt': string
   'settings.error.stockCodeDuplicate': string
+  'settings.error.schemaVersion': string
+  'settings.error.schemaVersionNewer': string
   'settings.error.corruptFile': string
   'settings.lock.invalidMetadata': string
   'settings.lock.busy': string

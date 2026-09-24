@@ -7,12 +7,15 @@ import process from 'node:process'
 import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
 import { isWindows } from '../lib/is.ts'
+import { APP_VERSION } from '../lib/version.ts'
 import { withFileLock } from './lock.ts'
 import {
   createDocument,
+  CURRENT_SCHEMA_VERSION,
   DEFAULT_SETTINGS,
   parseSettingsDocument,
   parseStocks,
+  SchemaVersionTooNewError,
   type Settings,
   type SettingsDocument,
   settingsFromDocument,
@@ -55,20 +58,27 @@ export const loadExistingSettings = async (): Promise<SettingsDocument | undefin
   const path = settingsPath()
   try {
     const value = await readJsonFile(path)
-    return value === undefined ? undefined : parseSettingsDocument(value)
+    return value === undefined ? undefined : parseSettingsDocument(value, path)
   } catch (error) {
+    // 版本过新不是文件损坏: 原样抛出, 让用户看到 "请升级" 而不是 "文件损坏"
+    if (error instanceof SchemaVersionTooNewError) throw error
     throw new Error(t('settings.error.corruptFile', { path, error: errorMessage(error) }))
   }
 }
 
-/** 原子写入已验证的设置文档 */
+/**
+ * 原子写入设置文档. 先校验再盖版本字段, 两步都必要:
+ * 校验拦下读不懂的文档 (版本过新的文档不该被降级重写), 盖章让写出去的文档总是描述当前程序.
+ */
 const writeSettingsFile = async (document: SettingsDocument): Promise<void> => {
-  const normalized = parseSettingsDocument(document)
   const path = settingsPath()
+  const normalized = parseSettingsDocument(document, path)
+  // 版本字段描述的是写入它的程序, 不是文件自身的历史结构, 因此不沿用文档里的旧值
+  const stamped = { ...normalized, schemaVersion: CURRENT_SCHEMA_VERSION, appVersion: APP_VERSION }
   await mkdir(dirname(path), { recursive: true })
   const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`
   try {
-    await writeFile(temporaryPath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8')
+    await writeFile(temporaryPath, `${JSON.stringify(stamped, null, 2)}\n`, 'utf8')
     await rename(temporaryPath, path)
   } finally {
     await rm(temporaryPath, { force: true })
@@ -103,10 +113,20 @@ export async function initializeSettings(): Promise<SettingsDocument> {
   return (await loadExistingSettings()) ?? withFileLock(settingsPath(), loadOrCreateSettings)
 }
 
-/** 在锁内将设置文件重置为默认文档, 不读取现有内容, 损坏文件也能修复 */
+/**
+ * 在锁内将设置文件重置为默认文档: 覆盖现有内容, 损坏文件也能修复.
+ * 只有版本过新的文件例外, 它不算损坏, 只是这份程序读不懂, 覆盖它等于丢数据
+ * (与读改写路径同一条判断; 重设不是它的逃生门, 用户只能升级或手动处理该文件).
+ */
 export async function resetSettingsFile(): Promise<void> {
   const document = createDocument(DEFAULT_SETTINGS, createDefaultStocks())
   await withFileLock(settingsPath(), async () => {
+    try {
+      // 只为判断, 结果不用: 读得出来就照常覆盖, 读不出来 (损坏或缺失) 由下面的写入修成一个合法文档
+      await loadExistingSettings()
+    } catch (error) {
+      if (error instanceof SchemaVersionTooNewError) throw error
+    }
     await writeSettingsFile(document)
   })
 }

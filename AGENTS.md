@@ -7,6 +7,7 @@
 ## 核心原则
 
 - 以当前源码为唯一事实来源, 不保留未上线版本的兼容层, migration, deprecated alias 或旧文件格式 fallback.
+  `settings.json` 的 `schemaVersion` 只用于**判断** (读到更高版本就拒绝启动), 不是迁移机制.
 - 命令渲染, 输入接线, 业务状态和持久化分层, 不把所有逻辑放进 command 组件.
 - 共享状态使用 Zustand, React 生命周期和 Ink hooks 留在 React hook 层.
 - 文件写入使用锁和原子替换, 所有 settings 与 stocks 修改必须在锁内读取最新文档后合并.
@@ -76,7 +77,8 @@ src/settings/persistence.ts
   settings 初始化 (可复用 parseCli 预读的文档), store hydration, debounce patch 保存和退出 flush
 
 src/lib/
-  纯工具: format.ts (格式化与涨跌色), error.ts, yesNo.ts, quoteTable.ts (行情表列定义与行渲染)
+  纯工具: format.ts (格式化与涨跌色), error.ts, is.ts, keys.ts, yesNo.ts, quoteTable.ts (行情表列定义与行渲染),
+  version.ts (应用版本, 取自 package.json; CLI `-v` 与 settings.json 的 `appVersion` 共用)
 
 tests/*.test.ts
   parser, store, settings persistence 和终端布局测试
@@ -103,18 +105,23 @@ lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTransla
 
 `src/cli/run.ts` 负责启动流程与顶层错误处理:
 
-1. `await` `src/cli/meow.ts` 的 `parseCli()`, 取出 command, showHelp, helpMessage 和 settingsDocument;
-   showHelp 时打印 helpMessage 并跳过应用启动.
+1. `await` `src/cli/meow.ts` 的 `parseCli()`, 取出 command, showHelp, showVersion, helpMessage 和 settingsDocument;
+   showVersion 时打印 `APP_VERSION`, showHelp 时打印 helpMessage, 两者都跳过应用启动 (版本优先, 保持 meow 原本的先后).
    parseCli 内部先用 `tryLoadSettings()` (对 `loadExistingSettings()` 的包装, 只读不创建) 读取已有配置,
    紧接着 `applyLanguage`, 再调用 `genHelpMessage()` 生成文案, 因此 help 与界面同语言.
-   读取失败 (缺失或损坏) 时该包装返回 undefined, 语言回退系统语言. 这个包装必须留在 meow.ts
-   且自身不抛, 且 `applyLanguage` 必须紧跟其后: 此后任何一步抛错都由顶层的 catch 报成 "运行失败",
-   文案要按用户配置的语言渲染; 损坏文件的报错留给后面的 `initializeSettings` 统一给出用户提示,
+   读取失败 (缺失或损坏) 时该包装交出 undefined 文档, 语言回退系统语言. 版本过新是同一处理之外多加的一步:
+   文档照样被拒绝 (读不懂的字段不能让它写掉), 但文件里的 `language` 只决定那句 "请升级" 用哪种文字说,
+   因此它挂在 `SchemaVersionTooNewError.language` 上, 由该包装取来当语言用 (见 settings.json 一节).
+   这个包装必须留在 meow.ts 且自身不抛, 且 `applyLanguage` 必须紧跟其后: 此后任何一步抛错都由顶层的 catch
+   报成 "运行失败", 文案要按用户配置的语言渲染; 读取失败的报错留给后面的 `initializeSettings` 统一给出用户提示,
    因此报错只出现一次.
    help 文案必须在 `meow()` 之前生成: 未知命令时 meow 会自己打印它, 不能延后到 showHelp 分支.
+   meow 的 `autoHelp` 与 `autoVersion` 都关掉: 版本由 run.ts 打印而不是 meow, 因为 meow 按 cwd 找
+   package.json, 在别人的项目目录里会打印那个项目的版本. 两个标志都要同时查 `cli.flags` 与 `cli.input`:
+   命令名之后的标志 meow 留在 input 里而不设成 flag (如 `settings -h`, `settings -v`).
 2. parseCli 与 startApp 的异常都在这里变成 `app.runFailed` 文案与 `process.exitCode = 1`:
    抛到模块顶层会变成顶层 await 的未处理拒绝, 用户只看得到原始堆栈.
-3. 打印 help 前给 `process.stdout` 装 EPIPE 监听: 下游 `-h | head` 关闭管道时 Node 会在 stdout 上
+3. 打印 help/version 前给 `process.stdout` 装 EPIPE 监听: 下游 `-h | head` 关闭管道时 Node 会在 stdout 上
    异步抛出未处理的 'error' 事件并打印堆栈, 这既不是运行失败, 也接不到 try/catch.
 
 `src/main.tsx` 只保留入口接线, 并把 Ink 启动作为 `startApp` 注入给 `run()` (注入是为了让启动流程
@@ -390,7 +397,8 @@ d                 恢复默认值
 `useSettingsStore.language` 是唯一的 settings 状态, active locale 是由 `resolveLanguage()` 派生的
 只读渲染缓存, 从不持久化, 也不是 settings 输入. **生产只在两处写入**: `src/settings/persistence.ts`
 的 hydrate 之后与 language 变化的订阅里, 以及 `src/cli/meow.ts` 的 `parseCli()`.
-`parseCli()` 用 `tryLoadSettings()` 读取已有配置 (不创建文件, 损坏时按无配置处理并回退系统语言),
+`parseCli()` 用 `tryLoadSettings()` 读取已有配置 (不创建文件, 损坏时按无配置处理并回退系统语言;
+版本过新时文档同样不采用, 但取文件里的 `language` 渲染那句升级提示),
 并把读到的文档回传给 `startSettingsPersistence()` 复用, 因此启动全程只读一次 settings.json.
 `setActiveLocale()` 只给测试固定语言用, 不是第二个生产写入口.
 
@@ -446,10 +454,20 @@ Windows 使用 `%APPDATA%` (Roaming):
 
 `configDirectory()` 优先级: 非空 `XDG_CONFIG_HOME` > Windows 的 `%APPDATA%` > `~/.config`. 空字符串的 `XDG_CONFIG_HOME` 按未设置处理.
 
-当前格式没有 legacy migration 和 schemaVersion:
+当前格式带版本字段 (没有 legacy migration):
+
+- `schemaVersion` 是**文档格式版本** (`CURRENT_SCHEMA_VERSION`), 只在文档结构发生破坏性变更时加一:
+  新增可选字段不加, 因为旧程序按默认值接受, 新程序读旧文件也不需要迁移.
+- `appVersion` 是写入这份文档的**应用版本** (`src/lib/version.ts` 取自 package.json), 只用于排查, 不参与兼容判断;
+  读取时缺失或非法都回落到当前应用版本, 不报错 (这个字段不该因为手写出一个怪值就拦住启动). 只判空串, 不 trim.
+- 写盘一律盖版本: `writeSettingsFile()` 先把文档校验一遍再盖 `schemaVersion` 与 `appVersion`, 两步都必要 ——
+  校验拦下读不懂的文档 (版本过新的文档不该被降级重写), 盖章让这两个字段描述的是**写入它的程序**,
+  不是文件自身的历史结构; 读改写路径 (`stocksAdd()` 等) 不沿用旧值.
 
 ```json
 {
+  "schemaVersion": 1,
+  "appVersion": "<app version>",
   "language": "auto",
   "theme": {
     "preset": "classic",
@@ -473,19 +491,34 @@ Windows 使用 `%APPDATA%` (Roaming):
 }
 ```
 
+示例里的 `"appVersion": "<app version>"` 是占位: 实际写入的是当时运行的程序版本 (构建产物里内联自 package.json).
+
 规则:
 
 - 文件不存在时使用默认 settings 和预置默认自选股 (DEFAULT_STOCKS: 富通微电, 长电科技, 长鑫科技) 创建, addedAt 为创建时间.
 - 文件存在时严格校验 language, theme, request 和 stocks; `theme.trendColorMode` 缺失时按默认 red-up 接受,
   `language` 缺失时按默认 auto 接受. 这是 schema 的可选字段默认值规则, 不是 legacy 格式迁移, 首次成功写入即持久化.
 - 读取时先去除 UTF-8 BOM (`stripBom`), 兼容 Windows 记事本或 PowerShell 重定向写入的配置.
+- 版本字段缺失时按当前版本接受 (旧文件里没有这两个字段), 下次写盘自动补上.
+- `schemaVersion` 高于 `CURRENT_SCHEMA_VERSION` 时**拒绝读取**: 这份文件由更新的程序写入, 当前程序读不懂它.
+  不做尽力解析的原因是 `parseSettingsDocument` 按白名单重建, 读不懂的字段会被静默写掉, 那是丢数据.
+  错误文案会提示升级并带上文件路径, 用户升级前无法启动 (降级运行时的预期行为). 降级保护从带这条判断的版本开始生效:
+  更早的版本不认识 `schemaVersion`, 只会按旧规则重写 (该字段是本次引入的).
+- 这类错误用 `SchemaVersionTooNewError` 抛出, `loadExistingSettings()` 对它原样放行 (文件没坏, 不该报成
+  "设置文件损坏"). 它因此不套 corruptFile 包装, 文案里的路径由 `parseSettingsDocument(value, path)` 的 path 参数给出
+  (path 只用于报错文案, 与 `parseInteger(value, name, limits)` 的 name 同类). `schemaVersion` 非法 (非正整数) 同样报错.
+- 该错误另外带上文件里的 `language` (缺失或非法时为 undefined): 文档整体被拒绝, 但 "请升级" 是用户唯一
+  必须读懂的一句话, 不该因为它配置的语言读不到而失效; `parseCli` 只在这条错误上额外看这个字段.
+- 版本字段只做判断, 不做迁移: 低版本文件按当前规则解析, 字段缺失走默认值, 没有 migration 层.
 - 损坏文件直接报错, 不静默丢弃字段, 不 fallback 到旧格式.
 - `StockEntry` 为 `{code, name, addedAt}`.
 - `parseStocks()` 校验 code, name, addedAt 和重复 code.
 - `patchSettings()` 只合并变化的 settings 字段, 保留锁内读取到的最新 stocks.
-- `stockAdd()`, `stocksAdd()`, `stockRemove()` 在锁内读取最新文档后修改.
+- `stocksAdd()`, `stocksRemove()` 在锁内读取最新文档后修改.
 - `replaceStocks()` 表示明确的整表替换, 当前仅用于 mock reset.
-- `resetSettingsFile()` 重置为默认文档, 不读取现有内容, 损坏文件也能修复; 应用内由 `settings/resetAll.ts` 的 `resetAll()` 触发 (重置文件 → 设置内存默认值 → 自选股重新载入).
+- `resetSettingsFile()` 重置为默认文档, 损坏文件也能修复; 应用内由 `settings/resetAll.ts` 的 `resetAll()` 触发 (重置文件 → 设置内存默认值 → 自选股重新载入).
+  它在锁内先读一次只为判断版本: 读得出来就照常覆盖, 读不出来 (损坏或缺失) 直接修. 版本过新的文件是唯一例外,
+  它也拒绝覆盖 (重设不是它的逃生门, 用户只能升级或手动处理该文件), 否则丢的正是 `writeSettingsFile` 要保住的那些字段.
 
 写入流程:
 

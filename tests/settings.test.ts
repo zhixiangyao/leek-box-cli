@@ -1,13 +1,15 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
 
 import { afterEach, beforeEach, expect, test } from 'vitest'
 
-import { setActiveLocale } from '../src/i18n/core.ts'
+import { setActiveLocale, t } from '../src/i18n/core.ts'
 import { DEFAULT_LOCALE, detectLocale, LANGUAGES } from '../src/i18n/locale.ts'
+import { errorMessage } from '../src/lib/error.ts'
 import { TREND_COLOR_MODES } from '../src/lib/format.ts'
+import { APP_VERSION } from '../src/lib/version.ts'
 import {
   initializeSettings,
   loadStocks,
@@ -21,9 +23,11 @@ import {
 import {
   BORDER_STYLES,
   createDocument,
+  CURRENT_SCHEMA_VERSION,
   DEFAULT_SETTINGS,
   parseSettingsDocument,
   parseStocks,
+  SchemaVersionTooNewError,
   settingsFromDocument,
   THEME_PRESET_NAMES,
   type Settings,
@@ -52,6 +56,8 @@ afterEach(async () => {
 const validStock: StockEntry = { code: 'sh600000', name: '浦发银行', addedAt: '2026-08-20T00:00:00.000Z' }
 
 const validDocument = (): SettingsDocument => ({
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  appVersion: APP_VERSION,
   language: 'auto',
   theme: { preset: 'classic', trendColorMode: 'red-up', borderStyle: 'round' },
   request: {
@@ -63,6 +69,33 @@ const validDocument = (): SettingsDocument => ({
   },
   stocks: [validStock],
 })
+
+/** 解析文档, 路径是 parseSettingsDocument 的报错上下文 ("版本过新" 的文案里要带出来源文件) */
+const parseDocument = (value: unknown) => parseSettingsDocument(value, settingsPath())
+
+/** 读原始文件: 回读会补上缺失的版本字段, 只有原始读才能断言 "真的写进去了" */
+const storedDocument = async (): Promise<Record<string, unknown>> =>
+  JSON.parse(await readFile(settingsPath(), 'utf8')) as Record<string, unknown>
+
+/** 取回必然失败的调用的错误本身, 用于逐字比对消息 */
+const errorOf = async (action: () => Promise<unknown>): Promise<unknown> => {
+  try {
+    return await action()
+  } catch (error) {
+    return error
+  }
+}
+
+/** parseSchemaVersion 该抛的文案: 带来源路径与双方版本号 */
+const tooNewMessage = (version: number) =>
+  t('settings.error.schemaVersionNewer', { path: settingsPath(), version, supported: CURRENT_SCHEMA_VERSION })
+
+/** 版本非法时的文案: 外层是 loadExistingSettings 的 corruptFile, 括号内是 parseSchemaVersion 的原因 */
+const invalidVersionMessage = () =>
+  t('settings.error.corruptFile', {
+    path: settingsPath(),
+    error: t('settings.error.schemaVersion', { supported: CURRENT_SCHEMA_VERSION }),
+  })
 
 test('parseStocks 接受完整的持久化数据结构', () => {
   expect(parseStocks([validStock])).toStrictEqual([validStock])
@@ -187,34 +220,176 @@ test('replaceStocks 整表替换自选股并校验条目', async () => {
   )
 })
 
+test('首次创建时写入的文档带 schemaVersion 与 appVersion', async () => {
+  const created = await initializeSettings()
+  expect(created.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
+  expect(created.appVersion).toBe(APP_VERSION)
+
+  // 回读会把缺失的版本字段补成当前版本, 因此只断言写出来的原始文件
+  const stored = await storedDocument()
+  expect(stored['schemaVersion']).toBe(CURRENT_SCHEMA_VERSION)
+  expect(stored['appVersion']).toBe(APP_VERSION)
+})
+
+test('缺失版本字段的旧文件按当前版本接受, 并在下次写盘时补齐两个字段', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  const { schemaVersion: _schemaVersion, appVersion: _appVersion, ...withoutVersion } = validDocument()
+  await writeFile(settingsPath(), JSON.stringify(withoutVersion), 'utf8')
+
+  const loaded = await initializeSettings()
+  expect(loaded.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
+  expect(loaded.appVersion).toBe(APP_VERSION)
+
+  await stocksAdd([{ code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }])
+  const stored = await storedDocument()
+  expect(stored['schemaVersion']).toBe(CURRENT_SCHEMA_VERSION)
+  expect(stored['appVersion']).toBe(APP_VERSION)
+})
+
+test('appVersion 非法时回落到当前应用版本, 不拦住启动', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  for (const appVersion of [0.5, '', null, true, {}]) {
+    await writeFile(settingsPath(), JSON.stringify({ ...validDocument(), appVersion }), 'utf8')
+    expect((await initializeSettings()).appVersion, JSON.stringify(appVersion)).toBe(APP_VERSION)
+  }
+})
+
+test('appVersion 是非空字符串时原样读回, 不做 trim', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  await writeFile(settingsPath(), JSON.stringify({ ...validDocument(), appVersion: ' 0.5.4 ' }), 'utf8')
+
+  expect((await initializeSettings()).appVersion).toBe(' 0.5.4 ')
+})
+
+test('读改写路径把两个版本字段都盖成当前值, 而读取保留文件里的旧值', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  // appVersion 必须旧但有效: 字段缺失或非法会回落到 APP_VERSION, 那样写入时不覆盖也看不出问题
+  const writeOldVersionDocument = async () =>
+    writeFile(settingsPath(), JSON.stringify({ ...validDocument(), appVersion: '0.0.1' }), 'utf8')
+  const writes: ReadonlyArray<{ name: string; write: () => Promise<unknown> }> = [
+    { name: 'patchSettings', write: () => patchSettings({ themePreset: 'ocean' }) },
+    {
+      name: 'stocksAdd',
+      write: () => stocksAdd([{ code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }]),
+    },
+    { name: 'stocksRemove', write: () => stocksRemove(['sh600000']) },
+    { name: 'replaceStocks', write: () => replaceStocks([validStock]) },
+    { name: 'resetSettingsFile', write: () => resetSettingsFile() },
+  ]
+
+  for (const { name, write } of writes) {
+    await writeOldVersionDocument()
+    expect((await initializeSettings()).appVersion, name).toBe('0.0.1')
+
+    await write()
+
+    const stored = await storedDocument()
+    expect(stored['appVersion'], name).toBe(APP_VERSION)
+    expect(stored['schemaVersion'], name).toBe(CURRENT_SCHEMA_VERSION)
+  }
+})
+
+test('schemaVersion 高于当前支持时抛 SchemaVersionTooNewError, 消息带路径与双方版本号', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  const version = CURRENT_SCHEMA_VERSION + 1
+  await writeFile(settingsPath(), JSON.stringify({ ...validDocument(), schemaVersion: version }), 'utf8')
+
+  const error = await errorOf(() => initializeSettings())
+  expect(error).toBeInstanceOf(SchemaVersionTooNewError)
+  // 不套 "设置文件损坏" 的措辞: 文件没坏, 只是这份程序读不懂
+  expect(errorMessage(error)).toBe(tooNewMessage(version))
+})
+
+test('判版本早于字段校验: 高版本文档缺字段也报升级提示, 不报损坏', async () => {
+  const { request: _request, ...withoutRequest } = validDocument()
+  const version = CURRENT_SCHEMA_VERSION + 1
+  const missingRequest = { ...withoutRequest, schemaVersion: version }
+
+  // 新版本可能已改名或移除 request: 先报字段缺失会让用户以为文件坏了
+  expect(await errorOf(async () => parseDocument(missingRequest))).toBeInstanceOf(SchemaVersionTooNewError)
+  expect(await errorOf(async () => parseDocument({ schemaVersion: version }))).toBeInstanceOf(SchemaVersionTooNewError)
+
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  await writeFile(settingsPath(), JSON.stringify(missingRequest), 'utf8')
+  expect(errorMessage(await errorOf(() => initializeSettings()))).toBe(tooNewMessage(version))
+})
+
+test('高版本配置下读写全部拒绝, 文件内容一字不动', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  const content = JSON.stringify({
+    ...validDocument(),
+    schemaVersion: CURRENT_SCHEMA_VERSION + 1,
+    // 当前程序读不懂的字段: 一旦按白名单重建写回, 丢的就是它
+    futureField: 'keep',
+  })
+  await writeFile(settingsPath(), content, 'utf8')
+
+  await expect(loadStocks()).rejects.toThrow(SchemaVersionTooNewError)
+  await expect(patchSettings({ themePreset: 'ocean' })).rejects.toThrow(SchemaVersionTooNewError)
+  await expect(stocksAdd([validStock])).rejects.toThrow(SchemaVersionTooNewError)
+  await expect(stocksRemove(['sh600000'])).rejects.toThrow(SchemaVersionTooNewError)
+  await expect(replaceStocks([])).rejects.toThrow(SchemaVersionTooNewError)
+  // 重设同样拒绝: 覆盖一份读不懂的文档等于丢数据, 它只修损坏的文件
+  await expect(resetSettingsFile()).rejects.toThrow(SchemaVersionTooNewError)
+
+  expect(await readFile(settingsPath(), 'utf8')).toBe(content)
+})
+
+test('版本过新的错误带上文件里的 language, 缺失或非法时留空由入口回退', async () => {
+  const version = CURRENT_SCHEMA_VERSION + 1
+  const languageOf = async (document: object) => {
+    const error = await errorOf(async () => parseDocument(document))
+    expect(error).toBeInstanceOf(SchemaVersionTooNewError)
+    return (error as SchemaVersionTooNewError).language
+  }
+
+  expect(await languageOf({ ...validDocument(), schemaVersion: version, language: 'en' })).toBe('en')
+  // language 本身读不出来时不能拦住那句升级提示, 由入口回退系统语言
+  expect(await languageOf({ ...validDocument(), schemaVersion: version, language: 'ja-JP' })).toBeUndefined()
+  expect(await languageOf({ schemaVersion: version })).toBeUndefined()
+})
+
+test('schemaVersion 非法时报损坏并说明支持的版本, 且不改动文件', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  for (const schemaVersion of [0, -1, 1.5, '1', null, true]) {
+    const content = JSON.stringify({ ...validDocument(), schemaVersion })
+    await writeFile(settingsPath(), content, 'utf8')
+
+    expect(errorMessage(await errorOf(() => initializeSettings())), JSON.stringify(schemaVersion)).toBe(
+      invalidVersionMessage(),
+    )
+    expect(await readFile(settingsPath(), 'utf8'), JSON.stringify(schemaVersion)).toBe(content)
+  }
+})
+
 test('parseSettingsDocument 校验主题并采用默认涨跌颜色模式', () => {
   const document = validDocument()
-  expect(parseSettingsDocument(document)).toStrictEqual(document)
+  expect(parseDocument(document)).toStrictEqual(document)
 
   const withoutTrendColor = { ...document, theme: { preset: 'ocean', borderStyle: 'double' } as object }
-  expect(parseSettingsDocument(withoutTrendColor).theme).toStrictEqual({
+  expect(parseDocument(withoutTrendColor).theme).toStrictEqual({
     preset: 'ocean',
     trendColorMode: 'red-up',
     borderStyle: 'double',
   })
 
-  expect(() => parseSettingsDocument({ ...document, theme: { preset: 'neon', borderStyle: 'round' } })).toThrow(
+  expect(() => parseDocument({ ...document, theme: { preset: 'neon', borderStyle: 'round' } })).toThrow(
     new RegExp(`theme.preset 无效, 只支持: ${THEME_PRESET_NAMES.join(', ')}`),
   )
   expect(() =>
-    parseSettingsDocument({
+    parseDocument({
       ...document,
       theme: { preset: 'classic', trendColorMode: 'blue-up', borderStyle: 'round' },
     }),
   ).toThrow(new RegExp(`theme.trendColorMode 无效, 只支持: ${TREND_COLOR_MODES.join(', ')}`))
-  expect(() => parseSettingsDocument({ ...document, theme: { preset: 'classic', borderStyle: 'wavy' } })).toThrow(
+  expect(() => parseDocument({ ...document, theme: { preset: 'classic', borderStyle: 'wavy' } })).toThrow(
     new RegExp(`theme.borderStyle 无效, 只支持: ${BORDER_STYLES.join(', ')}`),
   )
 })
 
 test('parseSettingsDocument 校验请求参数并拒绝相互矛盾的值', () => {
   const document = validDocument()
-  const parse = (request: object) => parseSettingsDocument({ ...document, request })
+  const parse = (request: object) => parseDocument({ ...document, request })
 
   expect(parse({ ...document.request, timeoutMs: 10_000 }).request.timeoutMs).toBe(10_000)
   expect(() => parse({ ...document.request, timeoutMs: 500 })).toThrow(/request.timeoutMs 无效/)
@@ -226,16 +401,16 @@ test('parseSettingsDocument 校验请求参数并拒绝相互矛盾的值', () =
 
 test('parseSettingsDocument 校验界面语言并接受字段缺失', () => {
   const document = validDocument()
-  expect(parseSettingsDocument({ ...document, language: 'zh-hant' }).language).toBe('zh-hant')
+  expect(parseDocument({ ...document, language: 'zh-hant' }).language).toBe('zh-hant')
 
   const withoutLanguage: Record<string, unknown> = { ...document }
   delete withoutLanguage['language']
-  expect(parseSettingsDocument(withoutLanguage).language).toBe('auto')
+  expect(parseDocument(withoutLanguage).language).toBe('auto')
 
-  expect(() => parseSettingsDocument({ ...document, language: 'ja-JP' })).toThrow(
+  expect(() => parseDocument({ ...document, language: 'ja-JP' })).toThrow(
     new RegExp(`language 无效, 只支持: ${LANGUAGES.join(', ')}`),
   )
-  expect(() => parseSettingsDocument({ ...document, language: 1 })).toThrow(/language 无效/)
+  expect(() => parseDocument({ ...document, language: 1 })).toThrow(/language 无效/)
 })
 
 test('parseSettingsDocument 的语言报错跟随已生效 locale, 而非抛出时重新检测', () => {
@@ -247,7 +422,7 @@ test('parseSettingsDocument 的语言报错跟随已生效 locale, 而非抛出�
     // 先钉住前提: 万一 LC_ALL 不再是检测来源, 下面的断言会失去区分度而静默通过
     expect(detectLocale()).toBe('zh-hans')
     setActiveLocale('en')
-    expect(() => parseSettingsDocument({ ...validDocument(), language: 'ja-JP' })).toThrow(
+    expect(() => parseDocument({ ...validDocument(), language: 'ja-JP' })).toThrow(
       `language is invalid, supported values: ${LANGUAGES.join(', ')}`,
     )
   } finally {

@@ -5,6 +5,7 @@ import { DEFAULT_LANGUAGE, LANGUAGES } from '../i18n/locale.ts'
 import type { Language } from '../i18n/types.ts'
 import { DEFAULT_TREND_COLOR_MODE, TREND_COLOR_MODES, type TrendColorMode } from '../lib/format.ts'
 import { isNormalObject } from '../lib/is.ts'
+import { APP_VERSION } from '../lib/version.ts'
 
 /* ---------- 外观 (theme / border) ---------- */
 
@@ -107,6 +108,12 @@ export const DEFAULT_SETTINGS: Settings = {
 
 /* ---------- 持久化文档 ---------- */
 
+/**
+ * 当前文档格式版本: 只在文档结构发生破坏性变更 (字段语义变化, 字段被移除或重命名) 时加一.
+ * 新增可选字段不需要加: 旧版本按默认值接受, 新版本读旧文件也不需要迁移.
+ */
+export const CURRENT_SCHEMA_VERSION = 1
+
 export type StockEntry = {
   /** 股票代码 */
   code: string
@@ -117,6 +124,10 @@ export type StockEntry = {
 }
 
 export type SettingsDocument = {
+  /** 文档格式版本, 用于判断升级降级 */
+  schemaVersion: number
+  /** 写入这份文档的应用版本, 仅用于排查, 读取时缺失或非法都回落当前版本 */
+  appVersion: string
   /** 界面语言, auto 表示跟随系统 */
   language: Language
   theme: {
@@ -133,6 +144,49 @@ export type SettingsDocument = {
   }
   stocks: StockEntry[]
 }
+
+/**
+ * 文档格式版本高于当前程序支持的版本: 文件本身没有损坏, 只是这份程序读不懂.
+ * 单独成一个类型, 让读取层原样抛出, 不套 "设置文件损坏" 的措辞.
+ * 文档整体被拒绝, 但 language 单独带出来: 它只决定 "请升级" 这句话用哪种文字说,
+ * 与读不懂的字段无关, 却是用户唯一必须读懂的一句话.
+ */
+export class SchemaVersionTooNewError extends Error {
+  constructor(
+    message: string,
+    readonly language: Language | undefined,
+  ) {
+    super(message)
+  }
+}
+
+/** 取文档里写的 language, 缺失或非法时返回 undefined. 与 parseLanguage 的区别是不抛 */
+const peekLanguage = (value: unknown): Language | undefined =>
+  typeof value === 'string' && LANGUAGES.includes(value as Language) ? (value as Language) : undefined
+
+/**
+ * 校验文档格式版本. 缺失时按当前版本接受 (旧文件里没有这个字段);
+ * 高于当前版本说明这份文件由更新的程序写入, 当前程序读不懂它, 直接报错而不是尽力解析:
+ * 白名单重建会把读不懂的字段静默写掉, 那样是丢数据.
+ * 报错文案带来源路径: 这类错误不套 loadExistingSettings 的 corruptFile 包装 (文件没坏),
+ * 否则用户起不来又不知道该动哪个文件.
+ */
+const parseSchemaVersion = (document: Record<string, unknown>, path: string): number => {
+  const value = document['schemaVersion']
+  if (value === undefined) return CURRENT_SCHEMA_VERSION
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+    throw new Error(t('settings.error.schemaVersion', { supported: CURRENT_SCHEMA_VERSION }))
+  }
+  if (value > CURRENT_SCHEMA_VERSION) {
+    throw new SchemaVersionTooNewError(
+      t('settings.error.schemaVersionNewer', { path, version: value, supported: CURRENT_SCHEMA_VERSION }),
+      peekLanguage(document['language']),
+    )
+  }
+  return value
+}
+
+const parseAppVersion = (value: unknown): string => (typeof value === 'string' && value !== '' ? value : APP_VERSION)
 
 const WATCH_CODE_PATTERN = /^(?:sh|sz|bj)\d{6}$/
 
@@ -201,10 +255,12 @@ const parseInteger = (value: unknown, name: string, limits: { min: number; max: 
   return value
 }
 
-/** 解析并验证完整设置文档 */
-export function parseSettingsDocument(value: unknown): SettingsDocument {
+/** 解析并验证完整设置文档, path 是文档来源路径, 只用于报错文案 */
+export function parseSettingsDocument(value: unknown, path: string): SettingsDocument {
   if (!isNormalObject(value)) throw new Error(t('settings.error.notObject'))
 
+  const schemaVersion = parseSchemaVersion(value, path)
+  const appVersion = parseAppVersion(value['appVersion'])
   const theme = value['theme']
   if (!isNormalObject(theme)) throw new Error(t('settings.error.theme'))
   const borderStyle = theme['borderStyle']
@@ -223,6 +279,8 @@ export function parseSettingsDocument(value: unknown): SettingsDocument {
   if (minimumDurationMs > timeoutMs) throw new Error(t('settings.error.minimumDurationGtTimeout'))
 
   return {
+    schemaVersion,
+    appVersion,
     language: parseLanguage(value['language']),
     theme: {
       preset: parseThemePreset(theme['preset']),
@@ -270,6 +328,8 @@ export function settingsFromDocument(document: SettingsDocument): Settings {
 /** 组合应用设置和股票条目为持久化文档 */
 export function createDocument(settings: Settings, stocks: StockEntry[]): SettingsDocument {
   return {
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    appVersion: APP_VERSION,
     language: settings.language,
     theme: {
       preset: settings.themePreset,

@@ -2,7 +2,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import { getActiveLocale, setActiveLocale } from '../src/i18n/core.ts'
 import { DEFAULT_LOCALE } from '../src/i18n/locale.ts'
-import { type SettingsDocument } from '../src/settings/schema.ts'
+import { APP_VERSION } from '../src/lib/version.ts'
+import { CURRENT_SCHEMA_VERSION, type SettingsDocument } from '../src/settings/schema.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 
 const fileMocks = vi.hoisted(() => ({
@@ -16,6 +17,8 @@ vi.mock('../src/settings/file.ts', () => fileMocks)
 import { startSettingsPersistence } from '../src/settings/persistence.ts'
 
 const document = (): SettingsDocument => ({
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  appVersion: APP_VERSION,
   language: 'auto',
   theme: { preset: 'classic', trendColorMode: 'red-up', borderStyle: 'round' },
   request: {
