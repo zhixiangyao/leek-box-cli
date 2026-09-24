@@ -88,6 +88,20 @@ const createInput = () => {
   return input
 }
 
+/**
+ * 把 App 渲染到固定尺寸的输出: 除 debug 外的默认行为一律关掉, 用例只需断言帧.
+ * 默认新开一条 stdin, 需要注入按键的用例自己传进来.
+ */
+const renderApp = (output: CaptureOutput, input: PassThrough = createInput()) =>
+  render(createElement(App), {
+    stdout: output as unknown as NodeJS.WriteStream,
+    stdin: input as unknown as NodeJS.ReadStream,
+    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
+    debug: true,
+    interactive: false,
+    patchConsole: false,
+  })
+
 const plain = (frame: string) => stripVTControlCharacters(frame)
 
 const waitForFrame = async (
@@ -128,6 +142,7 @@ const assertFrameSize = (frame: string, columns: number, rows: number) => {
  */
 const resetStores = () => {
   useStockAddStore.setState(useStockAddStore.getInitialState(), true)
+  useStockRemoveStore.setState(useStockRemoveStore.getInitialState(), true)
   useDialogMenuStore.setState(useDialogMenuStore.getInitialState(), true)
   useDialogConfirmStore.setState(useDialogConfirmStore.getInitialState(), true)
   useDialogRemoveConfirmStore.setState(useDialogRemoveConfirmStore.getInitialState(), true)
@@ -197,7 +212,7 @@ test('Card full 占满给定尺寸的父盒而非显式尺寸', async () => {
   }
 })
 
-test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 chrome 正确', async () => {
+test('App 的看板命令渲染自己的标题, hint 与列顺序', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -210,55 +225,138 @@ test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 
       })
     },
   })
-  useStockRemoveStore.setState({
-    loadEntries: async () => {
-      useStockRemoveStore.setState({
-        entries: [{ code: 'sh600000', name: '删除测试股', addedAt: '2026-08-20T00:00:00.000Z' }],
-      })
-    },
-  })
 
-  const instance = render(createElement(App), {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: createInput() as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
-  })
+  const instance = renderApp(output)
 
   try {
-    const stockFrame = await waitForFrame(output, 0, (candidate) => {
+    const frame = await waitForFrame(output, 0, (candidate) => {
       const text = plain(candidate)
       return text.includes('自选股票看板') && text.includes('名称') && text.includes('代码')
     })
-    expect(plain(stockFrame)).toContain(t('command.stockList.hint'))
-    expect(plain(stockFrame)).not.toMatch(/间隔\(-\/\+\)/)
-    expect(plain(stockFrame).indexOf('名称')).toBeLessThan(plain(stockFrame).indexOf('代码'))
-    assertFrameSize(stockFrame, columns, rows)
+    expect(plain(frame)).toContain(t('command.stockList.hint'))
+    // hint 与监听同步: 看板只接受上下, 状态栏就不列左右
+    expect(plain(frame)).not.toMatch(/间隔\(-\/\+\)/)
+    expect(plain(frame).indexOf('名称')).toBeLessThan(plain(frame).indexOf('代码'))
+    assertFrameSize(frame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    let after = output.frames.length
-    useCommandStore.setState({ command: 'stock-add' })
-    const addFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
-    expect(plain(addFrame)).toContain(t('command.stockAdd.hint'))
-    expect(plain(addFrame)).not.toMatch(/15:00 \(5000ms\)/)
-    expect(plain(addFrame)).toMatch(/请输入股票代码/)
-    assertFrameSize(addFrame, columns, rows)
+test('App 的添加命令渲染自己的标题与 hint', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
 
-    after = output.frames.length
-    useCommandStore.setState({ command: 'stock-remove' })
-    const removeFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
-    expect(plain(removeFrame)).toContain(t('command.stockRemove.hint'))
-    expect(plain(removeFrame)).not.toMatch(/15:00 \(5000ms\)/)
-    expect(plain(removeFrame)).toMatch(/删除测试股/)
-    assertFrameSize(removeFrame, columns, rows)
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+  useCommandStore.setState({ command: 'stock-add' })
 
-    after = output.frames.length
-    useCommandStore.setState({ command: 'stock-add' })
-    const brightFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('添加自选股'))
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('添加自选股'))
+    expect(plain(frame)).toContain(t('command.stockAdd.hint'))
+    expect(plain(frame)).not.toMatch(/15:00 \(5000ms\)/)
+    expect(plain(frame)).toMatch(/请输入股票代码/)
+    assertFrameSize(frame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的删除命令渲染自己的标题与 hint', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+  useStockRemoveStore.setState({
+    loadEntries: async () => {
+      useStockRemoveStore.setState({ entries: [{ code: 'sh600000', name: '删除测试股' }] })
+    },
+  })
+  useCommandStore.setState({ command: 'stock-remove' })
+
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('删除自选股'))
+    expect(plain(frame)).toContain(t('command.stockRemove.hint'))
+    expect(plain(frame)).not.toMatch(/15:00 \(5000ms\)/)
+    expect(plain(frame)).toMatch(/删除测试股/)
+    assertFrameSize(frame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的设置命令渲染自己的标题与 hint', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+  useCommandStore.setState({ command: 'settings' })
+
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('› 主题色系'))
+    expect(plain(frame)).toContain(t('command.settings.title'))
+    expect(plain(frame)).toContain(t('command.settings.hint'))
+    assertFrameSize(frame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('菜单 overlay 打开时底层命令变暗并保持命令自有的全屏 chrome', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+  useCommandStore.setState({ command: 'stock-add' })
+
+  const instance = renderApp(output)
+
+  try {
+    const brightFrame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('添加自选股'))
     expect(brightFrame).not.toContain('\u001B[2m')
 
-    after = output.frames.length
+    const after = output.frames.length
     useDialogMenuStore.getState().open('stock-add')
     const dimmedFrame = await waitForFrame(output, after, (candidate) => {
       const text = plain(candidate)
@@ -275,7 +373,79 @@ test('App 在路由切换和菜单 overlay 期间保持 Command 自有的全屏 
   }
 })
 
-test('删除确认弹窗按阶段处理按键: confirm 只接受 n/y, done/error 接受 esc', async () => {
+test('删除确认弹窗 confirm 阶段忽略不在 hint 里的 esc', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const dialogStore = useDialogRemoveConfirmStore
+    let after = output.frames.length
+    dialogStore.getState().open([{ code: 'sh600000', name: '浦发银行' }])
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
+
+    input.write('\x1B')
+    await delay(100)
+    expect(dialogStore.getState().step.type).toBe('confirm')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('删除确认弹窗 confirm 阶段按 n 取消并保留网格勾选', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockRemoveStore.setState({
+    loadEntries: async () => {
+      useStockRemoveStore.setState({ entries: [{ code: 'sh600000', name: '浦发银行' }] })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    let after = output.frames.length
+    useCommandStore.setState({ command: 'stock-remove' })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('浦发银行'))
+
+    const dialogStore = useDialogRemoveConfirmStore
+    const token = useStockRemoveStore.getState().resetToken
+    after = output.frames.length
+    dialogStore.getState().open([{ code: 'sh600000', name: '浦发银行' }])
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
+
+    after = output.frames.length
+    input.write('n')
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确定删除选中的'))
+    expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
+    // 勾选保留: 取消只关弹窗, 网格不重挂载
+    expect(useStockRemoveStore.getState().resetToken).toBe(token)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('删除确认弹窗 confirm 阶段按 y 删除成功后同步网格并重挂载', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -286,72 +456,154 @@ test('删除确认弹窗按阶段处理按键: confirm 只接受 n/y, done/error
     loadEntries: async () => {
       useStockRemoveStore.setState({
         entries: [
-          { code: 'sh600000', name: '浦发银行', addedAt: '2026-08-20T00:00:00.000Z' },
-          { code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:00.000Z' },
+          { code: 'sh600000', name: '浦发银行' },
+          { code: 'sz000001', name: '平安银行' },
         ],
       })
     },
   })
 
-  const instance = render(createElement(App), {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: input as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
-  })
+  const instance = renderApp(output, input)
 
   try {
     let after = output.frames.length
     useCommandStore.setState({ command: 'stock-remove' })
-    await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除自选股'))
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('浦发银行'))
 
     const dialogStore = useDialogRemoveConfirmStore
-    const targets = [
-      { code: 'sh600000', name: '浦发银行', addedAt: '2026-08-20T00:00:00.000Z' },
-      { code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:00.000Z' },
-    ]
-
-    // confirm 阶段只接受 hint 里的 n/y: esc 被忽略, 弹窗保持
-    dialogStore.getState().open(targets)
-    after = output.frames.length
-    await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
     const token = useStockRemoveStore.getState().resetToken
-    input.write('\x1B')
-    await delay(100)
-    expect(dialogStore.getState().step.type).toBe('confirm')
-    // n 取消: 弹窗关闭, 网格勾选保留 (resetToken 不变)
-    input.write('n')
-    after = output.frames.length
-    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确定删除选中的'))
-    expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
-    expect(useStockRemoveStore.getState().resetToken).toBe(token)
+    // 存储动作 stub 成"删掉 1 条": 弹窗自己收尾, 网格同步交给 hook
+    dialogStore.setState({
+      confirmDelete: async (cb) => {
+        cb?.(['sh600000'])
+        dialogStore.setState({ step: { type: 'idle' }, entries: [] })
+      },
+    })
 
-    // removing 阶段 esc 被忽略
-    dialogStore.setState({ step: { type: 'removing' }, targets })
     after = output.frames.length
+    dialogStore.getState().open([{ code: 'sh600000', name: '浦发银行' }])
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
+
+    after = output.frames.length
+    input.write('y')
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确定删除选中的'))
+    // 删掉的那条离开网格, 其余保留; resetToken 变化让网格重新挂载, 勾选清空
+    expect(useStockRemoveStore.getState().entries.map((entry) => entry.code)).toStrictEqual(['sz000001'])
+    expect(useStockRemoveStore.getState().resetToken).toBe(token + 1)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('删除确认弹窗 confirm 阶段按 y 删除失败时保留网格与勾选', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockRemoveStore.setState({
+    loadEntries: async () => {
+      useStockRemoveStore.setState({ entries: [{ code: 'sh600000', name: '浦发银行' }] })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    let after = output.frames.length
+    useCommandStore.setState({ command: 'stock-remove' })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('浦发银行'))
+
+    const dialogStore = useDialogRemoveConfirmStore
+    const token = useStockRemoveStore.getState().resetToken
+    // 删除失败: 弹窗进入 error, 不调 cb, 网格不该被改写
+    dialogStore.setState({
+      confirmDelete: async () => {
+        dialogStore.setState({ step: { type: 'error', message: '删除失败: 锁超时' } })
+        return
+      },
+    })
+
+    after = output.frames.length
+    dialogStore.getState().open([{ code: 'sh600000', name: '浦发银行' }])
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
+
+    after = output.frames.length
+    input.write('y')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除失败'))
+    // 文件没被改动: 条目与勾选都留着, esc 关闭后可以直接重试
+    expect(useStockRemoveStore.getState().entries.map((entry) => entry.code)).toStrictEqual(['sh600000'])
+    expect(useStockRemoveStore.getState().resetToken).toBe(token)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('删除确认弹窗 removing 阶段忽略 esc', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const dialogStore = useDialogRemoveConfirmStore
+    const after = output.frames.length
+    dialogStore.setState({ step: { type: 'removing' }, entries: [{ code: 'sh600000', name: '浦发银行' }] })
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('正在删除'))
+
     input.write('\x1B')
     await delay(100)
     expect(dialogStore.getState().step.type).toBe('removing')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    // error 阶段 esc 关闭
-    dialogStore.setState({ step: { type: 'error', message: '删除失败: 锁超时' }, targets })
-    after = output.frames.length
-    await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除失败'))
-    input.write('\x1B')
-    after = output.frames.length
-    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除失败'))
-    expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
+test('删除确认弹窗 done 阶段 esc 关闭', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
 
-    // done 阶段 esc 关闭
-    dialogStore.setState({ step: { type: 'done', message: '已删除 1 个股票, 1 个条目已不在自选股中.' }, targets: [] })
-    after = output.frames.length
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const dialogStore = useDialogRemoveConfirmStore
+    let after = output.frames.length
+    dialogStore.setState({
+      step: { type: 'done', message: '已删除 1 个股票, 1 个条目已不在自选股中.' },
+      entries: [],
+    })
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除完成'))
-    input.write('\x1B')
+
     after = output.frames.length
+    input.write('\x1B')
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除完成'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
   } finally {
@@ -362,7 +614,7 @@ test('删除确认弹窗按阶段处理按键: confirm 只接受 n/y, done/error
   }
 })
 
-test('通用确认弹窗: 错误态 hint 切换为 关闭(esc) 重试(y), n 忽略, esc 关闭, y 重试', async () => {
+test('删除确认弹窗 error 阶段 esc 关闭', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -371,35 +623,180 @@ test('通用确认弹窗: 错误态 hint 切换为 关闭(esc) 重试(y), n 忽�
   resetStores()
   useStockListStore.setState({
     refreshQuotes: async () => {
-      useStockListStore.setState({
-        step: { type: 'table', rows: [] },
-      })
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
     },
   })
 
-  const instance = render(createElement(App), {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: input as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
+  const instance = renderApp(output, input)
+
+  try {
+    const dialogStore = useDialogRemoveConfirmStore
+    let after = output.frames.length
+    dialogStore.setState({
+      step: { type: 'error', message: '删除失败: 锁超时' },
+      entries: [{ code: 'sh600000', name: '浦发银行' }],
+    })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('删除失败'))
+
+    after = output.frames.length
+    input.write('\x1B')
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除失败'))
+    expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('删除网格在条目没有名称时单元格只显示代码', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
   })
+  useStockRemoveStore.setState({
+    loadEntries: async () => {
+      useStockRemoveStore.setState({ entries: [{ code: 'sh600000', name: undefined }] })
+    },
+  })
+  useCommandStore.setState({ command: 'stock-remove' })
+
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(
+      output,
+      0,
+      (candidate) => plain(candidate).includes('删除自选股') && plain(candidate).includes('sh600000'),
+    )
+    expect(plain(frame)).toContain('[ ] sh600000')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('删除确认弹窗在条目没有名称时只列代码, 不留空括号', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output)
+
+  try {
+    const after = output.frames.length
+    useDialogRemoveConfirmStore.getState().open([{ code: 'sh600000', name: undefined }])
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
+    expect(plain(frame)).toContain('sh600000')
+    expect(plain(frame)).not.toContain('(sh600000)')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('删除确认弹窗在条目有名称时列 名称 (代码)', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output)
+
+  try {
+    const after = output.frames.length
+    useDialogRemoveConfirmStore.getState().open([{ code: 'sh600000', name: '浦发银行' }])
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
+    expect(plain(frame)).toContain('浦发银行 (sh600000)')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('通用确认弹窗确认态: hint 为 取消(n) 确定(y)', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
 
   try {
     const confirm = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-    let after = output.frames.length
+    const after = output.frames.length
     useDialogConfirmStore.setState({
       config: { title: '确认重置吗?', content: '此操作将重置所有设置与自选股为默认值.', isError: false, confirm },
     })
-    await waitForFrame(
+    const frame = await waitForFrame(
       output,
       after,
       (candidate) => plain(candidate).includes('确认重置吗') && plain(candidate).includes('取消(n)'),
     )
+    expect(plain(frame)).toContain('确定(y)')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    // update 把错误同步进弹窗: 内容为失败信息, hint 切换为 关闭(esc) 重试(y)
-    after = output.frames.length
+test('通用确认弹窗错误态: update 换上失败信息并把 hint 切到 关闭(esc) 重试(y)', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const confirm = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    useDialogConfirmStore.setState({
+      config: { title: '确认重置吗?', content: '此操作将重置所有设置与自选股为默认值.', isError: false, confirm },
+    })
+
+    const after = output.frames.length
     useDialogConfirmStore.getState().update({ content: '重置失败: 锁超时', isError: true })
     await waitForFrame(
       output,
@@ -409,40 +806,151 @@ test('通用确认弹窗: 错误态 hint 切换为 关闭(esc) 重试(y), n 忽�
         plain(candidate).includes('关闭(esc)') &&
         plain(candidate).includes('重试(y)'),
     )
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    // 错误态 n 被忽略 (hint 未展示 n)
+test('通用确认弹窗错误态: 不在 hint 里的 n 被忽略', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    useDialogConfirmStore.setState({
+      config: {
+        title: '确认重置吗?',
+        content: '重置失败: 锁超时',
+        isError: true,
+        confirm: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      },
+    })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('重试(y)'))
+
     input.write('n')
     await delay(100)
     expect(useDialogConfirmStore.getState().config?.isError).toBe(true)
     expect(useDialogConfirmStore.getState().config?.content).toBe('重置失败: 锁超时')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    // 错误态 esc 关闭
-    input.write('\x1B')
+test('通用确认弹窗错误态: esc 关闭弹窗', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    let after = output.frames.length
+    useDialogConfirmStore.setState({
+      config: {
+        title: '确认重置吗?',
+        content: '重置失败: 锁超时',
+        isError: true,
+        confirm: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      },
+    })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('重试(y)'))
+
     after = output.frames.length
+    input.write('\x1B')
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确认重置吗'))
     expect(useDialogConfirmStore.getState().config).toBeUndefined()
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    // 错误态 y 重试, 成功后才关闭
-    confirm.mockClear()
-    after = output.frames.length
+test('通用确认弹窗错误态: y 重试成功后关闭弹窗', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const confirm = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    let after = output.frames.length
     useDialogConfirmStore.setState({
       config: { title: '确认重置吗?', content: '重置失败: 锁超时', isError: true, confirm },
     })
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('重试(y)'))
-    input.write('y')
+
     after = output.frames.length
+    input.write('y')
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确认重置吗'))
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(useDialogConfirmStore.getState().config).toBeUndefined()
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    // 错误态 y 重试失败: reject 不外泄, 弹窗保留可继续重试
-    confirm.mockClear()
-    confirm.mockRejectedValueOnce(new Error('锁超时'))
-    after = output.frames.length
+test('通用确认弹窗错误态: y 重试失败时弹窗保留', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const confirm = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('锁超时'))
+    const after = output.frames.length
     useDialogConfirmStore.setState({
       config: { title: '确认重置吗?', content: '重置失败: 锁超时', isError: true, confirm },
     })
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('重试(y)'))
+
     input.write('y')
     await delay(100)
     expect(confirm).toHaveBeenCalledTimes(1)
@@ -455,7 +963,7 @@ test('通用确认弹窗: 错误态 hint 切换为 关闭(esc) 重试(y), n 忽�
   }
 })
 
-test('App 的 esc 接线: 菜单开关切换', async () => {
+test('App 的 esc 接线: esc 打开菜单, 再按 esc 关闭', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -470,26 +978,18 @@ test('App 的 esc 接线: 菜单开关切换', async () => {
     },
   })
 
-  const instance = render(createElement(App), {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: input as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
-  })
+  const instance = renderApp(output, input)
 
   try {
     let after = output.frames.length
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('自选股票看板'))
 
-    // esc 打开菜单: 背景变暗, 高亮同步为当前命令
     after = output.frames.length
     input.write('\x1B')
     await waitForFrame(output, after, (candidate) => candidate.includes('\x1B[2m'))
+    // 打开时的高亮由 App 传入当前命令
     expect(useDialogMenuStore.getState().highlightedType).toBe('stock-list')
 
-    // esc 再次按下关闭菜单: 背景恢复
     after = output.frames.length
     input.write('\x1B')
     await waitForFrame(output, after, (candidate) => !candidate.includes('\x1B[2m'))
@@ -502,7 +1002,38 @@ test('App 的 esc 接线: 菜单开关切换', async () => {
   }
 })
 
-test('App 在 en 下渲染英文命令标题, 表头与本地化单位', async () => {
+test('App 在 en 下渲染英文命令标题与表头', async () => {
+  const columns = tableWidth(stockListColumns('en')) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useSettingsStore.setState({ language: 'en' })
+  setActiveLocale('en')
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('Market Cap'))
+    expect(plain(frame)).toContain('Watchlist')
+    expect(plain(frame)).toContain('Change %')
+    expect(plain(frame)).toContain('Turnover %')
+    assertFrameSize(frame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 在 en 下用本地化单位渲染行情数值', async () => {
   const columns = tableWidth(stockListColumns('en')) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -520,7 +1051,6 @@ test('App 在 en 下渲染英文命令标题, 表头与本地化单位', async (
             {
               kind: 'quote',
               code: 'sh600000',
-              name: '浦发银行',
               quote: {
                 code: 'sh600000',
                 name: '浦发银行',
@@ -540,31 +1070,19 @@ test('App 在 en 下渲染英文命令标题, 表头与本地化单位', async (
                 volumeRatio: 1.1,
               },
             },
-            { kind: 'missing', code: 'sz000001', name: '平安银行' },
+            { kind: 'missing', code: 'sz000001' },
           ],
         },
       })
     },
   })
 
-  const instance = render(createElement(App), {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: input as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
-  })
+  const instance = renderApp(output, input)
 
   try {
     const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('Market Cap'))
     const text = plain(frame)
-
-    // 命令标题与表头
-    expect(text).toContain('Watchlist')
-    expect(text).toContain('Change %')
-    expect(text).toContain('Turnover %')
-    // 本地化单位 (ScrollBox 只渲染测量到的窗口, 首行即行情行)
+    // ScrollBox 只渲染测量到的窗口, 首行即行情行
     expect(text).toContain('611.0K lots')
     expect(text).toContain('550.0M')
     expect(text).toContain('298.75B')
@@ -580,7 +1098,7 @@ test('App 在 en 下渲染英文命令标题, 表头与本地化单位', async (
   }
 })
 
-test('App 的 vim 键: 看板 j/k 移动选中行, 菜单 j/k 移动高亮', async () => {
+test('App 的 vim 键: 看板 j/k 移动选中行', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -593,8 +1111,8 @@ test('App 的 vim 键: 看板 j/k 移动选中行, 菜单 j/k 移动高亮', asy
         step: {
           type: 'table',
           rows: [
-            { kind: 'missing', code: 'sh600000', name: '浦发银行' },
-            { kind: 'missing', code: 'sz000001', name: '平安银行' },
+            { kind: 'missing', code: 'sh600000' },
+            { kind: 'missing', code: 'sz000001' },
           ],
         },
         selectedCode: 'sh600000',
@@ -602,32 +1120,55 @@ test('App 的 vim 键: 看板 j/k 移动选中行, 菜单 j/k 移动高亮', asy
     },
   })
 
-  const instance = render(createElement(App), {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: input as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
-  })
+  const instance = renderApp(output, input)
 
   try {
     const after = output.frames.length
-    const stockFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('浦发银行'))
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('sh600000'))
     // hint 与监听同步: j/k 展示在状态栏, 也只在这些键上生效
-    expect(plain(stockFrame)).toContain('选择(↑/↓/j/k)')
+    expect(plain(frame)).toContain('选择(↑/↓/j/k)')
 
-    // 看板: j 下移一行, k 回到首行
     input.write('j')
     await waitForState(() => useStockListStore.getState().selectedCode === 'sz000001')
     input.write('k')
     await waitForState(() => useStockListStore.getState().selectedCode === 'sh600000')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    // 菜单: 浮层打开时看板输入失活, j/k 只移动菜单高亮
-    const beforeMenu = output.frames.length
+test('App 的 vim 键: 菜单打开时 j/k 只移动菜单高亮, 看板选中行不动', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({
+        step: {
+          type: 'table',
+          rows: [
+            { kind: 'missing', code: 'sh600000' },
+            { kind: 'missing', code: 'sz000001' },
+          ],
+        },
+        selectedCode: 'sh600000',
+      })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
     input.write('\x1B')
-    const menuFrame = await waitForFrame(output, beforeMenu, (candidate) => plain(candidate).includes('选择(↑/↓/j/k)'))
-    expect(plain(menuFrame)).toContain('菜单')
+    const menuFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('菜单'))
+    expect(plain(menuFrame)).toContain('选择(↑/↓/j/k)')
 
     input.write('j')
     await waitForState(() => useDialogMenuStore.getState().highlightedType === MENU_ITEMS[1]!.type)
@@ -642,7 +1183,7 @@ test('App 的 vim 键: 看板 j/k 移动选中行, 菜单 j/k 移动高亮', asy
   }
 })
 
-test('App 的 vim 键: 设置命令 j/k 选择配置项, h/l 调整数值', async () => {
+test('App 的 vim 键: 设置命令 j/k 移动选中的配置项', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
@@ -654,35 +1195,49 @@ test('App 的 vim 键: 设置命令 j/k 选择配置项, h/l 调整数值', asyn
       useStockListStore.setState({ step: { type: 'table', rows: [] } })
     },
   })
+  useCommandStore.setState({ command: 'settings' })
 
-  const instance = render(createElement(App), {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: input as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
-  })
+  const instance = renderApp(output, input)
 
   try {
     let after = output.frames.length
-    useCommandStore.setState({ command: 'settings' })
-    const settingsFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
-    expect(plain(settingsFrame)).toContain(t('command.settings.title'))
-    expect(plain(settingsFrame)).toContain(t('command.settings.hint'))
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
 
-    // j 下移一项到 涨跌颜色, k 回到 主题色系
     after = output.frames.length
     input.write('j')
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 涨跌颜色'))
     after = output.frames.length
     input.write('k')
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
 
-    // h/l 在 option 类配置项上等价于 Left/Right: 切到下一个再切回来
-    after = output.frames.length
+test('App 的 vim 键: 设置命令 h/l 切换 option 类配置项', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      useStockListStore.setState({ step: { type: 'table', rows: [] } })
+    },
+  })
+  useCommandStore.setState({ command: 'settings' })
+
+  const instance = renderApp(output, input)
+
+  try {
+    let after = output.frames.length
     input.write('j')
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 涨跌颜色'))
+
     const initialMode = useSettingsStore.getState().trendColorMode
     input.write('l')
     await waitForState(() => useSettingsStore.getState().trendColorMode !== initialMode)

@@ -4,17 +4,14 @@ import { fetchQuotes } from '../api/index.ts'
 import type { Quote } from '../api/types.ts'
 import { errorMessage } from '../lib/error.ts'
 import { loadStocks } from '../settings/file.ts'
-import { type StockEntry } from '../settings/schema.ts'
 
-export type StockRow =
-  | { kind: 'quote'; code: string; name: string; quote: Quote }
-  | { kind: 'missing'; code: string; name: string }
+export type StockListRow = { kind: 'quote'; code: string; quote: Quote } | { kind: 'missing'; code: string }
 
 export type StockListStep =
   | { type: 'loading' }
   | { type: 'empty' }
   | { type: 'error'; message: string }
-  | { type: 'table'; rows: StockRow[]; errorLine?: string }
+  | { type: 'table'; rows: StockListRow[]; errorLine?: string }
 
 type StockListState = {
   step: StockListStep
@@ -26,8 +23,8 @@ type StockListState = {
 }
 
 export type StockListDependencies = {
-  fetchQuotes: (codes: string[], signal?: AbortSignal) => Promise<Quote[]>
-  loadStocks: () => Promise<StockEntry[]>
+  fetchQuotes: typeof fetchQuotes
+  loadStocks: typeof loadStocks
 }
 
 const defaultDependencies: StockListDependencies = { fetchQuotes, loadStocks }
@@ -48,7 +45,7 @@ const anchoredScrollOffset = (
   return Math.min(scrollOffset, maxOffset)
 }
 
-const rowIndex = (rows: StockRow[], code: string | undefined) => {
+const rowIndex = (rows: StockListRow[], code: StockListRow['code'] | undefined) => {
   if (!code) return 0
   const index = rows.findIndex((row) => row.code === code)
   return index < 0 ? 0 : index
@@ -95,7 +92,7 @@ export function createStockListStore(dependencies: StockListDependencies = defau
           const previousRows = state.step.type === 'table' ? state.step.rows : []
           const previousQuotes = new Map(
             previousRows
-              .filter((row): row is Extract<StockRow, { kind: 'quote' }> => row.kind === 'quote')
+              .filter((row): row is Extract<StockListRow, { kind: 'quote' }> => row.kind === 'quote')
               .map((row) => [row.code, row.quote]),
           )
           const quoteByCode = new Map(
@@ -104,11 +101,9 @@ export function createStockListStore(dependencies: StockListDependencies = defau
               return [quote.code, previous && quotesEqual(previous, quote) ? previous : quote]
             }),
           )
-          const rows: StockRow[] = entries.map((entry) => {
+          const rows = entries.map<StockListRow>((entry) => {
             const quote = quoteByCode.get(entry.code)
-            return quote
-              ? { kind: 'quote', code: entry.code, name: quote.name, quote }
-              : { kind: 'missing', code: entry.code, name: entry.name }
+            return quote ? { kind: 'quote', code: entry.code, quote } : { kind: 'missing', code: entry.code }
           })
           const previousIndex = rowIndex(previousRows, state.selectedCode)
           const preservedIndex = state.selectedCode ? rows.findIndex((row) => row.code === state.selectedCode) : -1

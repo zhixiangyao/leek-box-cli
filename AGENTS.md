@@ -60,8 +60,11 @@ src/stores/
 src/api/index.ts
   HTTP 请求, timeout, minimum duration, AbortSignal 合并和 GBK 解码
 
-src/api/parsers.ts
+src/api/lib/parsers.ts
   腾讯行情响应的纯解析器
+
+src/api/lib/tools.ts
+  代码归一化 (normalizeCode), 统一 timing wrapper 与年 K 聚合
 
 src/settings/schema.ts
   settings.json schema, 校验和文档转换; 外观常量 (border/theme) 与 Settings 类型也定义于此, store 从 schema 导入常量. 校验错误文案也是 MessageKey
@@ -236,8 +239,21 @@ useFeatureStore.ts
 不持有业务状态, 也不接 `useInput` (目前只有 StockList 的 StockTable).
 
 Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器. `useSettingsStore` 是纯内存投影, 不注入依赖.
+注入字段直接写 `typeof` 指向真实函数 (`fetchQuotes: typeof fetchQuotes`), 不手抄函数签名: 抄一遍既会与实现漂移, 各处抄法也难保一致 (如 `fetchQuotes` 曾在一处带 `signal?` 一处不带). 只有没有对应真实函数的字段 (`now`) 才手写签名, 并在注释里说明原因.
 
 删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交, 列数随终端宽度变化), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅关闭弹窗并保留勾选, 可重新打开确认.
+
+网格同步由确认弹窗的 hook 负责, 两个 store 不互相 import: `confirmDelete()` 接受一个可选回调 (参数是这次提交删除的
+条目代码), 自己收尾并**只在确实删掉条目后**调用它; hook 把网格 store 的 `removeByCodes` 当回调传进去.
+"没删掉任何条目" (失败, 或所选已不在自选股: `stocksRemove()` 返回 0) 都在调用点之前收尾并 return, 网格条目与
+勾选因此都保留, esc 关闭后可以直接重试; 也避免按 y 后无条件同步把"其实没删掉"的条目从网格里抹掉.
+
+网格条目是 `{code, name}` (`StockRemoveEntry`) 而不是 `StockEntry`: 名称来自实时行情, 因此 store 的 `loadEntries`
+先按文件里的代码铺出网格 (勾选不必等行情), 行情到了再补上名称. 拉名称失败**暴露错误并清空网格**: 不静默降级成
+只有代码的网格, 否则用户是在闭着眼睛删. 行情到达后名称仍为空, 只发生在行情没返回该代码时 (停牌, 退市或响应不全),
+此时单元格只显示代码, 确认弹窗也只列代码 (弹窗拿到的就是网格条目本身).
+`loadEntries` 带加载代数: 离开删除页再进来会重开一轮, 上一轮 (文件读取与行情各自可能卡在超时边缘) 的结果一律不落地,
+既不覆盖新一轮的名称, 也不在失败时清空新一轮的网格 (见 `useStockAddStore` 的 `generation`).
 
 Settings 的规则:
 
@@ -245,7 +261,7 @@ Settings 的规则:
 - `src/commands/Settings/hooks/useSettings.ts` 负责选中项, 键盘输入, option 循环, duration 格式化和行视图模型.
 - UI 只更新 `useSettingsStore`, 不在 command 中直接写文件. 写盘分两条路径: 增量设置变更由 `settingsPersistence` 订阅合并为 patch 保存; 整档操作 (自选股增删改) 由 store 动作调用 `settings/file.ts` 的锁内函数. 全量重置是组合命令 `settings/resetAll.ts` 的 `resetAll()`: 先重置文件, 文件失败则抛出且内存不变; 成功后再恢复设置内存默认值并重新载入自选股.
 
-React 组件优先使用窄 selector. 事件需要同步快照时使用 `useXxxStore.getState()`. 不在多个 store 中保存同一配置字段.
+React 组件和组件 hook 优先使用窄 selector (action 引用稳定, 订阅不会造成多余渲染). 非组件代码 (store 动作, 工具函数) 读写其他 store 时尽量用 `useXxxStore.getState()`, 不通过 selector 订阅. 不在多个 store 中保存同一配置字段.
 
 ## 全局输入和 overlay
 
@@ -456,8 +472,9 @@ Windows 使用 `%APPDATA%` (Roaming):
 
 当前格式带版本字段 (没有 legacy migration):
 
-- `schemaVersion` 是**文档格式版本** (`CURRENT_SCHEMA_VERSION`), 只在文档结构发生破坏性变更时加一:
-  新增可选字段不加, 因为旧程序按默认值接受, 新程序读旧文件也不需要迁移.
+- `schemaVersion` 是**文档格式版本** (`CURRENT_SCHEMA_VERSION`, 当前为 2), 只在文档结构发生破坏性变更时加一:
+  新增可选字段不加, 因为旧程序按默认值接受, 新程序读旧文件也不需要迁移. 加一的例子: v2 把 stocks 条目的
+  `name` 移除 (名称只来自实时行情), v1 文件仍按当前规则解析, 下次写盘即去掉该字段.
 - `appVersion` 是写入这份文档的**应用版本** (`src/lib/version.ts` 取自 package.json), 只用于排查, 不参与兼容判断;
   读取时缺失或非法都回落到当前应用版本, 不报错 (这个字段不该因为手写出一个怪值就拦住启动). 只判空串, 不 trim.
 - 写盘一律盖版本: `writeSettingsFile()` 先把文档校验一遍再盖 `schemaVersion` 与 `appVersion`, 两步都必要 ——
@@ -466,7 +483,7 @@ Windows 使用 `%APPDATA%` (Roaming):
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "appVersion": "<app version>",
   "language": "auto",
   "theme": {
@@ -484,7 +501,6 @@ Windows 使用 `%APPDATA%` (Roaming):
   "stocks": [
     {
       "code": "sh600000",
-      "name": "浦发银行",
       "addedAt": "2026-08-20T00:00:00.000Z"
     }
   ]
@@ -495,7 +511,7 @@ Windows 使用 `%APPDATA%` (Roaming):
 
 规则:
 
-- 文件不存在时使用默认 settings 和预置默认自选股 (DEFAULT_STOCKS: 富通微电, 长电科技, 长鑫科技) 创建, addedAt 为创建时间.
+- 文件不存在时使用默认 settings 和预置默认自选股 (DEFAULT_STOCK_CODES: sz002156, sh600584, sh688825) 创建, addedAt 为创建时间.
 - 文件存在时严格校验 language, theme, request 和 stocks; `theme.trendColorMode` 缺失时按默认 red-up 接受,
   `language` 缺失时按默认 auto 接受. 这是 schema 的可选字段默认值规则, 不是 legacy 格式迁移, 首次成功写入即持久化.
 - 读取时先去除 UTF-8 BOM (`stripBom`), 兼容 Windows 记事本或 PowerShell 重定向写入的配置.
@@ -511,8 +527,9 @@ Windows 使用 `%APPDATA%` (Roaming):
   必须读懂的一句话, 不该因为它配置的语言读不到而失效; `parseCli` 只在这条错误上额外看这个字段.
 - 版本字段只做判断, 不做迁移: 低版本文件按当前规则解析, 字段缺失走默认值, 没有 migration 层.
 - 损坏文件直接报错, 不静默丢弃字段, 不 fallback 到旧格式.
-- `StockEntry` 为 `{code, name, addedAt}`.
-- `parseStocks()` 校验 code, name, addedAt 和重复 code.
+- `StockEntry` 为 `{code, addedAt}`. 名称**不是持久化数据**: 除息等情况下行情里的名称会变, 存下来的那份会过期,
+  因此它只来自实时行情 (看板行用 quote.name, 详情弹窗标题同源).
+- `parseStocks()` 校验 code, addedAt 和重复 code; 旧文档里的 name 按白名单重建丢弃, 不做迁移.
 - `patchSettings()` 只合并变化的 settings 字段, 保留锁内读取到的最新 stocks.
 - `stocksAdd()`, `stocksRemove()` 在锁内读取最新文档后修改.
 - `replaceStocks()` 表示明确的整表替换, 当前仅用于 mock reset.
@@ -548,7 +565,7 @@ Lock 元数据包含 token, pid 和 createdAt. 元数据先写入临时文件, �
 
 默认 interval 来自 `useSettingsStore`, 不在 StockList 或详情 store 保存重复值.
 
-详情 `restartKey` 必须包含 `stock.code` 和 `period`. 切股票或周期时旧请求必须 abort, store 还要检查当前 code/period, 防止陈旧结果落地.
+详情 `restartKey` 必须包含打开的 code 和 `period` (store 只持有 `code`, 名称随行情走). 切股票或周期时旧请求必须 abort, store 还要检查当前 code/period, 防止陈旧结果落地.
 
 ## 请求 timeout 和 minimum duration
 
@@ -563,6 +580,8 @@ Lock 元数据包含 token, pid 和 createdAt. 元数据先写入临时文件, �
 API 函数:
 
 - `fetchQuotes()`
+- `fetchQuoteNames()` — 行情里只要 code 与 name 时的投影 (删除网格的名称), 内部复用 `fetchQuotes`,
+  因此 timing wrapper 只套一层, 空 codes 的短路也由 `fetchQuotes` 负责 (这一层不再重复判断)
 - `fetchIntraday()`
 - `fetchFiveDay()`
 - `fetchHistorical()`
@@ -574,11 +593,13 @@ API 函数:
 `StockListStep.table` 使用统一 rows:
 
 ```ts
-type StockRow =
-  { kind: 'quote'; code: string; name: string; quote: Quote } | { kind: 'missing'; code: string; name: string }
+type StockListRow = { kind: 'quote'; code: string; quote: Quote } | { kind: 'missing'; code: string }
 ```
 
 禁止恢复 `quotes + missing` 双数组拼接. 统一 rows 用于渲染, 选择, Enter 打开详情和可视窗口.
+
+行的名称只在 quote 里: 缺失行 (行情没返回该代码) 没有第二个名称来源, 名称列显示 `--`, 其余列按列元数据
+显示占位文案. 打开详情也只用 code, 名称由详情弹窗自己从行情行里取 (`useStockListStore` 的 quote).
 
 选择身份使用 `selectedCode`, 不使用数组 index. 刷新时保持仍存在的 code, 删除后回退到附近有效行, 并尽量保持选中行的视口相对位置.
 
@@ -664,7 +685,7 @@ TextInput 和全局快捷键没有事件冒泡停止机制. 新增自由文本�
 A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 停牌显示 `--` 和 `common.suspended`
 (英文 `Suspended`), 接口缺失显示 `--` 和 `common.noData` (英文 `No data`).
 
-`src/api/parsers.ts` 是纯解析层:
+`src/api/lib/parsers.ts` 是纯解析层:
 
 - `parseQuoteText()` 解析实时行情文本.
 - `parseIntradayResponse()` 解析当日分时.
@@ -731,6 +752,13 @@ script -qec "stty cols 160 rows 40; pnpm dev" /dev/null
 - 不新增第二份路由, overlay, poll interval 或 settings 状态.
 - 不新增第二份文案来源: 显示文案只放 catalog, 组件与常量表存 `MessageKey` 并在渲染处解析.
 - 不直接修改 Zustand store 内部字段来绕过 action, 测试 setup 和明确初始化除外.
+- store 里的类型统一带该 store 的 feature 前缀 (含只经 Step 联合类型暴露的): `useStockListStore` 有
+  `StockListRow` / `StockListStep` / `StockListDependencies`, `useStockAddStore` 有 `StockAddCandidate`.
+  不写 `StockRow` / `StockCandidate` 这类省掉 feature 的形式. 唯一的例外是 `StockEntry`: 它由多个 store 共用,
+  定义在 settings/schema, 不属于任何一个 feature.
+- 前缀动词区分 I/O: 走 HTTP 的用 `fetchX` (fetchQuotes, fetchQuoteNames), 从文件读的用 `loadX` (loadStocks, loadEntries).
+- 同一种数据在各层用同一个名字: 删除网格的 `entries` 和确认弹窗的 `entries` 是同一份 `StockRemoveEntry[]`,
+  不一处叫 `entries` 另一处叫 `targets`. 泛型组件自己的词汇不算别名 (CheckboxGrid 的 `items` 指任意 T).
 - 表格宽度由列元数据推导, CJK 宽度使用项目本地函数.
 - command 不复制 Card, StatusBar, registry 或 persistence 逻辑.
 - 所有退出走 Ink, 所有持久化退出前 flush.

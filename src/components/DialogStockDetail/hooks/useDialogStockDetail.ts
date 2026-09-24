@@ -22,7 +22,7 @@ const CHART_PERIOD_MAP = CHART_PERIOD_OPTIONS.reduce<Record<string, ChartPeriod>
 )
 
 export function useDialogStockDetail() {
-  const stock = useDialogStockDetailStore((state) => state.stock)
+  const code = useDialogStockDetailStore((state) => state.code)
   const period = useDialogStockDetailStore((state) => state.period)
   const status = useDialogStockDetailStore((state) => state.status)
   const points = useDialogStockDetailStore((state) => state.points)
@@ -34,7 +34,7 @@ export function useDialogStockDetail() {
   const klinePollIntervalMs = useSettingsStore((state) => state.klinePollIntervalMs)
   const quote = useStockListStore((state) => {
     if (state.step.type !== 'table') return undefined
-    const row = state.step.rows.find((item) => item.code === stock?.code)
+    const row = state.step.rows.find((item) => item.code === code)
     return row?.kind === 'quote' ? row.quote : undefined
   })
 
@@ -47,22 +47,22 @@ export function useDialogStockDetail() {
         if (period) setPeriod(period)
       }
     },
-    { isActive: stock !== undefined },
+    { isActive: code !== undefined },
   )
 
   usePolling(
     async (signal) => {
-      if (stock) await refreshChart(stock.code, period, signal)
+      if (code) await refreshChart(code, period, signal)
     },
     {
-      enabled: stock !== undefined,
+      enabled: code !== undefined,
       intervalMs: ['intraday', 'five-day'].includes(period) ? minuteChartPollIntervalMs : klinePollIntervalMs,
-      restartKey: stock ? `${stock.code}:${period}` : undefined,
+      restartKey: code ? `${code}:${period}` : undefined,
     },
   )
 
   return {
-    stock,
+    code,
     quote,
     suspended: quote ? quote.current <= 0 : false,
     period,

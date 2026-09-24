@@ -1,15 +1,7 @@
 import { create } from 'zustand'
 
 import { fetchFiveDay, fetchHistorical, fetchIntraday } from '../api/index.ts'
-import type {
-  ChartPeriod,
-  ChartPoint,
-  FiveDayPoint,
-  HistoricalPoint,
-  HistoricalRequest,
-  IntradayPoint,
-  KlinePeriod,
-} from '../api/types.ts'
+import type { ChartPeriod, ChartPoint, HistoricalRequest, KlinePeriod } from '../api/types.ts'
 import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
 
@@ -24,21 +16,21 @@ const DEFAULT_PERIOD: ChartPeriod = 'intraday'
 const isKlinePeriod = (period: ChartPeriod): period is KlinePeriod => period !== 'intraday' && period !== 'five-day'
 
 type DialogStockDetailState = {
-  stock: { code: string; name: string } | undefined
+  code: string | undefined
   period: ChartPeriod
   status: 'loading' | 'ready' | 'error'
   points: ChartPoint[]
   errorMessage?: string
-  open: (code: string, name: string) => void
+  open: (code: string) => void
   close: () => void
   setPeriod: (period: ChartPeriod) => void
   refreshChart: (code: string, period: ChartPeriod, signal?: AbortSignal) => Promise<void>
 }
 
 export type DialogStockDetailDependencies = {
-  fetchIntraday: (code: string, signal?: AbortSignal) => Promise<IntradayPoint[]>
-  fetchFiveDay?: (code: string, signal?: AbortSignal) => Promise<FiveDayPoint[]>
-  fetchHistorical?: (code: string, request: HistoricalRequest) => Promise<HistoricalPoint[]>
+  fetchIntraday: typeof fetchIntraday
+  fetchFiveDay?: typeof fetchFiveDay
+  fetchHistorical?: typeof fetchHistorical
 }
 
 const defaultDependencies: DialogStockDetailDependencies = { fetchIntraday, fetchFiveDay, fetchHistorical }
@@ -60,28 +52,28 @@ export function createDialogStockDetailStore(dependencies: DialogStockDetailDepe
           const label = period === 'five-day' ? t('chart.period.fiveDay') : t('chart.period.kline')
           throw new Error(t('dialogStockDetail.sourceUnavailable', { period: label }))
         }
-        if (get().stock?.code !== code || get().period !== period || signal?.aborted) return
+        if (get().code !== code || get().period !== period || signal?.aborted) return
         set({ status: 'ready', points, errorMessage: undefined })
       } catch (error) {
-        if (get().stock?.code !== code || get().period !== period || signal?.aborted) return
+        if (get().code !== code || get().period !== period || signal?.aborted) return
         set({ status: 'error', errorMessage: errorMessage(error) })
       }
     }
 
     return {
-      stock: undefined,
+      code: undefined,
       period: DEFAULT_PERIOD,
       status: 'loading',
       points: [],
-      open: (code, name) =>
+      open: (code) =>
         set({
-          stock: { code, name },
+          code,
           period: DEFAULT_PERIOD,
           status: 'loading',
           points: [],
           errorMessage: undefined,
         }),
-      close: () => set({ stock: undefined }),
+      close: () => set({ code: undefined }),
       setPeriod: (period) => {
         if (get().period === period) return
         set({ period, status: 'loading', points: [], errorMessage: undefined })

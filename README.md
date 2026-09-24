@@ -184,7 +184,7 @@ Windows 兼容说明: 读取配置时会自动去除记事本等编辑器写入�
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "appVersion": "<程序版本>",
   "language": "auto",
   "theme": {
@@ -202,14 +202,15 @@ Windows 兼容说明: 读取配置时会自动去除记事本等编辑器写入�
   "stocks": [
     {
       "code": "sh600000",
-      "name": "浦发银行",
       "addedAt": "2026-08-20T00:00:00.000Z"
     }
   ]
 }
 ```
 
-程序每次刷新看板都会重新读取文件, 因此合法的外部编辑会在下一轮刷新生效. 读取时会校验 `language`, `theme`, `request` 以及每只股票的 `code`, `name`, `addedAt` 和重复代码; 写入使用进程间锁与临时文件原子替换, 避免并发读改写丢失和半截 JSON.
+程序每次刷新看板都会重新读取文件, 因此合法的外部编辑会在下一轮刷新生效. 读取时会校验 `language`, `theme`, `request` 以及每只股票的 `code`, `addedAt` 和重复代码; 写入使用进程间锁与临时文件原子替换, 避免并发读改写丢失和半截 JSON.
+
+自选股只存代码: 名称会随除息等情况变动, 存下来的那份会过期, 因此名称一律取自实时行情 (行情取不到时只显示代码).
 
 `language` 取值为 `auto`, `zh-hans`, `zh-hant` 或 `en`; 该字段与 `theme.trendColorMode` 一样可以省略, 省略时按 `auto` 处理.
 `schemaVersion` 是文档格式版本, `appVersion` 是写入这份文件的应用版本 (两者都可以省略, 省略时按当前版本处理; 示例里的 `<程序版本>` 是占位).

@@ -152,7 +152,6 @@ export type Message = {
   'settings.error.stocksNotArray': string
   'settings.error.stockNotObject': string
   'settings.error.stockCode': string
-  'settings.error.stockName': string
   'settings.error.stockAddedAt': string
   'settings.error.stockCodeDuplicate': string
   'settings.error.schemaVersion': string

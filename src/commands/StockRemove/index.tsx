@@ -10,7 +10,7 @@ import { TABLE_CHROME } from '../../components/WindowSizeGuard.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
-import type { StockEntry } from '../../settings/schema.ts'
+import type { StockRemoveEntry } from '../../stores/useStockRemoveStore.ts'
 import { useStockRemove } from './hooks/useStockRemove.ts'
 
 export default function StockRemove() {
@@ -34,12 +34,12 @@ export default function StockRemove() {
     // 网格常驻: 无浮层时可交互, 确认/删除阶段作为底层被弹窗覆盖并变暗.
     // key 绑定 resetToken: 取消或删除后网格重新挂载, 清空已勾选的股票.
     content = (
-      <CheckboxGrid<StockEntry>
+      <CheckboxGrid<StockRemoveEntry>
         key={resetToken}
         items={entries}
         getKey={(entry) => entry.code}
-        getLabel={(entry) => entry.name}
-        getHint={(entry) => entry.code}
+        getLabel={(entry) => entry.name ?? entry.code}
+        getHint={(entry) => (entry.name === undefined ? undefined : entry.code)}
         columnCount={columnCount}
         columnGap={columnGap}
         isActive={!overlayOpen.open}

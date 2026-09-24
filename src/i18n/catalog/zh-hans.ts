@@ -154,7 +154,6 @@ export const zhHans = {
   'settings.error.stocksNotArray': 'stocks 不是数组',
   'settings.error.stockNotObject': '第 {index} 项不是对象',
   'settings.error.stockCode': '第 {index} 项 code 无效',
-  'settings.error.stockName': '第 {index} 项 name 无效',
   'settings.error.stockAddedAt': '第 {index} 项 addedAt 无效',
   'settings.error.stockCodeDuplicate': '第 {index} 项 code 重复: {code}',
   'settings.error.schemaVersion': 'schemaVersion 无效, 当前支持的格式版本是 {supported}',

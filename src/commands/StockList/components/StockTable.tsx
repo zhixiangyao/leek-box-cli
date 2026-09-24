@@ -2,15 +2,15 @@ import QuoteRow from '../../../components/QuoteRow.tsx'
 import ScrollBox, { type ScrollBoxProps } from '../../../components/ScrollBox.tsx'
 import { type Column, headerRow, missingRow, quoteRow } from '../../../lib/quoteTable.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
-import { type StockRow } from '../../../stores/useStockListStore.ts'
+import { type StockListRow } from '../../../stores/useStockListStore.ts'
 
 type Props = {
   columns: Column[]
   scrollOffset: number
-  list: StockRow[]
-  selectedCode: StockRow['code'] | undefined
-  onWindowChange: ScrollBoxProps<StockRow>['onWindowChange']
-  onVisibleChange: ScrollBoxProps<StockRow>['onVisibleChange']
+  list: StockListRow[]
+  selectedCode: StockListRow['code'] | undefined
+  onWindowChange: ScrollBoxProps<StockListRow>['onWindowChange']
+  onVisibleChange: ScrollBoxProps<StockListRow>['onVisibleChange']
 }
 
 export default function StockTable(props: Props) {
@@ -28,9 +28,7 @@ export default function StockTable(props: Props) {
           <QuoteRow
             key={item.code}
             segments={
-              item.kind === 'quote'
-                ? quoteRow(columns, item.quote, trendColorMode)
-                : missingRow(columns, item.code, item.name)
+              item.kind === 'quote' ? quoteRow(columns, item.quote, trendColorMode) : missingRow(columns, item.code)
             }
             selected={item.code === selectedCode}
           />

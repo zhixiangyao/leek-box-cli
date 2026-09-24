@@ -74,3 +74,5 @@ export type HistoricalRequest = {
   barCount: number
   signal?: AbortSignal
 }
+
+export type QuoteName = readonly [code: Quote['code'], name: Quote['name']]

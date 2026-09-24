@@ -16,7 +16,7 @@ export default function DialogStockDetail() {
   const { columns } = useWindowSize()
   const { locale, t } = useTranslation()
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
-  const { stock, quote, suspended, period, status, points, detailError } = useDialogStockDetail()
+  const { code, quote, suspended, period, status, points, detailError } = useDialogStockDetail()
   const columnsForLocale = stockDetailColumns(locale)
   const periodOption = CHART_PERIOD_OPTIONS.find((option) => option.value === period)
   const periodLabel = periodOption ? t(periodOption.labelKey) : undefined
@@ -29,12 +29,12 @@ export default function DialogStockDetail() {
     <Dialog
       borderTopLeft={
         <Text bright>
-          <StockLogo code={stock?.code} bright />
+          <StockLogo code={code} bright />
           <Text> </Text>
-          <Text bright>{stock?.name ?? EMPTY_VALUE}</Text>
+          <Text bright>{quote?.name ?? EMPTY_VALUE}</Text>
           <Text> </Text>
           <Text bright color="gray">
-            {stock?.code ?? EMPTY_VALUE}
+            {code ?? EMPTY_VALUE}
           </Text>
           <Text> </Text>
           <Text bright color={!quote || suspended ? 'gray' : trendColor(quote.change, trendColorMode)}>
@@ -69,7 +69,7 @@ export default function DialogStockDetail() {
           segments={
             quote
               ? quoteRow(columnsForLocale, quote, trendColorMode)
-              : missingRow(columnsForLocale, stock?.code ?? EMPTY_VALUE, stock?.name ?? EMPTY_VALUE)
+              : missingRow(columnsForLocale, code ?? EMPTY_VALUE)
           }
         />
       </Box>

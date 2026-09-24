@@ -9,6 +9,7 @@ import type {
   KlineAdjustment,
   KlineGranularity,
   Quote,
+  QuoteName,
 } from './types.ts'
 
 /** 腾讯行情接口封装: 股票列表 */
@@ -25,6 +26,13 @@ export async function fetchQuotes(codes: string[], signal?: AbortSignal): Promis
     const text = new TextDecoder('gbk').decode(buffer)
     return parseQuoteText(text)
   })
+}
+
+/** 腾讯行情接口封装: 股票名列表 */
+export async function fetchQuoteNames(codes: string[], signal?: AbortSignal): Promise<QuoteName[]> {
+  const response = await fetchQuotes(codes, signal)
+
+  return response.map((quote) => [quote.code, quote.name])
 }
 
 /** 腾讯行情接口封装: 分时图 */

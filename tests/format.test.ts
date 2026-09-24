@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 
 import {
+  EMPTY_VALUE,
   formatClock,
   formatMarketCap,
   formatPercent,
@@ -15,8 +16,8 @@ import {
 
 test('formatPrice 保留两位小数, 非正值显示占位符', () => {
   expect(formatPrice(12.3)).toBe('12.30')
-  expect(formatPrice(0)).toBe('--')
-  expect(formatPrice(-1.5)).toBe('--')
+  expect(formatPrice(0)).toBe(EMPTY_VALUE)
+  expect(formatPrice(-1.5)).toBe(EMPTY_VALUE)
 })
 
 test('formatSigned 为正值补加号, 零和负值保持原样', () => {
@@ -47,29 +48,29 @@ test('formatVolume 以万手为界切换单位, 非正值显示占位符', () =>
   expect(formatVolume(1234)).toBe('1234手')
   expect(formatVolume(611_000)).toBe('61.1万手')
   expect(formatVolume(10_000)).toBe('1.0万手')
-  expect(formatVolume(0)).toBe('--')
+  expect(formatVolume(0)).toBe(EMPTY_VALUE)
 })
 
 test('formatTurnover 以亿为界切换单位, 非正值显示占位符', () => {
   expect(formatTurnover(880)).toBe('880.0万')
   expect(formatTurnover(55_000)).toBe('5.50亿')
-  expect(formatTurnover(0)).toBe('--')
+  expect(formatTurnover(0)).toBe(EMPTY_VALUE)
 })
 
 test('formatRate 不带符号追加百分号, 非正值显示占位符', () => {
   expect(formatRate(1.33)).toBe('1.33%')
-  expect(formatRate(0)).toBe('--')
-  expect(formatRate(-2)).toBe('--')
+  expect(formatRate(0)).toBe(EMPTY_VALUE)
+  expect(formatRate(-2)).toBe(EMPTY_VALUE)
 })
 
 test('formatRatio 保留两位小数, 非正值显示占位符', () => {
   expect(formatRatio(1.21)).toBe('1.21')
-  expect(formatRatio(0)).toBe('--')
+  expect(formatRatio(0)).toBe(EMPTY_VALUE)
 })
 
 test('formatMarketCap 追加亿单位, 非正值显示占位符', () => {
   expect(formatMarketCap(2987.53)).toBe('2987.53亿')
-  expect(formatMarketCap(0)).toBe('--')
+  expect(formatMarketCap(0)).toBe(EMPTY_VALUE)
 })
 
 test('formatClock 从时间戳截取时分秒', () => {
@@ -84,7 +85,7 @@ test('formatVolume 在英文下改用 lots 并以 K/M 换算', () => {
   expect(formatVolume(1234, 'en')).toBe('1.2K lots')
   expect(formatVolume(611_000, 'en')).toBe('611.0K lots')
   expect(formatVolume(12_000_000, 'en')).toBe('12.0M lots')
-  expect(formatVolume(0, 'en')).toBe('--')
+  expect(formatVolume(0, 'en')).toBe(EMPTY_VALUE)
 })
 
 test('formatVolume 在繁体下使用張', () => {
@@ -96,7 +97,7 @@ test('formatTurnover 在英文下改用 K/M', () => {
   expect(formatTurnover(880, 'en')).toBe('8.8M')
   expect(formatTurnover(55_000, 'en')).toBe('550.0M')
   expect(formatTurnover(5, 'en')).toBe('50.0K')
-  expect(formatTurnover(0, 'en')).toBe('--')
+  expect(formatTurnover(0, 'en')).toBe(EMPTY_VALUE)
 })
 
 test('formatTurnover 在繁体下使用萬與億', () => {
@@ -107,7 +108,7 @@ test('formatTurnover 在繁体下使用萬與億', () => {
 test('formatMarketCap 在英文下改用 M/B', () => {
   expect(formatMarketCap(2987.53, 'en')).toBe('298.75B')
   expect(formatMarketCap(1, 'en')).toBe('100.0M')
-  expect(formatMarketCap(0, 'en')).toBe('--')
+  expect(formatMarketCap(0, 'en')).toBe(EMPTY_VALUE)
 })
 
 test('formatMarketCap 在繁体下使用億', () => {

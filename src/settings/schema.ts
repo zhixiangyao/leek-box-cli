@@ -112,13 +112,11 @@ export const DEFAULT_SETTINGS: Settings = {
  * 当前文档格式版本: 只在文档结构发生破坏性变更 (字段语义变化, 字段被移除或重命名) 时加一.
  * 新增可选字段不需要加: 旧版本按默认值接受, 新版本读旧文件也不需要迁移.
  */
-export const CURRENT_SCHEMA_VERSION = 1
+export const CURRENT_SCHEMA_VERSION = 2
 
 export type StockEntry = {
   /** 股票代码 */
   code: string
-  /** 股票名称 */
-  name: string
   /** 添加时间(ISO 时间) */
   addedAt: string
 }
@@ -198,13 +196,10 @@ const parseStock = (value: unknown, index: number): StockEntry => {
   if (typeof entry['code'] !== 'string' || !WATCH_CODE_PATTERN.test(entry['code'])) {
     throw new Error(t('settings.error.stockCode', { index: index + 1 }))
   }
-  if (typeof entry['name'] !== 'string' || entry['name'].trim() === '') {
-    throw new Error(t('settings.error.stockName', { index: index + 1 }))
-  }
   if (typeof entry['addedAt'] !== 'string' || !Number.isFinite(Date.parse(entry['addedAt']))) {
     throw new Error(t('settings.error.stockAddedAt', { index: index + 1 }))
   }
-  return { code: entry['code'], name: entry['name'], addedAt: entry['addedAt'] }
+  return { code: entry['code'], addedAt: entry['addedAt'] }
 }
 
 /** 解析并验证股票条目列表 */

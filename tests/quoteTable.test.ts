@@ -4,6 +4,7 @@ import { expect, test } from 'vitest'
 import type { Quote } from '../src/api/types.ts'
 import { LOCALES } from '../src/i18n/locale.ts'
 import type { Locale } from '../src/i18n/types.ts'
+import { EMPTY_VALUE } from '../src/lib/format.ts'
 import {
   headerRow,
   missingRow,
@@ -79,11 +80,12 @@ test('quoteRow 对停牌股票显示占位符并统一灰色', () => {
   expect(percent!.color).toBe('gray')
 })
 
-test('missingRow 显示代码/名称并对数据列填充占位符', () => {
+test('missingRow 只显示代码, 名称等没有数据的列填占位符', () => {
   const nameColumn = COLUMNS_BY_KEY.get('name')!
-  const [code, name, percent] = missingRow([codeColumn, nameColumn, percentColumn], 'sh600000', '浦发银行')
+  const [code, name, percent] = missingRow([codeColumn, nameColumn, percentColumn], 'sh600000')
   expect(code!.text.startsWith('sh600000')).toBe(true)
-  expect(name!.text.startsWith('浦发银行')).toBe(true)
+  // 名称不是持久化数据, 行情取不到时无从显示
+  expect(name!.text.startsWith('--')).toBe(true)
   expect(percent!.text.startsWith('无数据')).toBe(true)
   expect([code, name, percent].every((cell) => cell!.color === 'gray')).toBe(true)
 })
@@ -201,7 +203,7 @@ test('en 使用本地化表头, 占位文案与单位', () => {
   expect(byKey.get('marketCap')!.title).toBe('Market Cap')
   expect(percentColumn.title).toBe('Change %')
   expect(percentColumn.suspendedText).toBe('Suspended')
-  expect(missingRow([percentColumn], 'sh600000', 'Name')[0]!.text.startsWith('No data')).toBe(true)
+  expect(missingRow([percentColumn], EMPTY_VALUE)[0]!.text.startsWith('No data')).toBe(true)
 
   expect(byKey.get('volume')!.render(quote({ volume: 611_000 }))).toBe('611.0K lots')
   expect(byKey.get('turnover')!.render(quote({ turnover: 55_000 }))).toBe('550.0M')
@@ -214,7 +216,7 @@ test('zh-hant 使用繁体表头与占位文案', () => {
 
   expect(byKey.get('turnoverRate')!.title).toBe('週轉率')
   expect(percentColumn.suspendedText).toBe('暫停交易')
-  expect(missingRow([percentColumn], 'sh600000', 'Name')[0]!.text.startsWith('無資料')).toBe(true)
+  expect(missingRow([percentColumn], EMPTY_VALUE)[0]!.text.startsWith('無資料')).toBe(true)
 })
 
 /**

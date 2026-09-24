@@ -173,7 +173,6 @@ export const en = {
   'settings.error.stocksNotArray': 'stocks is not an array',
   'settings.error.stockNotObject': 'Item {index} is not an object',
   'settings.error.stockCode': 'Item {index} has an invalid code',
-  'settings.error.stockName': 'Item {index} has an invalid name',
   'settings.error.stockAddedAt': 'Item {index} has an invalid addedAt',
   'settings.error.stockCodeDuplicate': 'Item {index} has a duplicate code: {code}',
   'settings.error.schemaVersion': 'Invalid schemaVersion, the supported format version is {supported}',

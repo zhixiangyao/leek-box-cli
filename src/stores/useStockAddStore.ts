@@ -7,16 +7,15 @@ import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
 import { parseYesNo, yesNoErrorMessage } from '../lib/yesNo.ts'
 import { stocksAdd } from '../settings/file.ts'
-import { type StockEntry } from '../settings/schema.ts'
 
-type StockCandidate = Pick<StockEntry, 'code' | 'name'> & { current: number }
+type StockAddCandidate = Pick<Quote, 'code' | 'name' | 'current'>
 
 export type StockAddStep =
   | { type: 'input-code' }
   | { type: 'checking'; codes: string[] }
-  | { type: 'confirm'; entries: StockCandidate[] }
-  | { type: 'saving'; entries: StockCandidate[] }
-  | { type: 'already-exists'; entries: StockCandidate[] }
+  | { type: 'confirm'; entries: StockAddCandidate[] }
+  | { type: 'saving'; entries: StockAddCandidate[] }
+  | { type: 'already-exists'; entries: StockAddCandidate[] }
   | { type: 'done'; message: string }
   | { type: 'error'; message: string }
 
@@ -54,12 +53,12 @@ type StockAddState = {
 
 export type StockAddDependencies = {
   /** 批量写入自选股, 返回实际新增数量 */
-  stocksAdd: (entries: StockEntry[]) => Promise<number>
+  stocksAdd: typeof stocksAdd
   /** 拉取行情, 用于校验代码并获取名称 */
-  fetchQuotes: (codes: string[]) => Promise<Quote[]>
+  fetchQuotes: typeof fetchQuotes
   /** 归一化用户输入的股票代码 */
-  normalizeCode: (input: string) => string | undefined
-  /** 当前时间 (新条目的 addedAt) */
+  normalizeCode: typeof normalizeCode
+  /** 当前时间 (新条目的 addedAt); 没有对应的真实函数, 手写签名 */
   now: () => string
 }
 
@@ -150,11 +149,7 @@ export function createStockAddStore(dependencies: StockAddDependencies = default
         try {
           const addedAt = dependencies.now()
           const addedCount = await dependencies.stocksAdd(
-            current.entries.map((entry) => ({
-              code: entry.code,
-              name: entry.name,
-              addedAt,
-            })),
+            current.entries.map((entry) => ({ code: entry.code, addedAt })),
           )
           if (isStale(currentGeneration)) return
           if (addedCount === 0) {

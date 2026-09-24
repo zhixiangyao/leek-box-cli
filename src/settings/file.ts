@@ -85,17 +85,12 @@ const writeSettingsFile = async (document: SettingsDocument): Promise<void> => {
   }
 }
 
-/** 首次使用时预置的默认自选股 */
-const DEFAULT_STOCKS: ReadonlyArray<Pick<StockEntry, 'code' | 'name'>> = [
-  { code: 'sz002156', name: '富通微电' },
-  { code: 'sh600584', name: '长电科技' },
-  { code: 'sh688825', name: '长鑫科技' },
-]
+const DEFAULT_STOCK_CODES: readonly string[] = ['sz002156', 'sh600584', 'sh688825']
 
 /** 构造默认自选股列表, 使用当前时间作为添加时间 */
 const createDefaultStocks = (): StockEntry[] => {
   const addedAt = new Date().toISOString()
-  return DEFAULT_STOCKS.map((stock) => ({ ...stock, addedAt }))
+  return DEFAULT_STOCK_CODES.map((code) => ({ code, addedAt }))
 }
 
 /** 在锁内读取设置文件, 不存在时创建默认文档 */

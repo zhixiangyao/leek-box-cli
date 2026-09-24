@@ -154,7 +154,6 @@ export const zhHant = {
   'settings.error.stocksNotArray': 'stocks 不是陣列',
   'settings.error.stockNotObject': '第 {index} 項不是物件',
   'settings.error.stockCode': '第 {index} 項 code 無效',
-  'settings.error.stockName': '第 {index} 項 name 無效',
   'settings.error.stockAddedAt': '第 {index} 項 addedAt 無效',
   'settings.error.stockCodeDuplicate': '第 {index} 項 code 重複: {code}',
   'settings.error.schemaVersion': 'schemaVersion 無效, 當前支援的格式版本是 {supported}',

@@ -184,7 +184,7 @@ File structure:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "appVersion": "<app version>",
   "language": "auto",
   "theme": {
@@ -202,14 +202,15 @@ File structure:
   "stocks": [
     {
       "code": "sh600000",
-      "name": "浦发银行",
       "addedAt": "2026-08-20T00:00:00.000Z"
     }
   ]
 }
 ```
 
-The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates `language`, `theme`, and `request`, as well as each stock's `code`, `name`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
+The application reloads the file every time it refreshes the dashboard, so valid external edits take effect on the next refresh. It validates `language`, `theme`, and `request`, as well as each stock's `code`, `addedAt`, and duplicate codes when reading. Writes use an inter-process lock and atomic temporary-file replacement to prevent lost concurrent updates and partial JSON files.
+
+Watchlist entries store the code only: names change (ex-dividend dates and the like), so a stored copy goes stale. Names always come from live quotes, and when a quote is unavailable the code is shown on its own.
 
 `language` is one of `auto`, `zh-hans`, `zh-hant`, or `en`. Like `theme.trendColorMode`, the field may be omitted, in which case it is treated as `auto`.
 `schemaVersion` is the document format version and `appVersion` is the app version that wrote the file (both may be omitted and default to the current version; `<app version>` in the example is a placeholder).

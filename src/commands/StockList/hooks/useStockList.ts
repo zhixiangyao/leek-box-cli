@@ -52,7 +52,7 @@ export function useStockList() {
 
         if (key.return) {
           const selectedRow = step.rows.find((item) => item.code === selectedCode)
-          if (selectedRow) open(selectedRow.code, selectedRow.name)
+          if (selectedRow) open(selectedRow.code)
         } else if (direction === 'up') {
           moveSelection(-1, visible)
         } else if (direction === 'down') {

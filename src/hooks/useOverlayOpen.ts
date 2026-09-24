@@ -6,7 +6,7 @@ import { useDialogStockDetailStore } from '../stores/useDialogStockDetailStore.t
 export function useOverlayOpen() {
   const dialogConfirmOpen = useDialogConfirmStore((state) => state.config !== undefined)
   const dialogMenuOpen = useDialogMenuStore((state) => state.highlightedType !== undefined)
-  const dialogStockDetailOpen = useDialogStockDetailStore((state) => state.stock !== undefined)
+  const dialogStockDetailOpen = useDialogStockDetailStore((state) => state.code !== undefined)
   const dialogRemoveConfirmOpen = useDialogRemoveConfirmStore((state) => state.step.type !== 'idle')
   const open = dialogConfirmOpen || dialogMenuOpen || dialogStockDetailOpen || dialogRemoveConfirmOpen
 

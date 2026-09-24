@@ -53,7 +53,8 @@ afterEach(async () => {
   setActiveLocale(DEFAULT_LOCALE)
 })
 
-const validStock: StockEntry = { code: 'sh600000', name: '浦发银行', addedAt: '2026-08-20T00:00:00.000Z' }
+const validStock: StockEntry = { code: 'sh600000', addedAt: '2026-08-20T00:00:00.000Z' }
+const secondStock: StockEntry = { code: 'sz000001', addedAt: '2026-08-20T00:00:01.000Z' }
 
 const validDocument = (): SettingsDocument => ({
   schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -102,19 +103,35 @@ test('parseStocks 接受完整的持久化数据结构', () => {
 })
 
 test('parseStocks 拒绝缺少字段的数据并标明条目位置', () => {
-  expect(() => parseStocks([{ code: 'sh600000', name: '浦发银行' }])).toThrow(/第 1 项 addedAt 无效/)
+  expect(() => parseStocks([{ code: 'sh600000' }])).toThrow(/第 1 项 addedAt 无效/)
   expect(() => parseStocks([{ ...validStock, code: '600000' }])).toThrow(/第 1 项 code 无效/)
 })
 
 test('parseStocks 拒绝重复的股票代码', () => {
-  expect(() => parseStocks([validStock, { ...validStock, name: '重复项' }])).toThrow(/第 2 项 code 重复/)
+  expect(() => parseStocks([validStock, validStock])).toThrow(/第 2 项 code 重复/)
+})
+
+test('parseStocks 忽略旧文档里的 name 字段: 名称不再是持久化数据', () => {
+  expect(parseStocks([{ ...validStock, name: '浦发银行' }])).toStrictEqual([validStock])
+})
+
+test('读取旧文档后写盘会去掉 name 字段', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  await writeFile(
+    settingsPath(),
+    JSON.stringify({ ...validDocument(), schemaVersion: 1, stocks: [{ ...validStock, name: '浦发银行' }] }),
+    'utf8',
+  )
+
+  await stocksAdd([secondStock])
+
+  const stored = await storedDocument()
+  expect(stored['schemaVersion']).toBe(CURRENT_SCHEMA_VERSION)
+  expect(stored['stocks']).toStrictEqual([validStock, secondStock])
 })
 
 test('并发更新自选股时保留两个条目', async () => {
-  await Promise.all([
-    stocksAdd([validStock]),
-    stocksAdd([{ code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }]),
-  ])
+  await Promise.all([stocksAdd([validStock]), stocksAdd([secondStock])])
   const entries = await loadStocks()
   const codes = entries.map((entry) => entry.code)
   expect(codes).toContain('sh600000')
@@ -190,12 +207,16 @@ test('patchSettings 只修改设置字段并保留已有自选股', async () => 
   expect(await loadStocks()).toStrictEqual([validStock])
 })
 
-test('stocksRemove 删除匹配的自选股并持久化结果, 不存在的代码返回 0', async () => {
+test('stocksRemove 删除匹配的自选股并持久化结果', async () => {
   await replaceStocks([])
-  await stocksAdd([validStock, { code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }])
+  await stocksAdd([validStock, secondStock])
 
   expect(await stocksRemove(['sz000001'])).toBe(1)
   expect(await loadStocks()).toStrictEqual([validStock])
+})
+
+test('stocksRemove 对不存在的代码或空列表返回 0 且不改动文件', async () => {
+  await replaceStocks([validStock])
 
   expect(await stocksRemove(['sz000001'])).toBe(0)
   expect(await stocksRemove([])).toBe(0)
@@ -211,13 +232,11 @@ test('stocksAdd 重复代码返回 0 且保持列表不变', async () => {
 
 test('replaceStocks 整表替换自选股并校验条目', async () => {
   await stocksAdd([validStock])
-  const replacement = { code: 'sz300001', name: '特锐德', addedAt: '2026-08-20T00:00:02.000Z' }
+  const replacement = { code: 'sz300001', addedAt: '2026-08-20T00:00:02.000Z' }
   await replaceStocks([replacement])
   expect(await loadStocks()).toStrictEqual([replacement])
 
-  await expect(replaceStocks([{ code: 'bad', name: 'x', addedAt: '2026-08-20T00:00:02.000Z' }])).rejects.toThrow(
-    /code 无效/,
-  )
+  await expect(replaceStocks([{ code: 'bad', addedAt: '2026-08-20T00:00:02.000Z' }])).rejects.toThrow(/code 无效/)
 })
 
 test('首次创建时写入的文档带 schemaVersion 与 appVersion', async () => {
@@ -240,7 +259,7 @@ test('缺失版本字段的旧文件按当前版本接受, 并在下次写盘时
   expect(loaded.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
   expect(loaded.appVersion).toBe(APP_VERSION)
 
-  await stocksAdd([{ code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }])
+  await stocksAdd([secondStock])
   const stored = await storedDocument()
   expect(stored['schemaVersion']).toBe(CURRENT_SCHEMA_VERSION)
   expect(stored['appVersion']).toBe(APP_VERSION)
@@ -268,10 +287,7 @@ test('读改写路径把两个版本字段都盖成当前值, 而读取保留文
     writeFile(settingsPath(), JSON.stringify({ ...validDocument(), appVersion: '0.0.1' }), 'utf8')
   const writes: ReadonlyArray<{ name: string; write: () => Promise<unknown> }> = [
     { name: 'patchSettings', write: () => patchSettings({ themePreset: 'ocean' }) },
-    {
-      name: 'stocksAdd',
-      write: () => stocksAdd([{ code: 'sz000001', name: '平安银行', addedAt: '2026-08-20T00:00:01.000Z' }]),
-    },
+    { name: 'stocksAdd', write: () => stocksAdd([secondStock]) },
     { name: 'stocksRemove', write: () => stocksRemove(['sh600000']) },
     { name: 'replaceStocks', write: () => replaceStocks([validStock]) },
     { name: 'resetSettingsFile', write: () => resetSettingsFile() },

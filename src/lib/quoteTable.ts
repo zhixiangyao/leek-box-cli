@@ -300,11 +300,11 @@ export const quoteRow = (
   )
 }
 
-/** 缺失行: 占位文案取自列元数据, 因此跟随列自己的 locale */
-export const missingRow = (columns: readonly Column[], code: string, name: string): Row =>
+/** 缺失行 */
+export const missingRow = (columns: readonly Column[], code: string): Row =>
   withSeparators(
     columns.map((col) => ({
-      text: cell(col.kind === 'code' ? code : col.kind === 'name' ? name : (col.missingText ?? EMPTY_VALUE), col),
+      text: cell(col.kind === 'code' ? code : (col.missingText ?? EMPTY_VALUE), col),
       color: 'gray',
     })),
   )

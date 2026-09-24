@@ -2,45 +2,45 @@ import process from 'node:process'
 
 import { stocksAdd, loadStocks, replaceStocks, settingsPath } from '../src/settings/file.ts'
 
-const MOCK_STOCKS = [
-  { code: 'sh600584', name: '长电科技' },
-  { code: 'sz002156', name: '富通微电' },
-  { code: 'sh600900', name: '长江电力' },
-  { code: 'sz000725', name: '京东方A' },
-  { code: 'sz002185', name: '华天科技' },
-  { code: 'sz001232', name: '嘉立创' },
-  { code: 'sh688018', name: '乐鑫科技' },
-  { code: 'sh688825', name: '长鑫科技' },
-  { code: 'sz000066', name: '中国长城' },
-  { code: 'sz002553', name: '南方精工' },
-  { code: 'sh600536', name: '中国软件' },
-  { code: 'sh601899', name: '紫金矿业' },
-  { code: 'sz301308', name: '江波龙' },
-  { code: 'sh688981', name: '中芯国际' },
-  { code: 'sh600460', name: '士兰微' },
-  { code: 'sz002273', name: '水晶光电' },
-  { code: 'sz000333', name: '美的集团' },
-  { code: 'sz000651', name: '格力电器' },
-  { code: 'sz000858', name: '五粮液' },
-  { code: 'sz002594', name: '比亚迪' },
-  { code: 'sz300750', name: '宁德时代' },
-  { code: 'sh600036', name: '招商银行' },
-  { code: 'sz002415', name: '海康威视' },
-  { code: 'sh601398', name: '工商银行' },
-  { code: 'sh601288', name: '农业银行' },
-  { code: 'sz000002', name: '万科A' },
-  { code: 'sh600276', name: '恒瑞医药' },
-  { code: 'sz300059', name: '东方财富' },
-  { code: 'sh601012', name: '隆基绿能' },
-  { code: 'sh603501', name: '韦尔股份' },
-  { code: 'sz000063', name: '中兴通讯' },
-  { code: 'sh600309', name: '万华化学' },
+const MOCK_CODES = [
+  'sh600584',
+  'sz002156',
+  'sh600900',
+  'sz000725',
+  'sz002185',
+  'sz001232',
+  'sh688018',
+  'sh688825',
+  'sz000066',
+  'sz002553',
+  'sh600536',
+  'sh601899',
+  'sz301308',
+  'sh688981',
+  'sh600460',
+  'sz002273',
+  'sz000333',
+  'sz000651',
+  'sz000858',
+  'sz002594',
+  'sz300750',
+  'sh600036',
+  'sz002415',
+  'sh601398',
+  'sh601288',
+  'sz000002',
+  'sh600276',
+  'sz300059',
+  'sh601012',
+  'sh603501',
+  'sz000063',
+  'sh600309',
 ]
 
 const main = async () => {
   const reset = process.argv.includes('--reset')
   const addedAt = new Date().toISOString()
-  const candidates = MOCK_STOCKS.map((stock) => ({ ...stock, addedAt }))
+  const candidates = MOCK_CODES.map((code) => ({ code, addedAt }))
   const added = reset ? candidates.length : await stocksAdd(candidates)
   if (reset) await replaceStocks(candidates)
 
