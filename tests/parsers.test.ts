@@ -1,6 +1,11 @@
 import { expect, test } from 'vitest'
 
-import { parseFiveDayResponse, parseHistoricalResponse, parseQuoteText } from '../src/api/lib/parsers.ts'
+import {
+  parseFiveDayResponse,
+  parseHistoricalResponse,
+  parseIntradayResponse,
+  parseQuoteText,
+} from '../src/api/lib/parsers.ts'
 import { normalizeCode } from '../src/api/lib/tools.ts'
 
 test('normalizeCode 覆盖沪深北各市场前缀', () => {
@@ -95,4 +100,68 @@ test('parseHistoricalResponse 在复权数据为空时回退到原始粒度数�
   )
 
   expect(points).toStrictEqual([{ date: '2026-08-18', open: 10, close: 10.2, high: 10.3, low: 9.9, volume: 0 }])
+})
+
+test('parseQuoteText 将行情中的非法数值归一为 0', () => {
+  const fields = Array<string>(50).fill('')
+  fields[1] = 'Test Stock'
+  fields[3] = 'not-a-number'
+  fields[4] = 'NaN'
+  fields[5] = '10.5'
+  fields[33] = '12.0'
+  fields[34] = '9.5'
+
+  const [quote] = parseQuoteText(`v_sh600000="${fields.join('~')}";`)
+
+  expect(quote).toMatchObject({
+    code: 'sh600000',
+    name: 'Test Stock',
+    current: 0,
+    prevClose: 0,
+    open: 10.5,
+    high: 12,
+    low: 9.5,
+    volume: 0,
+    turnover: 0,
+  })
+})
+
+test('parseIntradayResponse 缺失嵌套数据时返回空数组', () => {
+  expect(parseIntradayResponse({ data: { sh600000: { data: {} } } }, 'sh600000')).toStrictEqual([])
+  expect(parseIntradayResponse({ data: { sz000001: { data: { data: [] } } } }, 'sh600000')).toStrictEqual([])
+})
+
+test('parseFiveDayResponse 只保留最近五个交易日', () => {
+  const sessions = Array.from({ length: 6 }, (_, index) => {
+    const day = String(15 + index).padStart(2, '0')
+    return { date: `202608${day}`, prec: '10', data: [`0930 ${index + 1} 100`] }
+  })
+
+  const points = parseFiveDayResponse({ data: { sh600000: { data: sessions } } }, 'sh600000')
+
+  expect(points.map((point) => point.sessionDate)).toStrictEqual([
+    '2026-08-16',
+    '2026-08-17',
+    '2026-08-18',
+    '2026-08-19',
+    '2026-08-20',
+  ])
+})
+
+test('parseHistoricalResponse 按指定的复权方式和 K 线粒度读取数据', () => {
+  const points = parseHistoricalResponse(
+    {
+      data: {
+        sh600000: {
+          hfqmonth: [['2026-08-01', '10', '11', '12', '9', '1000']],
+          qfqmonth: [['2026-08-01', '20', '21', '22', '19', '2000']],
+        },
+      },
+    },
+    'sh600000',
+    'month',
+    'hfq',
+  )
+
+  expect(points).toStrictEqual([{ date: '2026-08-01', open: 10, close: 11, high: 12, low: 9, volume: 1000 }])
 })
