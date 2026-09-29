@@ -9,12 +9,11 @@ type Props = {
   scrollOffset: number
   list: StockListRow[]
   selectedCode: StockListRow['code'] | undefined
-  onWindowChange: ScrollBoxProps<StockListRow>['onWindowChange']
   onVisibleChange: ScrollBoxProps<StockListRow>['onVisibleChange']
 }
 
 export default function StockTable(props: Props) {
-  const { columns, scrollOffset, list, selectedCode, onWindowChange, onVisibleChange } = props
+  const { columns, scrollOffset, list, selectedCode, onVisibleChange } = props
   const trendColorMode = useSettingsStore((state) => state.trendColorMode)
 
   return (
@@ -33,7 +32,6 @@ export default function StockTable(props: Props) {
             selected={item.code === selectedCode}
           />
         )}
-        onWindowChange={onWindowChange}
         onVisibleChange={onVisibleChange}
       />
     </>

@@ -7,9 +7,9 @@ import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
 import type { MessageKey } from '../../i18n/types.ts'
-import type { StockListSortMode } from '../../stores/useStockListStore.ts'
 import StockTable from './components/StockTable.tsx'
 import { useStockList } from './hooks/useStockList.ts'
+import type { StockListSortMode } from './lib.ts'
 
 const SORT_LABEL_KEYS: Record<StockListSortMode, MessageKey | undefined> = {
   default: undefined,
@@ -62,7 +62,6 @@ export default function StockList() {
             scrollOffset={stockList.scrollOffset}
             list={list}
             selectedCode={stockList.selectedCode}
-            onWindowChange={({ end }) => stockList.handlesWindowChange(list.length - end)}
             onVisibleChange={stockList.handlesVisibleChange}
           />
 

@@ -6,6 +6,8 @@ import { createElement, type ComponentProps, type ComponentType } from 'react'
 import stringWidth from 'string-width'
 import { expect, test, vi } from 'vitest'
 
+import type { Quote } from '../src/api/types.ts'
+
 process.env['FORCE_COLOR'] = '1'
 
 const [
@@ -103,6 +105,42 @@ const renderApp = (output: CaptureOutput, input: PassThrough = createInput()) =>
   })
 
 const plain = (frame: string) => stripVTControlCharacters(frame)
+
+/** SGR 参数里含 7 即反显: 只看参数本身, 避免把 27 (关闭反显) 也算进来 */
+const isInverseLine = (line: string) =>
+  line
+    .split('\x1B[')
+    .slice(1)
+    .some((sequence) => sequence.slice(0, sequence.indexOf('m')).split(';').includes('7'))
+
+const inverseLines = (frame: string) => frame.split('\n').filter(isInverseLine)
+
+/** 选中行整行反显, 从帧里取那一行的代码 (选中行是 hook 的状态, store 里没有) */
+const selectedCodeIn = (frame: string): string | undefined =>
+  inverseLines(frame)
+    .map((line) => line.match(/sh\d{6}|sz\d{6}/)?.[0])
+    .find((code) => code !== undefined)
+
+/** 行情字面量: 只列用例关心的字段, 其余取固定值 (单位用例断言的就是下面这几个数) */
+const testQuote = (overrides: Partial<Quote> = {}): Quote => ({
+  code: 'sh600000',
+  name: '浦发银行',
+  current: 10.25,
+  prevClose: 10,
+  open: 10.1,
+  high: 10.3,
+  low: 9.95,
+  change: 0.25,
+  changePercent: 2.5,
+  timestamp: '20260820150000',
+  volume: 611_000,
+  turnover: 55_000,
+  turnoverRate: 1.2,
+  amplitude: 3.5,
+  marketCap: 2987.53,
+  volumeRatio: 1.1,
+  ...overrides,
+})
 
 const waitForFrame = async (
   output: CaptureOutput,
@@ -263,28 +301,10 @@ test('App 的看板排序键 s: 按涨跌幅排序并在右上角显示方向', 
         {
           kind: 'quote',
           code: 'sh600000',
-          quote: {
-            code: 'sh600000',
-            name: '浦发银行',
-            current: 10.25,
-            prevClose: 10,
-            open: 10.1,
-            high: 10.3,
-            low: 9.95,
-            change: 0.25,
-            changePercent: 2.5,
-            timestamp: '20260820150000',
-            volume: 611_000,
-            turnover: 55_000,
-            turnoverRate: 1.2,
-            amplitude: 3.5,
-            marketCap: 2987.53,
-            volumeRatio: 1.1,
-          },
+          quote: testQuote(),
         },
       ],
     },
-    selectedCode: 'sh600000',
   })
 
   const instance = renderApp(output, input)
@@ -292,7 +312,7 @@ test('App 的看板排序键 s: 按涨跌幅排序并在右上角显示方向', 
   try {
     const after = output.frames.length
     const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('sh600000'))
-    // 默认是自选股文件顺序: 缺失行在前, 右上角不显示排序方向
+    // 默认按文件顺序: 缺失行在前, 右上角不显示排序方向
     expect(plain(frame)).not.toContain(t('stockList.sort.desc'))
     expect(plain(frame).indexOf('sz000001')).toBeLessThan(plain(frame).indexOf('sh600000'))
 
@@ -302,7 +322,6 @@ test('App 的看板排序键 s: 按涨跌幅排序并在右上角显示方向', 
     )
     // 降序后行情行在前, 缺失行落到末尾
     expect(plain(descFrame).indexOf('sh600000')).toBeLessThan(plain(descFrame).indexOf('sz000001'))
-    expect(useStockListStore.getState().sortMode).toBe('desc')
     assertFrameSize(descFrame, columns, rows)
 
     input.write('s')
@@ -310,7 +329,198 @@ test('App 的看板排序键 s: 按涨跌幅排序并在右上角显示方向', 
       plain(candidate).includes(t('stockList.sort.asc')),
     )
     expect(plain(ascFrame)).not.toContain(t('stockList.sort.desc'))
-    expect(useStockListStore.getState().sortMode).toBe('asc')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的看板排序后右上角同时显示排序方向与剩余条数', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {},
+    // 行数多于可视窗口才有剩余条数可显示
+    step: {
+      type: 'table',
+      rows: Array.from({ length: 40 }, (_, index) => ({
+        kind: 'missing',
+        code: `sh6000${String(index).padStart(2, '0')}`,
+      })),
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('sh600000'))
+    const beforeCorner = plain(frame)
+      .split('\n')
+      .find((line) => remainingPattern().test(line))
+    // 还没排序: 右上角只有剩余条数
+    expect(beforeCorner).toBeDefined()
+    expect(beforeCorner).not.toContain(t('stockList.sort.desc'))
+
+    input.write('s')
+    const descFrame = await waitForFrame(output, after, (candidate) =>
+      plain(candidate).includes(t('stockList.sort.desc')),
+    )
+    // 排序后两段并排在同一行: 排序方向与剩余条数
+    const corner = plain(descFrame)
+      .split('\n')
+      .find((line) => line.includes(t('stockList.sort.desc')))
+    expect(corner).toBeDefined()
+    expect(corner).toMatch(remainingPattern())
+    assertFrameSize(descFrame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的看板排序后方向键按显示顺序移动选中行', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {},
+    step: {
+      type: 'table',
+      rows: [
+        { kind: 'quote', code: 'sh600000', quote: testQuote({ code: 'sh600000', changePercent: 1 }) },
+        { kind: 'quote', code: 'sz000001', quote: testQuote({ code: 'sz000001', changePercent: 5 }) },
+        { kind: 'quote', code: 'sz300001', quote: testQuote({ code: 'sz300001', changePercent: -3 }) },
+      ],
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    // 文件顺序的第一行默认选中
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
+
+    // 降序显示顺序: sz000001(+5), sh600000(+1), sz300001(-3)
+    input.write('s')
+    await waitForFrame(
+      output,
+      after,
+      (candidate) => plain(candidate).includes(t('stockList.sort.desc')) && selectedCodeIn(candidate) === 'sh600000',
+    )
+
+    // 文件顺序里 sh600000 的后一行是 sz000001, 显示顺序里是 sz300001
+    input.write('j')
+    const movedFrame = await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sz300001')
+    expect(plain(movedFrame).indexOf('sz000001')).toBeLessThan(plain(movedFrame).indexOf('sh600000'))
+
+    input.write('k')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的看板刷新后按代码保持选中行, 选中股消失时按位置回退', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+  const rowCodes = ['sh600000', 'sz000001', 'sz300001']
+  // 每轮行情给一份新的自选股: 先是原样, 然后少一只, 最后换顺序
+  const rounds = [rowCodes, ['sz000001', 'sz300001'], ['sz300001', 'sz000001']]
+  let round = 0
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {
+      const codes = rounds[Math.min(round, rounds.length - 1)]!
+      round += 1
+      useStockListStore.setState({
+        step: { type: 'table', rows: codes.map((code) => ({ kind: 'missing', code })) },
+      })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
+
+    // 选中的股票被删掉: 按它原来的位置回退到 sz000001
+    input.write('r')
+    await waitForFrame(
+      output,
+      after,
+      (candidate) => !plain(candidate).includes('sh600000') && selectedCodeIn(candidate) === 'sz000001',
+    )
+
+    // 选中的股票还在, 只是换了位置: 选中行跟到新位置
+    input.write('r')
+    await waitForFrame(output, after, (candidate) => {
+      const text = plain(candidate)
+      return text.indexOf('sz300001') < text.indexOf('sz000001') && selectedCodeIn(candidate) === 'sz000001'
+    })
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+/** 剩余条数随可视高度和窗口位置变化, 不是定值, 因此按文案模板取 */
+const remainingPattern = () => new RegExp(t('stockList.remaining', { count: 0 }).replace('0', '\\d+'))
+
+test('App 的看板排序后仍显示剩余条数, 即使视口被选中行带到列表底部', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+  // 文件顺序按涨跌幅递增: 降序后首行落到列表末尾, 视口跟着它到底部
+  const codes = Array.from({ length: 40 }, (_, index) => `sh6000${String(index).padStart(2, '0')}`)
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {},
+    step: {
+      type: 'table',
+      rows: codes.map((code, index) => ({ kind: 'quote', code, quote: testQuote({ code, changePercent: index }) })),
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes[0])
+
+    input.write('s')
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes(t('stockList.sort.desc')))
+    const text = plain(frame)
+    // 视口已经贴到底部: 列表最上面的行被截掉, 选中的行还在
+    expect(text).not.toContain(codes.at(-1)!)
+    expect(text).toContain(codes[0]!)
+    // 剩余条数是"没显示的行数", 因此这时仍然要显示
+    const corner = text.split('\n').find((line) => line.includes(t('stockList.sort.desc')))
+    expect(corner).toMatch(remainingPattern())
+    assertFrameSize(frame, columns, rows)
   } finally {
     instance.unmount()
     await instance.waitUntilExit()
@@ -1124,24 +1334,7 @@ test('App 在 en 下用本地化单位渲染行情数值', async () => {
             {
               kind: 'quote',
               code: 'sh600000',
-              quote: {
-                code: 'sh600000',
-                name: '浦发银行',
-                current: 10.25,
-                prevClose: 10,
-                open: 10.1,
-                high: 10.3,
-                low: 9.95,
-                change: 0.25,
-                changePercent: 2.5,
-                timestamp: '20260820150000',
-                volume: 611_000,
-                turnover: 55_000,
-                turnoverRate: 1.2,
-                amplitude: 3.5,
-                marketCap: 2987.53,
-                volumeRatio: 1.1,
-              },
+              quote: testQuote(),
             },
             { kind: 'missing', code: 'sz000001' },
           ],
@@ -1188,7 +1381,6 @@ test('App 的 vim 键: 看板 j/k 移动选中行', async () => {
             { kind: 'missing', code: 'sz000001' },
           ],
         },
-        selectedCode: 'sh600000',
       })
     },
   })
@@ -1202,9 +1394,9 @@ test('App 的 vim 键: 看板 j/k 移动选中行', async () => {
     expect(plain(frame)).toContain('选择(↑/↓/j/k)')
 
     input.write('j')
-    await waitForState(() => useStockListStore.getState().selectedCode === 'sz000001')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sz000001')
     input.write('k')
-    await waitForState(() => useStockListStore.getState().selectedCode === 'sh600000')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
   } finally {
     instance.unmount()
     await instance.waitUntilExit()
@@ -1230,7 +1422,6 @@ test('App 的 vim 键: 菜单打开时 j/k 只移动菜单高亮, 看板选中�
             { kind: 'missing', code: 'sz000001' },
           ],
         },
-        selectedCode: 'sh600000',
       })
     },
   })
@@ -1240,14 +1431,17 @@ test('App 的 vim 键: 菜单打开时 j/k 只移动菜单高亮, 看板选中�
   try {
     const after = output.frames.length
     input.write('\x1B')
-    const menuFrame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('菜单'))
+    // 菜单打开后底层命令变暗: 不能匹配 '菜单', 状态栏的看板 hint 里也有这两个字
+    const menuFrame = await waitForFrame(output, after, (candidate) => candidate.includes('\x1B[2m'))
     expect(plain(menuFrame)).toContain('选择(↑/↓/j/k)')
 
     input.write('j')
     await waitForState(() => useDialogMenuStore.getState().highlightedType === MENU_ITEMS[1]!.type)
     input.write('k')
     await waitForState(() => useDialogMenuStore.getState().highlightedType === MENU_ITEMS[0]!.type)
-    expect(useStockListStore.getState().selectedCode).toBe('sh600000')
+    // 菜单开着时看板仍是反显那一行, 选中行没被 j/k 带走
+    const afterMenuKeys = await waitForFrame(output, after, (candidate) => candidate.includes('\x1B[2m'))
+    expect(selectedCodeIn(afterMenuKeys)).toBe('sh600000')
   } finally {
     instance.unmount()
     await instance.waitUntilExit()

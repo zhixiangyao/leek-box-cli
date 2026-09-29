@@ -1,9 +1,117 @@
 import { expect, test } from 'vitest'
 
 import { aggregateYearly, withRequestTiming } from '../src/api/lib/tools.ts'
-import { visibleWindow } from '../src/commands/StockList/lib.ts'
+import type { Quote } from '../src/api/types.ts'
+import {
+  clampSelection,
+  displayedRows,
+  rowIndex,
+  anchoredScrollOffset,
+  scrollOffsetAfterReorder,
+  SORT_MODE_CYCLE,
+  sortedRows,
+  type StockListSortMode,
+  visibleWindow,
+} from '../src/commands/StockList/lib.ts'
 import { keyDirection } from '../src/lib/keys.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
+import type { StockListRow } from '../src/stores/useStockListStore.ts'
+
+/** 只关心涨跌幅的行情行 */
+const quoteRow = (code: string, changePercent: number): StockListRow => {
+  const quote: Quote = {
+    code,
+    name: code,
+    current: 10,
+    prevClose: 9,
+    open: 9.5,
+    high: 10.5,
+    low: 9.4,
+    change: 1,
+    changePercent,
+    timestamp: '20260820150000',
+    volume: 100,
+    turnover: 200,
+    turnoverRate: 1,
+    amplitude: 2,
+    marketCap: 300,
+    volumeRatio: 1.2,
+  }
+  return { kind: 'quote', code, quote }
+}
+
+const missingRow = (code: string): StockListRow => ({ kind: 'missing', code })
+
+const rowCodes = (rows: StockListRow[]) => rows.map((row) => row.code)
+
+test('sortedRows 按涨跌幅排序, 缺失行始终在末尾', () => {
+  const rows = [quoteRow('sh600000', 1), missingRow('sh600001'), quoteRow('sz000001', 5), quoteRow('sz300001', -3)]
+
+  // default 原样返回同一个数组, 即自选股文件顺序
+  expect(sortedRows(rows, 'default')).toBe(rows)
+  expect(rowCodes(sortedRows(rows, 'desc'))).toStrictEqual(['sz000001', 'sh600000', 'sz300001', 'sh600001'])
+  expect(rowCodes(sortedRows(rows, 'asc'))).toStrictEqual(['sz300001', 'sh600000', 'sz000001', 'sh600001'])
+  // 排序不改原数组: 写回 step.rows 就会丢掉文件顺序, 回到 default 也就回不去了
+  expect(rowCodes(rows)).toStrictEqual(['sh600000', 'sh600001', 'sz000001', 'sz300001'])
+})
+
+test('sortedRows 保持同涨跌幅行的文件顺序', () => {
+  const rows = [quoteRow('sh600000', 2), quoteRow('sz000001', 2), quoteRow('sz300001', 2)]
+
+  expect(rowCodes(sortedRows(rows, 'desc'))).toStrictEqual(['sh600000', 'sz000001', 'sz300001'])
+  expect(rowCodes(sortedRows(rows, 'asc'))).toStrictEqual(['sh600000', 'sz000001', 'sz300001'])
+})
+
+test('SORT_MODE_CYCLE 三态循环后回到文件顺序', () => {
+  const modes: StockListSortMode[] = ['default']
+  for (let step = 0; step < 3; step += 1) {
+    modes.push(SORT_MODE_CYCLE[modes.at(-1)!])
+  }
+
+  expect(modes).toStrictEqual(['default', 'desc', 'asc', 'default'])
+})
+
+test('displayedRows 只在看板步骤下给出显示顺序', () => {
+  const rows = [quoteRow('sh600000', 1), quoteRow('sz000001', 5)]
+
+  expect(displayedRows({ type: 'loading' }, 'desc')).toStrictEqual([])
+  expect(displayedRows({ type: 'empty' }, 'desc')).toStrictEqual([])
+  expect(displayedRows({ type: 'table', rows }, 'desc').map((row) => row.code)).toStrictEqual(['sz000001', 'sh600000'])
+})
+
+test('rowIndex 与 clampSelection 把下标限制在有效范围内', () => {
+  const rows = [missingRow('sh600000'), missingRow('sz000001')]
+
+  expect(rowIndex(rows, 'sz000001')).toBe(1)
+  // 没有选中行或该行已不在列表里时取首行
+  expect(rowIndex(rows, undefined)).toBe(0)
+  expect(rowIndex(rows, 'sh600001')).toBe(0)
+  expect(clampSelection(-5, 3)).toBe(0)
+  expect(clampSelection(9, 3)).toBe(2)
+})
+
+test('anchoredScrollOffset 只在选中行移出窗口时带动窗口', () => {
+  // 窗口 [0, 3): 选中行往下走到第 3 行时窗口跟着走一行
+  expect(anchoredScrollOffset(1, 1, 10, 0, 3)).toBe(0)
+  expect(anchoredScrollOffset(1, 2, 10, 0, 3)).toBe(1)
+  // 往上走到窗口外时窗口顶到选中行
+  expect(anchoredScrollOffset(-1, 3, 10, 4, 3)).toBe(2)
+  // 不让窗口越过最大偏移
+  expect(anchoredScrollOffset(1, 8, 10, 7, 3)).toBe(7)
+})
+
+test('scrollOffsetAfterReorder 让选中行停在窗口里的同一行', () => {
+  const visible = 5
+  // 选中行从第 8 行 (index 7) 换到 index 4, 窗口停到 [2, 7), 选中行仍在视口内
+  const next = scrollOffsetAfterReorder(7, 4, 5)
+  expect(next).toBe(2)
+  expect(next).toBeLessThanOrEqual(4)
+  expect(4).toBeLessThan(next + visible)
+
+  // 顺序没变时偏移不变, 移到首行时窗口回到顶部
+  expect(scrollOffsetAfterReorder(3, 3, 2)).toBe(2)
+  expect(scrollOffsetAfterReorder(7, 0, 5)).toBe(0)
+})
 
 test('visibleWindow 将两端的偏移量限制在有效范围内', () => {
   expect(visibleWindow(3, 10, 5)).toStrictEqual({ start: 0, end: 3 })

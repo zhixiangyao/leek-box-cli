@@ -48,6 +48,10 @@ src/commands/<Feature>/components/
   该命令专用的展示组件, 不跨命令复用, 只接 props 与窄 selector 订阅, 不持有业务状态.
   目前只有 StockList 抽出这一层: 表格渲染较大, 抽走后 index.tsx 回到按 step 选内容的角色
 
+src/commands/<Feature>/lib.ts
+  该命令的纯函数与常量, 不经 hook 就能单测 (tests/lib.test.ts). 目前只有 StockList:
+  滚动窗口, 排序, 选中行与视口下标
+
 src/components/
   Card, Dialog, AppLogo, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量, 并在尺寸达标分支把 children 包进一个终端尺寸的 Box, 作为 `full` Card 百分比尺寸的基准
 
@@ -240,6 +244,12 @@ useFeatureStore.ts
 
 Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器. `useSettingsStore` 是纯内存投影, 不注入依赖.
 注入字段直接写 `typeof` 指向真实函数 (`fetchQuotes: typeof fetchQuotes`), 不手抄函数签名: 抄一遍既会与实现漂移, 各处抄法也难保一致 (如 `fetchQuotes` 曾在一处带 `signal?` 一处不带). 只有没有对应真实函数的字段 (`now`) 才手写签名, 并在注释里说明原因.
+
+看板的选中行, 滚动位置和排序模式是视图状态, 放在 `useStockList` 的 `useState` 里而不是 store: 它们的含义是
+"显示顺序里的下标", 而显示顺序由排序决定, store 只持按自选股文件顺序排列的行情行, 拿不到它. 一旦把这类下标
+放进 store, 方向键就会按文件顺序跳, 而画面上完全看不出来 (行序是 hook 派生的, 看着仍然正确). 同理, 刷新后的
+视口锚定也在 hook 里做 (`refreshQuotes` 只管数据), 因为它需要"上一次的显示顺序", 而那个顺序只有 hook 有.
+`useStockListStore` 因此只有 `step`, `refreshQuotes` 和 `reset`.
 
 删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交, 列数随终端宽度变化), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅关闭弹窗并保留勾选, 可重新打开确认.
 
@@ -601,17 +611,22 @@ type StockListRow = { kind: 'quote'; code: string; quote: Quote } | { kind: 'mis
 行的名称只在 quote 里: 缺失行 (行情没返回该代码) 没有第二个名称来源, 名称列显示 `--`, 其余列按列元数据
 显示占位文案. 打开详情也只用 code, 名称由详情弹窗自己从行情行里取 (`useStockListStore` 的 quote).
 
-选择身份使用 `selectedCode`, 不使用数组 index. 刷新时保持仍存在的 code, 删除后回退到附近有效行, 并尽量保持选中行的视口相对位置.
+选择身份使用 `selectedCode`, 不使用数组 index. 它是 `useStockList` 的状态: 刷新后保持仍存在的 code,
+消失时按原来的下标回退到附近的行, 并用 `scrollOffsetAfterReorder` 让选中行停在窗口里的同一行.
 
 按涨跌幅排序 (`s` 键) 是**视图**, 不是数据: `step.rows` 始终是自选股文件顺序, 排序模式 `sortMode`
-(`default | desc | asc` 三态循环) 只决定显示顺序, 由 `useStockListStore` 导出的纯函数 `sortedRows` 派生.
-因此回到 `default` 不需要重读 settings.json (把排好序的行写回 `step.rows` 就会丢掉文件顺序, 再也回不去).
-`useStockList` 返回的 `rows` 是排好序的显示顺序, 看板渲染它; `moveSelection` 和 `scrollOffset` 也在显示顺序
-里计算, 而 `refreshQuotes` 里用来保持选中行视口位置的 `previousIndex` 同样先派生一次显示顺序. 缺失行没有
-涨跌幅可比, 一律排在末尾, 不参与升降序. 排序指示器只在排过序之后出现在 Card 右上角 (`涨跌幅 ▼` / `涨跌幅 ▲`,
-cyan 显示, 与剩余条数并排); 离开看板时 `reset()` 会连同排序模式一起清掉, 排序不写盘.
+(`default | desc | asc` 三态循环) 只决定显示顺序. 因此回到 `default` 不需要重读 settings.json
+(把排好序的行写回 `step.rows` 就会丢掉文件顺序, 再也回不去). 显示顺序只经由 `commands/StockList/lib.ts` 的
+`displayedRows(step, sortMode)` 取出, `sortedRows(rows, sortMode)` 是它的底座: 看板渲染, `moveSelection`,
+`cycleSortMode` 和刷新后的视口锚定都用它, 因此只有一个来源. 缺失行没有涨跌幅可比, 一律排在末尾, 不参与升降序.
+排序指示器只在排过序之后出现在 Card 右上角 (`涨跌幅 ▼` / `涨跌幅 ▲`, cyan 显示, 与剩余条数并排);
+排序是 hook 的内存状态, 不写盘, 离开看板随组件一起消失.
 
 StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, 让 Zustand selector 的 `Object.is` 跳过无意义更新.
+
+右上角的剩余条数是"没显示出来的行数" (`rows.length - visible`), 按可视高度算, 不按滚动位置算:
+从窗口末尾往前数会在窗口贴到列表底部时变成 0 —— 排序把选中行带到列表末尾就会这样, 条数凭空消失,
+而上面明明还有行被截掉. 它因此不需要 ScrollBox 的窗口回调, 只订阅可视高度.
 
 ## Card, Dialog 和 Text
 

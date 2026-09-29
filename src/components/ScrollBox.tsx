@@ -16,23 +16,15 @@ export type ScrollBoxProps<T> = {
   list: T[]
   scrollOffset: number
   customRender: (item: T) => ReactNode
-  onWindowChange?: (value: Window) => void
   onVisibleChange?: (value: number) => void
 }
 
 export default function ScrollBox<T>(props: ScrollBoxProps<T>) {
-  const { list, scrollOffset, customRender, onWindowChange, onVisibleChange } = props
+  const { list, scrollOffset, customRender, onVisibleChange } = props
   const containerRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(containerRef)
   const visible = boxMetrics.hasMeasured ? Math.max(DEFAULT_VISIBLE, Math.floor(boxMetrics.height)) : DEFAULT_VISIBLE
   const window = visibleWindow(list.length, scrollOffset, visible)
-
-  useEffect(() => {
-    onWindowChange?.({
-      start: window.start,
-      end: window.end,
-    })
-  }, [onWindowChange, window.start, window.end])
 
   useEffect(() => {
     onVisibleChange?.(visible)
