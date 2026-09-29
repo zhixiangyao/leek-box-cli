@@ -1,7 +1,6 @@
 import stringWidth from 'string-width'
 import { expect, test } from 'vitest'
 
-import type { Quote } from '../src/api/types.ts'
 import { LOCALES } from '../src/i18n/locale.ts'
 import type { Locale } from '../src/i18n/types.ts'
 import { EMPTY_VALUE } from '../src/lib/format.ts'
@@ -14,30 +13,11 @@ import {
   stockListColumns,
   tableWidth,
 } from '../src/lib/quoteTable.ts'
+import { quote } from './helpers/fixtures.ts'
 
 const STOCK_LIST_COLUMNS = stockListColumns()
 const STOCK_DETAIL_COLUMNS = stockDetailColumns()
 const COLUMNS_BY_KEY = new Map(STOCK_LIST_COLUMNS.concat(STOCK_DETAIL_COLUMNS).map((column) => [column.key, column]))
-
-const quote = (patch: Partial<Quote> = {}): Quote => ({
-  code: 'sh600000',
-  name: '浦发银行',
-  current: 10.25,
-  prevClose: 10,
-  open: 10.1,
-  high: 10.3,
-  low: 9.95,
-  change: 0.25,
-  changePercent: 2.5,
-  timestamp: '20260820150000',
-  volume: 12_345,
-  turnover: 6789,
-  turnoverRate: 1.2,
-  amplitude: 3.5,
-  marketCap: 2000,
-  volumeRatio: 1.1,
-  ...patch,
-})
 
 const codeColumn = COLUMNS_BY_KEY.get('code')!
 const percentColumn = COLUMNS_BY_KEY.get('changePercent')!

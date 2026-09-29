@@ -1,102 +1,10 @@
-import { PassThrough, Writable } from 'node:stream'
 import { setTimeout as delay } from 'node:timers/promises'
-import { stripVTControlCharacters } from 'node:util'
 
-import { Box, render } from 'ink'
+import { Box } from 'ink'
 import { expect, test } from 'vitest'
 
 import CheckboxGrid from '../src/components/CheckboxGrid/index.tsx'
-import {
-  gridColumnCount,
-  nextCursor,
-  rowWindow,
-  scrollForCursor,
-  toGridRows,
-} from '../src/components/CheckboxGrid/lib.ts'
-import { TABLE_CHROME } from '../src/components/WindowSizeGuard.tsx'
-
-process.env['FORCE_COLOR'] = '1'
-
-test('toGridRows 行优先切分, 末行可不足列数', () => {
-  expect(toGridRows([1, 2, 3, 4, 5], 3)).toStrictEqual([
-    [1, 2, 3],
-    [4, 5],
-  ])
-  expect(toGridRows([1, 2, 3, 4, 5, 6], 3)).toStrictEqual([
-    [1, 2, 3],
-    [4, 5, 6],
-  ])
-  expect(toGridRows([], 3)).toStrictEqual([])
-})
-
-test('nextCursor 在网格内移动, 边界处保持不动', () => {
-  // total 5, columns 3 => 行: [0,1,2],[3,4]
-  expect(nextCursor(0, 5, 'right', 3)).toBe(1)
-  expect(nextCursor(2, 5, 'right', 3)).toBe(2) // 行末不再右移
-  expect(nextCursor(4, 5, 'right', 3)).toBe(4) // 已是最后一个
-  expect(nextCursor(4, 5, 'left', 3)).toBe(3)
-  expect(nextCursor(3, 5, 'left', 3)).toBe(3) // 行首不再左移
-  expect(nextCursor(0, 5, 'down', 3)).toBe(3)
-  expect(nextCursor(3, 5, 'down', 3)).toBe(3) // 下方无条目
-  expect(nextCursor(2, 5, 'down', 3)).toBe(2) // 下方无条目 (index 5 不存在)
-  expect(nextCursor(4, 5, 'up', 3)).toBe(1)
-  expect(nextCursor(1, 5, 'up', 3)).toBe(1) // 顶行不再上移
-  expect(nextCursor(0, 0, 'down', 3)).toBe(0) // 空列表
-})
-
-test('nextCursor 的纵向步进跟随列数', () => {
-  // total 6, columns 2 => 行: [0,1],[2,3],[4,5]
-  expect(nextCursor(0, 6, 'down', 2)).toBe(2)
-  expect(nextCursor(2, 6, 'up', 2)).toBe(0)
-  expect(nextCursor(1, 6, 'right', 2)).toBe(1) // 行末不再右移
-  expect(nextCursor(5, 6, 'down', 2)).toBe(5) // 下方无条目
-})
-
-test('scrollForCursor 使光标行保持在可视窗口内', () => {
-  // 10 行, 可视 3 行, maxOffset = 7
-  expect(scrollForCursor(0, 10, 5, 3, 3)).toBe(0) // 光标在顶, 窗口回到顶
-  expect(scrollForCursor(27, 10, 0, 3, 3)).toBe(7) // index 27 => 行 9, 贴底
-  expect(scrollForCursor(12, 10, 2, 3, 3)).toBe(2) // index 12 => 行 4, 已在 [2,5) 内
-  expect(scrollForCursor(9, 10, 5, 3, 3)).toBe(3) // index 9 => 行 3, 上滚到 3
-  expect(scrollForCursor(0, 2, 0, 3, 3)).toBe(0) // 行数不超过可视, 恒 0
-})
-
-test('scrollForCursor 按新列数重新定位光标行', () => {
-  // 6 行 12 个条目: columns 6 时光标 11 在行 1, columns 2 时同一光标落到行 5
-  expect(scrollForCursor(11, 6, 0, 3, 6)).toBe(0) // 行 1 已在 [0,3) 内
-  expect(scrollForCursor(11, 6, 0, 3, 2)).toBe(3) // 行 5 => 上滚到 3
-})
-
-test('rowWindow 将窗口起点钳制在有效范围内', () => {
-  expect(rowWindow(3, 10, 5)).toStrictEqual({ start: 0, end: 3 })
-  expect(rowWindow(10, 99, 3)).toStrictEqual({ start: 7, end: 10 })
-  expect(rowWindow(10, 4, 3)).toStrictEqual({ start: 4, end: 7 })
-  expect(rowWindow(0, 0, 5)).toStrictEqual({ start: 0, end: 0 })
-})
-
-// 命令上实际使用的列间距
-const GAP = 2
-
-test('gridColumnCount 按内容区宽度放下尽可能多的最小单元格', () => {
-  // 内容区宽度 = 终端宽度 - TABLE_CHROME, 每列占最小单元格宽度 24 再加列间距
-  expect(gridColumnCount(80 - TABLE_CHROME, GAP)).toBe(3) // 内容区 76: 3 * 24 + 2 * 2 = 76, 刚好放下
-  expect(gridColumnCount(79 - TABLE_CHROME, GAP)).toBe(2)
-  expect(gridColumnCount(119 - TABLE_CHROME, GAP)).toBe(4) // 宽度守卫给出的最小终端宽度
-  expect(gridColumnCount(140 - TABLE_CHROME, GAP)).toBe(5)
-  expect(gridColumnCount(164 - TABLE_CHROME, GAP)).toBe(6)
-})
-
-test('gridColumnCount 把列间距计入每格宽度', () => {
-  // 内容区 136: 间距 2 时 5 * 24 + 4 * 2 = 128 放得下, 间距 12 时 5 * 24 + 4 * 12 = 168 放不下
-  expect(gridColumnCount(140 - TABLE_CHROME, 2)).toBe(5)
-  expect(gridColumnCount(140 - TABLE_CHROME, 12)).toBe(4)
-})
-
-test('gridColumnCount 将列数钳制在上下限内', () => {
-  expect(gridColumnCount(0 - TABLE_CHROME, GAP)).toBe(2) // 内容区宽度为负 (终端宽度未知)
-  expect(gridColumnCount(40 - TABLE_CHROME, GAP)).toBe(2) // 内容区 36: 只能放 1 列, 由下限兜住
-  expect(gridColumnCount(400 - TABLE_CHROME, GAP)).toBe(8) // 内容区 396: 远超上限
-})
+import { CaptureOutput, createInput, plain, renderInk, waitForLatestFrame, waitForState } from './helpers/ink.tsx'
 
 type Item = { code: string; name: string }
 
@@ -106,53 +14,12 @@ const makeItems = (count: number): Item[] =>
     name: `股票${index.toString().padStart(2, '0')}`,
   }))
 
-class CaptureOutput extends Writable {
-  readonly columns: number
-  readonly rows: number
-  readonly isTTY = true
-  readonly frames: string[] = []
-  constructor(columns: number, rows: number) {
-    super()
-    this.columns = columns
-    this.rows = rows
-  }
-  override _write(chunk: Buffer | string, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
-    this.frames.push(chunk.toString())
-    callback()
-  }
-}
-
-const createInput = () => {
-  const input = new PassThrough() as PassThrough & {
-    isTTY: boolean
-    setRawMode: (mode: boolean) => PassThrough
-    ref: () => PassThrough
-    unref: () => PassThrough
-  }
-  input.isTTY = true
-  input.setRawMode = () => input
-  input.ref = () => input
-  input.unref = () => input
-  return input
-}
-
 const DOWN = '\u001B[B'
 const RIGHT = '\u001B[C'
 
-const latest = (output: CaptureOutput) => stripVTControlCharacters(output.frames.at(-1) ?? '')
-
-const waitFor = async (check: () => boolean) => {
-  const deadline = Date.now() + 2000
-  while (Date.now() < deadline) {
-    if (check()) return
-    await delay(10)
-  }
-  throw new Error('timed out waiting for expected frame or state')
-}
-
 /** 首个条目所在行, 用于断言同一行里的列排布 */
 const firstRow = (output: CaptureOutput) =>
-  latest(output)
+  plain(output.frames.at(-1) ?? '')
     .split('\n')
     .find((line) => line.includes('股票00'))
 
@@ -172,7 +39,7 @@ const renderGrid = (
   const { height = 12, columnCount = 3, columnGap = 2 } = options
   const output = new CaptureOutput(90, height)
   const input = createInput()
-  const instance = render(
+  const instance = renderInk(
     <Box width={90} height={height} flexDirection="column">
       <CheckboxGrid
         items={items}
@@ -184,14 +51,7 @@ const renderGrid = (
         onSubmit={onSubmit}
       />
     </Box>,
-    {
-      stdout: output as unknown as NodeJS.WriteStream,
-      stdin: input as unknown as NodeJS.ReadStream,
-      stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-      debug: true,
-      interactive: true,
-      patchConsole: false,
-    },
+    { output, input, interactive: true },
   )
   return { output, input, instance }
 }
@@ -209,14 +69,14 @@ test('CheckboxGrid: 空格勾选, 右移再勾选, 回车提交勾选项', async
   const { output, input, instance } = renderGrid(items, true, (selected) => submitted.push(selected))
 
   try {
-    await waitFor(() => latest(output).includes('[ ] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[ ] 股票00'))
     await press(input, ' ')
-    await waitFor(() => latest(output).includes('[x] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票00'))
     await press(input, RIGHT)
     await press(input, ' ')
-    await waitFor(() => latest(output).includes('[x] 股票01'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票01'))
     await press(input, '\r')
-    await waitFor(() => submitted.length === 1)
+    await waitForState(() => submitted.length === 1)
     expect(submitted[0]!.map((item) => item.code)).toStrictEqual(['c00', 'c01'])
   } finally {
     instance.unmount()
@@ -231,21 +91,21 @@ test('CheckboxGrid: vim 键 hjkl 与方向键等效, 边界处同样保持不动
   const { output, input, instance } = renderGrid(items, true, (selected) => submitted.push(selected))
 
   try {
-    await waitFor(() => latest(output).includes('[ ] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[ ] 股票00'))
     await press(input, 'l') // 右移一列: 0 -> 1
     await press(input, 'j') // 下移一行 (3 列 => +3): 1 -> 4
     await press(input, ' ')
-    await waitFor(() => latest(output).includes('[x] 股票04'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票04'))
     await press(input, 'k') // 上移一行: 4 -> 1
     await press(input, 'h') // 左移一列: 1 -> 0
     await press(input, ' ')
-    await waitFor(() => latest(output).includes('[x] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票00'))
     await press(input, 'h') // 行首不再左移
     await press(input, 'k') // 顶行不再上移
     await press(input, ' ') // 光标仍在 股票00: 取消勾选
-    await waitFor(() => latest(output).includes('[ ] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[ ] 股票00'))
     await press(input, '\r')
-    await waitFor(() => submitted.length === 1)
+    await waitForState(() => submitted.length === 1)
     expect(submitted[0]!.map((item) => item.code)).toStrictEqual(['c04'])
   } finally {
     instance.unmount()
@@ -260,11 +120,11 @@ test('CheckboxGrid: 光标下移超出可视区域时向下滚动', async () => 
 
   try {
     // 等待测量完成 (可视 8 行时第 8 行 股票21 出现)
-    await waitFor(() => latest(output).includes('股票21'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('股票21'))
     await press(input, DOWN, 20)
-    await waitFor(() => latest(output).includes('股票44') && !latest(output).includes('股票00'))
-    expect(latest(output).includes('股票44')).toBe(true)
-    expect(latest(output).includes('股票00')).toBe(false)
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('股票44') && !plain(frame).includes('股票00'))
+    expect(plain(output.frames.at(-1) ?? '').includes('股票44')).toBe(true)
+    expect(plain(output.frames.at(-1) ?? '').includes('股票00')).toBe(false)
   } finally {
     instance.unmount()
     await instance.waitUntilExit()
@@ -280,15 +140,15 @@ test('CheckboxGrid: columnCount 决定每行列数与光标纵向步进', async 
   })
 
   try {
-    await waitFor(() => firstRow(output) !== undefined)
+    await waitForState(() => firstRow(output) !== undefined)
     expect(firstRow(output)).toContain('股票01') // 两列: 同行放下第二个条目
     expect(firstRow(output)).not.toContain('股票02') // 第三项换行
 
     await press(input, DOWN) // columns 2 => 下移两格到 股票02
     await press(input, ' ')
-    await waitFor(() => latest(output).includes('[x] 股票02'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票02'))
     await press(input, '\r')
-    await waitFor(() => submitted.length === 1)
+    await waitForState(() => submitted.length === 1)
     expect(submitted[0]!.map((item) => item.code)).toStrictEqual(['c02'])
   } finally {
     instance.unmount()
@@ -302,7 +162,7 @@ test('CheckboxGrid: columnGap 决定两列之间的距离', async () => {
   const columnOffset = async (columnGap: number) => {
     const { output, instance } = renderGrid(makeItems(4), true, () => undefined, { columnCount: 2, columnGap })
     try {
-      await waitFor(() => firstRow(output) !== undefined)
+      await waitForState(() => firstRow(output) !== undefined)
       const line = firstRow(output) ?? ''
       return line.indexOf('股票01') - line.indexOf('股票00')
     } finally {
@@ -321,11 +181,11 @@ test('CheckboxGrid: isActive 为 false 时忽略输入', async () => {
   const { output, input, instance } = renderGrid(items, false, (selected) => submitted.push(selected))
 
   try {
-    await waitFor(() => latest(output).includes('[ ] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[ ] 股票00'))
     await press(input, ' ')
     await press(input, '\r')
     await delay(200)
-    expect(latest(output).includes('[x]')).toBe(false)
+    expect(plain(output.frames.at(-1) ?? '').includes('[x]')).toBe(false)
     expect(submitted).toStrictEqual([])
   } finally {
     instance.unmount()
@@ -340,7 +200,7 @@ test('CheckboxGrid: 未勾选时回车不触发提交', async () => {
   const { output, input, instance } = renderGrid(items, true, (selected) => submitted.push(selected))
 
   try {
-    await waitFor(() => latest(output).includes('[ ] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[ ] 股票00'))
     await press(input, RIGHT)
     await press(input, '\r')
     await delay(200)
@@ -358,11 +218,11 @@ test('CheckboxGrid: 空格再次按下取消勾选', async () => {
   const { output, input, instance } = renderGrid(items, true, (selected) => submitted.push(selected))
 
   try {
-    await waitFor(() => latest(output).includes('[ ] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[ ] 股票00'))
     await press(input, ' ')
-    await waitFor(() => latest(output).includes('[x] 股票00'))
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票00'))
     await press(input, ' ')
-    await waitFor(() => !latest(output).includes('[x]'))
+    await waitForLatestFrame(output, (frame) => !plain(frame).includes('[x]'))
     await press(input, '\r')
     await delay(200)
     expect(submitted).toStrictEqual([])
@@ -379,7 +239,7 @@ test('CheckboxGrid: 空列表渲染为空网格且回车不触发', async () => 
 
   try {
     await delay(200)
-    expect(latest(output).includes('[ ]')).toBe(false)
+    expect(plain(output.frames.at(-1) ?? '').includes('[ ]')).toBe(false)
     await press(input, ' ')
     await press(input, '\r')
     await delay(200)

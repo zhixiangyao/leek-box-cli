@@ -49,7 +49,7 @@ src/commands/<Feature>/components/
   目前只有 StockList 抽出这一层: 表格渲染较大, 抽走后 index.tsx 回到按 step 选内容的角色
 
 src/commands/<Feature>/lib.ts
-  该命令的纯函数与常量, 不经 hook 就能单测 (tests/lib.test.ts). 目前只有 StockList:
+  该命令的纯函数与常量, 不经 hook 就能单测 (tests/stockListLib.test.ts). 目前只有 StockList:
   滚动窗口, 排序, 选中行与视口下标
 
 src/components/
@@ -87,8 +87,10 @@ src/lib/
   纯工具: format.ts (格式化与涨跌色), error.ts, is.ts, keys.ts, yesNo.ts, quoteTable.ts (行情表列定义与行渲染),
   version.ts (应用版本, 取自 package.json; CLI `-v` 与 settings.json 的 `appVersion` 共用)
 
-tests/*.test.ts
-  parser, store, settings persistence 和终端布局测试
+tests/
+  一个源文件一个测试文件, 文件名取自源文件 (小驼峰; 命令的 lib.ts 用 <feature>Lib.test.ts,
+  `commands/Settings` 用 settingsCommand.test.tsx 以区别于 settings 目录);
+  tests/helpers/ 放共享的渲染, 帧断言和夹具, 不参与用例收集
 ```
 
 依赖方向保持为:
@@ -206,7 +208,9 @@ await settingsPersistence.stop()
 
 因此 commands 与 navigation 之间没有 import 边, 命令的文案 (含 hint 里列的按键与监听是否一致) 就地可读.
 代价是同一句文案在注册表与组件里各有一份 `MessageKey`: 键名写错由 `MessageKey` 类型拦住, 张冠李戴
-(例如 StockAdd 用了 stockList 的键) 由 `tests/layout.test.ts` 逐命令断言标题与 hint 整串兜住.
+(例如 StockAdd 用了 stockList 的键) 由各命令自己的测试文件 (`tests/stockList.test.tsx`,
+`tests/stockAdd.test.tsx`, `tests/stockRemove.test.tsx`, `tests/settingsCommand.test.tsx`)
+逐命令断言标题与 hint 整串兜住.
 
 ## Command, hook 和 store 分层
 
@@ -416,7 +420,7 @@ d                 恢复默认值
 - **复数键的计数占位符必须命名为 `{count}`**, 即与形态选择的依据同名. 不要另起别名
   (如 `{added}` / `{removed}`) 再额外传一个重复的 `count`: 那样漏传 `count` 编译期无感,
   运行时静默落到 `other`, 输出 `Removed 1 stocks`. 现在漏传 `count` 会把 `{count}` 原文显示出来,
-  错误是显性的. `tests/i18n.test.ts` 有用例机械校验每个复数键的两种形态都含 `{count}`.
+  错误是显性的. `tests/catalog.test.ts` 有用例机械校验每个复数键的两种形态都含 `{count}`.
 - 需要单复数时在 `types.ts` 把该键声明为 `MessageValue`, 只有英文写 `{ one, other }`;
   中文和繁体没有单复数变化, 保持普通字符串. 目前只有 6 个计数键用 `MessageValue`.
 
@@ -452,11 +456,11 @@ d                 恢复默认值
 不按当前 locale 推导. 原因是宽度守卫包住了全部命令, 设置命令也在里面: 若下限随语言变化,
 在恰好满足中文下限 (116 列) 的终端上切到英文 (需要 119 列) 会被守卫拦住, 语言就再也改不回来,
 只能手动编辑 settings.json. 代价是中文用户也需要 119 列, 换取"任一语言都不会把自己锁在外面".
-新增或加宽某个 locale 的列时会自然抬高全局下限, `tests/layout.test.ts` 有用例校验覆盖关系.
+新增或加宽某个 locale 的列时会自然抬高全局下限, `tests/windowSizeGuard.test.ts` 有用例校验覆盖关系.
 
 新增文案时: 先在 `types.ts` 的 `Message` 里加键, 再三份 catalog 同步补齐 (类型强制),
 并保证各语言的占位符集合与之一致. 组件与常量表存 `MessageKey`, 在渲染处用 `t()` 解析.
-catalog 禁止全角标点, 顿号, U+3000 和 emoji, 由 `tests/i18n.test.ts` 的标点守卫用例机械校验.
+catalog 禁止全角标点, 顿号, U+3000 和 emoji, 由 `tests/catalog.test.ts` 的标点守卫用例机械校验.
 
 ## settings.json 持久化
 
@@ -659,7 +663,7 @@ Dialog 支持 `above`, `borderTopLeft`, `borderTopRight`, `borderBottomLeft`, `b
 的 dim 内容, 与窄 Card 浮在看板上的观感一致. 目前只有 DialogMenu 用它与 AppLogo 搭配.
 
 AppLogo 是应用 ASCII art (两行), 各行必须等宽, 且宽度不得超过 `MIN_TERMINAL_COLUMNS`
-(否则在恰好卡着宽度下限的终端上 art 会被裁). `tests/layout.test.ts` 有守卫用例锁定这两条;
+(否则在恰好卡着宽度下限的终端上 art 会被裁). `tests/appLogo.test.ts` 有守卫用例锁定这两条;
 组件不铺 mask, 也不接受宽度参数.
 
 弹窗宽度一律按 `Math.max(标题宽, Math.min(内容宽, CONTENT_WIDTH_CAP), hint 宽, 下限)` 计算:
@@ -725,25 +729,41 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 ## 测试和验证
 
-测试使用 Vitest. 测试文件按被测对象分文件, 均位于 `tests/`:
+测试使用 Vitest. **一个源文件一个测试文件**, 均位于 `tests/`, 文件名取自对应的源文件 (首字母小写):
+`src/api/index.ts` -> `tests/api.test.ts`, `src/api/lib/parsers.ts` -> `tests/parsers.test.ts`,
+`src/stores/useStockListStore.ts` -> `tests/useStockListStore.test.ts`,
+`src/commands/StockList/index.tsx` -> `tests/stockList.test.tsx`.
+命令目录与 settings 目录重名时命令侧带 `Command` 后缀: `tests/settingsCommand.test.tsx` 测
+`commands/Settings/index.tsx`, `tests/schema.test.ts` / `tests/file.test.ts` 测 `settings/` 下的同名文件.
+命令的 `lib.ts` 用 `<feature>Lib.test.ts` (`tests/stockListLib.test.ts`, `tests/checkboxGridLib.test.ts`,
+`tests/stockChartLib.test.ts`), 因此同一 feature 的 lib 与组件各有一个测试文件.
 
-`api` / `chart` / `parsers` / `format` / `lib` / `quoteTable` / `yesNo` / `checkboxGrid` /
-`textInput` / `lock` / `persistence` / `resetAll` / `settings` / `settingsStore` / `stores` /
-`registry` / `meow` / `run` / `usePolling` / `layout` / `i18n`.
+`tests/helpers/` 放共享测试设施, 不参与用例收集:
 
-测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在布局测试之间使用 `getInitialState()` 恢复.
+- `ink.tsx` --- 渲染到固定尺寸输出 (`CaptureOutput` / `createInput` / `renderInk` / `plain`) 与三种等待:
+  `waitForFrame` (after 之后任取一帧), `waitForLatestFrame` (只看最新一帧), `waitForState` (轮询状态).
+- `app.tsx` --- App 级断言: `renderApp`, `resetStores`, `assertFrameSize`, `selectedCodeIn`, `isDimmed`,
+  `remainingPattern` / `remainingTextIn`, 以及把看板与删除网格钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries`.
+- `fixtures.ts` --- 行情与自选股夹具: `quote` / `quoteRow` / `missingRow` / `rowCodes` / `stockEntry` / `removeEntry`.
+
+测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在渲染用例之间由
+`tests/helpers/app.tsx` 的 `resetStores()` 用 `getInitialState()` 恢复.
+
+断言选中行反显与浮层 dim 的用例需要 Ink 真的输出 SGR 序列, 因此 `FORCE_COLOR` 由 `vitest.config.ts`
+的 `test.env` 提供: chalk 在模块求值时就定下颜色档位, 写在测试文件顶部或 helper 里都太迟
+(helper 的赋值晚于它自己 import 的 ink), 用例会一个序列都收不到. 需要彩色断言的新文件不必自己设这个变量.
 
 涉及渲染帧或文案断言的测试必须固定语言: 模块级 `activeLocale` 初值是 `zh-hans`, 但 `language` 默认值
-`auto` 会跟随运行环境的系统语言, 因此 `tests/layout.test.ts` 的 `resetStores()`,
-`tests/persistence.test.ts` 与 `tests/settings.test.ts` 的 `beforeEach` 都显式
-`setActiveLocale(DEFAULT_LOCALE)` (布局测试同时把 store 的 `language` 置为 `zh-hans`).
-新增此类测试必须做同样的固定, 否则在 `LANG=en_US` 的机器上会失败. 需要中文或英文文案时用 `t(key)` 而不是字面量.
+`auto` 会跟随运行环境的系统语言, 因此 `resetStores()` (同时把 store 的 `language` 置为 `zh-hans`),
+`tests/persistence.test.ts` 与 `tests/schema.test.ts` / `tests/file.test.ts` 的 `beforeEach` 都显式
+`setActiveLocale(DEFAULT_LOCALE)`. 新增此类测试必须做同样的固定, 否则在 `LANG=en_US` 的机器上会失败.
+需要中文或英文文案时用 `t(key)` 而不是字面量.
 
 `tests/quoteTable.test.ts` 持有三语言列宽的守卫用例: 表头宽度, 停牌/缺失占位文案宽度, 以及单位列在
 档位边界 (含四舍五入) 的渲染文本宽度都不超过列宽, 另有 `LIST_WIDTH_SUM` 锁定各 locale 的列宽之和.
 改动 `ColumnSpec.widths` 或 `format.ts` 的单位档位时必须同步更新这些常量, 否则用例会失败.
 `cell()` 只补齐不截断, 因此超宽文本会撑宽整行并让后续列错位, 而不是被裁掉.
-`tests/layout.test.ts` 另有一条用例校验 `MIN_TERMINAL_COLUMNS` 覆盖全部 locale 的看板占宽,
+`tests/windowSizeGuard.test.ts` 另有一条用例校验 `MIN_TERMINAL_COLUMNS` 覆盖全部 locale 的看板占宽,
 防止再次出现"切到某种语言就被宽度守卫锁在外面".
 
 修改后至少运行:
@@ -776,7 +796,7 @@ script -qec "stty cols 160 rows 40; pnpm dev" /dev/null
 - 中文使用 ASCII `, . : ; ! ? ( )`, 标点后按英文规则留空格.
 - 禁止中文全角标点, 顿号和 U+3000 空格.
 - 不使用 emoji.
-- 上述三条同样适用于 catalog 内容, 由 `tests/i18n.test.ts` 的标点守卫用例机械校验.
+- 上述三条同样适用于 catalog 内容, 由 `tests/catalog.test.ts` 的标点守卫用例机械校验.
 - 不新增兼容 alias, migration 或 deprecated API, 除非任务明确要求.
 - 不新增第二份路由, overlay, poll interval 或 settings 状态.
 - 不新增第二份文案来源: 显示文案只放 catalog, 组件与常量表存 `MessageKey` 并在渲染处解析.

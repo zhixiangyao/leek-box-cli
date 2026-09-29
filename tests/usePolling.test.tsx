@@ -1,41 +1,14 @@
-import { PassThrough, Writable } from 'node:stream'
-
-import { render, Text } from 'ink'
+import { Text } from 'ink'
 import { createElement, type ComponentType } from 'react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import { usePolling } from '../src/hooks/usePolling.ts'
+import { CaptureOutput, createInput, renderInk } from './helpers/ink.tsx'
 
 type Options = {
   intervalMs: number
   restartKey?: unknown
   enabled?: boolean
-}
-
-class CaptureOutput extends Writable {
-  readonly columns = 40
-  readonly rows = 5
-  readonly isTTY = true
-  readonly frames: string[] = []
-
-  override _write(chunk: Buffer | string, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
-    this.frames.push(chunk.toString())
-    callback()
-  }
-}
-
-const createInput = () => {
-  const input = new PassThrough() as PassThrough & {
-    isTTY: boolean
-    setRawMode: (mode: boolean) => PassThrough
-    ref: () => PassThrough
-    unref: () => PassThrough
-  }
-  input.isTTY = true
-  input.setRawMode = () => input
-  input.ref = () => input
-  input.unref = () => input
-  return input
 }
 
 /** 渲染 usePolling 探查器, 记录任务调用信号与错误 */
@@ -51,14 +24,9 @@ const mountPolling = (
     return createElement(Text, null, 'polling')
   }
 
-  const instance = render(createElement(harness, { opts: options }), {
-    stdout: new CaptureOutput() as unknown as NodeJS.WriteStream,
-    stdin: createInput() as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
-  })
+  const output = new CaptureOutput(40, 5)
+  const input = createInput()
+  const instance = renderInk(createElement(harness, { opts: options }), { output, input })
 
   return {
     instance,

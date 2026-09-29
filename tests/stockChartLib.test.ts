@@ -1,15 +1,7 @@
-import { PassThrough, Writable } from 'node:stream'
-import { setTimeout as delay } from 'node:timers/promises'
-import { stripVTControlCharacters } from 'node:util'
-
-import { Box, Text, render } from 'ink'
 import { expect, test } from 'vitest'
 
 import type { IntradayPoint } from '../src/api/types.ts'
-import StockChart, { STOCK_CHART_HEIGHT } from '../src/components/StockChart/index.tsx'
 import { bucketize, buildChartRows, mergeChartCell } from '../src/components/StockChart/lib.ts'
-
-process.env['FORCE_COLOR'] = '1'
 
 test('bucketize 对非正宽度返回空数组', () => {
   expect(bucketize([], 0)).toStrictEqual([])
@@ -109,110 +101,4 @@ test('mergeChartCell 不改写入参, 同一行重复合并结果一致', () => 
   expect(axisRow).toStrictEqual(snapshot)
   expect(once).toHaveLength(20)
   expect(twice).toBe(once)
-})
-
-class CaptureOutput extends Writable {
-  readonly columns: number
-  readonly rows: number
-  readonly isTTY = true
-  readonly frames: string[] = []
-
-  constructor(columns: number, rows: number) {
-    super()
-    this.columns = columns
-    this.rows = rows
-  }
-
-  override _write(chunk: Buffer | string, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {
-    this.frames.push(chunk.toString())
-    callback()
-  }
-}
-
-const createInput = () => {
-  const input = new PassThrough() as PassThrough & {
-    isTTY: boolean
-    setRawMode: (mode: boolean) => PassThrough
-    ref: () => PassThrough
-    unref: () => PassThrough
-  }
-  input.isTTY = true
-  input.setRawMode = () => input
-  input.ref = () => input
-  input.unref = () => input
-  return input
-}
-
-const plain = (frame: string) => stripVTControlCharacters(frame)
-
-const waitForFrame = async (
-  output: CaptureOutput,
-  after: number,
-  predicate: (frame: string) => boolean,
-): Promise<string> => {
-  const deadline = Date.now() + 2000
-  while (Date.now() < deadline) {
-    const frame = output.frames.slice(after).findLast(predicate)
-    if (frame !== undefined) return frame
-    await delay(10)
-  }
-
-  throw new Error(`Timed out waiting for frame. Latest output:\n${plain(output.frames.at(-1) ?? '')}`)
-}
-
-const CHART_WIDTH = 40
-
-/** 模块级构造, 保证重渲染时 points 引用不变 (useMemo 命中) */
-const CHART_POINTS: IntradayPoint[] = Array.from({ length: 60 }, (_unused, index) => ({
-  time: `${(9 + Math.floor((30 + index * 4) / 60)).toString().padStart(2, '0')}${((30 + index * 4) % 60).toString().padStart(2, '0')}`,
-  price: 66 + Math.sin(index / 5),
-  volume: (index + 1) * 1000,
-}))
-
-const ChartHarness = ({ tick }: { tick: number }) => (
-  <Box width={CHART_WIDTH} flexDirection="column">
-    <Text>tick={tick}</Text>
-    <StockChart points={CHART_POINTS} period="intraday" prevClose={66} width={CHART_WIDTH} />
-  </Box>
-)
-
-/**
- * 缓存 buildChartRows 之后暴露的回归: run 合并曾就地改写被缓存的 cell, 于是入参一个都没变
- * (memo 命中) 的重渲染也会把同一段文本再拼一遍, 行宽越滚越大, 图表折行溢出固定高度的 Box,
- * 弹窗整个糊掉. 这里连续重渲染并断言行数/行宽不变.
- */
-test('StockChart 入参未变时重渲染, 图表行数与行宽保持不变', async () => {
-  const output = new CaptureOutput(CHART_WIDTH + 20, 20)
-  const instance = render(<ChartHarness tick={0} />, {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: createInput() as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
-    debug: true,
-    interactive: false,
-    patchConsole: false,
-  })
-
-  try {
-    let after = 0
-    for (let tick = 0; tick <= 4; tick++) {
-      if (tick > 0) {
-        after = output.frames.length
-        instance.rerender(<ChartHarness tick={tick} />)
-      }
-
-      const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes(`tick=${tick}`))
-      const lines = plain(frame).split('\n')
-      const label = `tick=${tick}`
-
-      expect(lines, label).toHaveLength(STOCK_CHART_HEIGHT + 1)
-      expect(
-        lines.slice(1).every((line) => line.length === CHART_WIDTH),
-        label,
-      ).toBe(true)
-    }
-  } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
-  }
 })

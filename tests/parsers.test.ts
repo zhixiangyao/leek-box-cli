@@ -6,32 +6,48 @@ import {
   parseIntradayResponse,
   parseQuoteText,
 } from '../src/api/lib/parsers.ts'
-import { normalizeCode } from '../src/api/lib/tools.ts'
-
-test('normalizeCode 覆盖沪深北各市场前缀', () => {
-  expect(normalizeCode('600000')).toBe('sh600000')
-  expect(normalizeCode('501000')).toBe('sh501000')
-  expect(normalizeCode('000001')).toBe('sz000001')
-  expect(normalizeCode('300750')).toBe('sz300750')
-  expect(normalizeCode('150001')).toBe('sz150001')
-  expect(normalizeCode('830001')).toBe('bj830001')
-  expect(normalizeCode('430001')).toBe('bj430001')
-  expect(normalizeCode('920001')).toBe('bj920001')
-})
-
-test('normalizeCode 剥离后缀与前缀且忽略大小写和空白', () => {
-  expect(normalizeCode('  600000.sh ')).toBe('sh600000')
-  expect(normalizeCode('sz000001')).toBe('sz000001')
-})
-
-test('normalizeCode 拒绝非法或不完整的代码', () => {
-  expect(normalizeCode('12345')).toBeUndefined()
-  expect(normalizeCode('700000')).toBeUndefined()
-  expect(normalizeCode('abcdef')).toBeUndefined()
-})
 
 test('parseQuoteText 在没有任何有效行情时抛错', () => {
   expect(() => parseQuoteText('garbage without quotes')).toThrow(/未查询到任何行情数据/)
+})
+
+test('parseQuoteText 映射腾讯字段并跳过格式错误的记录', () => {
+  const fields = Array<string>(50).fill('')
+  fields[1] = '浦发银行'
+  fields[3] = '10.25'
+  fields[4] = '10.00'
+  fields[5] = '10.10'
+  fields[30] = '20260820150000'
+  fields[31] = '0.25'
+  fields[32] = '2.50'
+  fields[33] = '10.30'
+  fields[34] = '9.95'
+  fields[36] = '12345'
+  fields[37] = '6789'
+  fields[38] = '1.20'
+  fields[43] = '3.50'
+  fields[45] = '2000'
+  fields[49] = '1.10'
+
+  const [quote] = parseQuoteText(`garbage;v_sh600000="${fields.join('~')}";`)
+  expect(quote).toStrictEqual({
+    code: 'sh600000',
+    name: '浦发银行',
+    current: 10.25,
+    prevClose: 10,
+    open: 10.1,
+    high: 10.3,
+    low: 9.95,
+    change: 0.25,
+    changePercent: 2.5,
+    timestamp: '20260820150000',
+    volume: 12345,
+    turnover: 6789,
+    turnoverRate: 1.2,
+    amplitude: 3.5,
+    marketCap: 2000,
+    volumeRatio: 1.1,
+  })
 })
 
 test('parseFiveDayResponse 按日期升序展开并附带会话元数据', () => {
@@ -124,6 +140,34 @@ test('parseQuoteText 将行情中的非法数值归一为 0', () => {
     volume: 0,
     turnover: 0,
   })
+})
+
+test('parseIntradayResponse 过滤格式错误和收盘后的数据点', () => {
+  const points = parseIntradayResponse(
+    {
+      data: {
+        sh600000: {
+          data: {
+            data: [
+              '0930 10.00 100 1000',
+              '1260 10.10 200 2000',
+              '1500 10.20 300 3000',
+              '1501 10.30 400 4000',
+              'bad',
+              42,
+            ],
+          },
+        },
+      },
+    },
+    'sh600000',
+  )
+
+  expect(points).toStrictEqual([
+    { time: '0930', price: 10, volume: 100 },
+    { time: '1500', price: 10.2, volume: 300 },
+  ])
+  expect(parseIntradayResponse({}, 'sh600000')).toStrictEqual([])
 })
 
 test('parseIntradayResponse 缺失嵌套数据时返回空数组', () => {
