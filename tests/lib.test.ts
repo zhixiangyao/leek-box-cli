@@ -6,8 +6,7 @@ import {
   clampSelection,
   displayedRows,
   rowIndex,
-  anchoredScrollOffset,
-  scrollOffsetAfterReorder,
+  scrollOffsetToReveal,
   SORT_MODE_CYCLE,
   sortedRows,
   type StockListSortMode,
@@ -90,27 +89,19 @@ test('rowIndex 与 clampSelection 把下标限制在有效范围内', () => {
   expect(clampSelection(9, 3)).toBe(2)
 })
 
-test('anchoredScrollOffset 只在选中行移出窗口时带动窗口', () => {
-  // 窗口 [0, 3): 选中行往下走到第 3 行时窗口跟着走一行
-  expect(anchoredScrollOffset(1, 1, 10, 0, 3)).toBe(0)
-  expect(anchoredScrollOffset(1, 2, 10, 0, 3)).toBe(1)
-  // 往上走到窗口外时窗口顶到选中行
-  expect(anchoredScrollOffset(-1, 3, 10, 4, 3)).toBe(2)
-  // 不让窗口越过最大偏移
-  expect(anchoredScrollOffset(1, 8, 10, 7, 3)).toBe(7)
-})
-
-test('scrollOffsetAfterReorder 让选中行停在窗口里的同一行', () => {
-  const visible = 5
-  // 选中行从第 8 行 (index 7) 换到 index 4, 窗口停到 [2, 7), 选中行仍在视口内
-  const next = scrollOffsetAfterReorder(7, 4, 5)
-  expect(next).toBe(2)
-  expect(next).toBeLessThanOrEqual(4)
-  expect(4).toBeLessThan(next + visible)
-
-  // 顺序没变时偏移不变, 移到首行时窗口回到顶部
-  expect(scrollOffsetAfterReorder(3, 3, 2)).toBe(2)
-  expect(scrollOffsetAfterReorder(7, 0, 5)).toBe(0)
+test('scrollOffsetToReveal 只在目标行移出窗口时才滑动窗口', () => {
+  const visible = 3
+  // 窗口 [0, 3): 目标行已经在里面 (第 2 行) 时一点不动
+  expect(scrollOffsetToReveal(1, 10, 0, visible)).toBe(0)
+  expect(scrollOffsetToReveal(2, 10, 0, visible)).toBe(0)
+  // 往下越过窗口下沿时窗口跟着走一行
+  expect(scrollOffsetToReveal(3, 10, 0, visible)).toBe(1)
+  // 往上越过窗口上沿时窗口顶到目标行
+  expect(scrollOffsetToReveal(2, 10, 4, visible)).toBe(2)
+  // 目标行就是窗口末行时也不动
+  expect(scrollOffsetToReveal(7, 10, 5, visible)).toBe(5)
+  // 不让窗口越过最大偏移: 目标行在列表末尾时它贴在窗口末行
+  expect(scrollOffsetToReveal(9, 10, 5, visible)).toBe(7)
 })
 
 test('visibleWindow 将两端的偏移量限制在有效范围内', () => {

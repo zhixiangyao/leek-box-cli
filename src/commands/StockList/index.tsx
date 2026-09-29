@@ -52,7 +52,7 @@ export default function StockList() {
       if (sortLabelKey !== undefined) {
         topRightSegments.push({ text: t(sortLabelKey), color: 'cyan' })
       }
-      if (stockList.remainingCount > 0) {
+      if (stockList.remainingCount !== undefined) {
         topRightSegments.push({ text: t('stockList.remaining', { count: stockList.remainingCount }) })
       }
       content = (

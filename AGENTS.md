@@ -612,7 +612,12 @@ type StockListRow = { kind: 'quote'; code: string; quote: Quote } | { kind: 'mis
 显示占位文案. 打开详情也只用 code, 名称由详情弹窗自己从行情行里取 (`useStockListStore` 的 quote).
 
 选择身份使用 `selectedCode`, 不使用数组 index. 它是 `useStockList` 的状态: 刷新后保持仍存在的 code,
-消失时按原来的下标回退到附近的行, 并用 `scrollOffsetAfterReorder` 让选中行停在窗口里的同一行.
+消失时按原来的下标回退到附近的行.
+
+窗口只在选中行要移出窗口时才滑动: 方向键, 排序和刷新后的锚定都走 `scrollOffsetToReveal` 这一条规则
+(已经在窗口里就一点不动). 曾经给"换顺序"单独写过一条"让选中行停在窗口里的同一行"的规则, 那会让按一次 `s`
+把窗口整段拖到列表另一头: 选中行在窗口里的位置是保住了, 但视口已经跳走, 用户看到的是选中行莫名其妙落在中间
+(选中行本来就换了位置, 只是它没移出窗口就不该动视口).
 
 按涨跌幅排序 (`s` 键) 是**视图**, 不是数据: `step.rows` 始终是自选股文件顺序, 排序模式 `sortMode`
 (`default | desc | asc` 三态循环) 只决定显示顺序. 因此回到 `default` 不需要重读 settings.json
@@ -624,9 +629,10 @@ type StockListRow = { kind: 'quote'; code: string; quote: Quote } | { kind: 'mis
 
 StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, 让 Zustand selector 的 `Object.is` 跳过无意义更新.
 
-右上角的剩余条数是"没显示出来的行数" (`rows.length - visible`), 按可视高度算, 不按滚动位置算:
-从窗口末尾往前数会在窗口贴到列表底部时变成 0 —— 排序把选中行带到列表末尾就会这样, 条数凭空消失,
-而上面明明还有行被截掉. 它因此不需要 ScrollBox 的窗口回调, 只订阅可视高度.
+右上角的剩余条数是"窗口下面还有几行" (按 `scrollOffset` 与可视高度算, 与 ScrollBox 同一套钳制),
+列表整个放得下时是 `undefined`, 不显示这一段. 它为 0 时显示 `剩余 0 个` 而不是隐藏: 滑到底部时下面确实没有
+行了, 但上面还有行被截掉, 隐藏会看起来像条数丢了 (曾按"没显示出来的行数"算过, 那样条数在滚动时纹丝不动,
+和窗口滑到底部对不上).
 
 ## Card, Dialog 和 Text
 

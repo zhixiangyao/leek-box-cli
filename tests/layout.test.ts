@@ -487,13 +487,60 @@ test('App 的看板刷新后按代码保持选中行, 选中股消失时按位�
 
 /** 剩余条数随可视高度和窗口位置变化, 不是定值, 因此按文案模板取 */
 const remainingPattern = () => new RegExp(t('stockList.remaining', { count: 0 }).replace('0', '\\d+'))
+const remainingTextIn = (frame: string) => plain(frame).match(remainingPattern())?.[0]
 
-test('App 的看板排序后仍显示剩余条数, 即使视口被选中行带到列表底部', async () => {
+test('App 的看板排序时选中行还在窗口里就不滑动窗口, 剩余条数也不变', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6
   const output = new CaptureOutput(columns, rows)
   const input = createInput()
-  // 文件顺序按涨跌幅递增: 降序后首行落到列表末尾, 视口跟着它到底部
+  const codes = Array.from({ length: 40 }, (_, index) => `sh6000${String(index).padStart(2, '0')}`)
+  // 首行涨跌幅偏高: 降序后它落到列表靠前的位置, 仍在窗口里
+  const percents = codes.map((_, index) => (index === 0 ? 34 : index))
+
+  resetStores()
+  useStockListStore.setState({
+    refreshQuotes: async () => {},
+    step: {
+      type: 'table',
+      rows: codes.map((code, index) => ({
+        kind: 'quote',
+        code,
+        quote: testQuote({ code, changePercent: percents[index]! }),
+      })),
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    const beforeFrame = await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes[0])
+    const beforeCount = remainingTextIn(beforeFrame)
+    expect(beforeCount).toBeDefined()
+
+    input.write('s')
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes(t('stockList.sort.desc')))
+    const text = plain(frame)
+    // 选中行换了位置, 但没移出窗口: 窗口原位不动, 条数因此不变
+    expect(selectedCodeIn(frame)).toBe(codes[0])
+    expect(text).toContain(codes.at(-1)!)
+    expect(remainingTextIn(frame)).toBe(beforeCount)
+    assertFrameSize(frame, columns, rows)
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的看板排序把选中行带到列表底部时, 剩余条数显示 0 而不是消失', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+  // 文件顺序按涨跌幅递增: 降序后首行落到列表末尾, 窗口被带到最底部
   const codes = Array.from({ length: 40 }, (_, index) => `sh6000${String(index).padStart(2, '0')}`)
 
   resetStores()
@@ -514,12 +561,12 @@ test('App 的看板排序后仍显示剩余条数, 即使视口被选中行带�
     input.write('s')
     const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes(t('stockList.sort.desc')))
     const text = plain(frame)
-    // 视口已经贴到底部: 列表最上面的行被截掉, 选中的行还在
+    // 视口贴到底部: 列表最上面的行被截掉, 选中的行还在
     expect(text).not.toContain(codes.at(-1)!)
     expect(text).toContain(codes[0]!)
-    // 剩余条数是"没显示的行数", 因此这时仍然要显示
+    // 下面没有行了, 条数是 0 而不是被隐藏
     const corner = text.split('\n').find((line) => line.includes(t('stockList.sort.desc')))
-    expect(corner).toMatch(remainingPattern())
+    expect(corner).toContain(t('stockList.remaining', { count: 0 }))
     assertFrameSize(frame, columns, rows)
   } finally {
     instance.unmount()

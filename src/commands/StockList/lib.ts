@@ -47,21 +47,14 @@ export const rowIndex = (rows: StockListRow[], code: string | undefined) => {
   return index < 0 ? 0 : index
 }
 
-/** 方向键移动后的滚动偏移: 选中行移出窗口时把窗口带过去, 否则保持原位 */
-export const anchoredScrollOffset = (
-  delta: 1 | -1,
-  selectedIndex: number,
-  rowCount: number,
-  scrollOffset: number,
-  visible: number,
-) => {
-  const next = clampSelection(selectedIndex + delta, rowCount)
+/**
+ * 让某个下标进入窗口所需的最小滚动偏移: 已经看得见就一点不动.
+ * 方向键和换顺序 (排序或刷新) 都走这一条, 因此窗口只在选中行要移出窗口时才滑,
+ * 排序不会把整个窗口拖到列表另一头.
+ */
+export const scrollOffsetToReveal = (index: number, rowCount: number, scrollOffset: number, visible: number) => {
   const maxOffset = Math.max(0, rowCount - visible)
-  if (delta === 1 && next >= scrollOffset + visible) return Math.min(next - visible + 1, maxOffset)
-  if (delta === -1 && next < scrollOffset) return next
+  if (index < scrollOffset) return index
+  if (index >= scrollOffset + visible) return Math.min(index - visible + 1, maxOffset)
   return Math.min(scrollOffset, maxOffset)
 }
-
-/** 显示顺序变了 (排序或刷新) 后, 用新旧下标让选中行停在窗口里的同一行 */
-export const scrollOffsetAfterReorder = (previousIndex: number, nextIndex: number, scrollOffset: number) =>
-  Math.max(0, nextIndex - Math.max(0, previousIndex - scrollOffset))
