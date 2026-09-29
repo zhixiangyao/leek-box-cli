@@ -23,7 +23,7 @@ async function startApp(params: StartAppParams) {
     const instance = render(<App />, {
       alternateScreen: true,
       concurrent: true,
-      maxFps: 45,
+      maxFps: 60,
     })
     await instance.waitUntilExit()
   } finally {
