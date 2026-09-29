@@ -89,8 +89,12 @@ test('元数据无效且 mtime 超过超时窗口的锁被清理', async () => {
   expect(executed).toBe(true)
 })
 
-test('无效元数据的锁等待 mtime 超时后也被清理, 不阻塞后续执行', async () => {
-  await prepareLockFile('not-json')
+test('无效元数据的锁在等待预算内被清理, 不因 mtime 比本机时钟新而阻塞后续执行', async () => {
+  const lockPath = await prepareLockFile('not-json')
+  // mtime 拨到调用方时钟之后: 文件时间戳与 Date.now() 之间的偏移随机器而异, 一旦为正,
+  // "等 mtime 过期" 就永远晚于 busy 超时, 用自然写入时间做这条用例会变成看机器脸的定时炸弹
+  const ahead = new Date(Date.now() + 100)
+  await utimes(lockPath, ahead, ahead)
 
   let executed = false
   await withFileLock(configHome, async () => {

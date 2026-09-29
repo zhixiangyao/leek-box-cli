@@ -562,6 +562,8 @@ Windows 使用 `%APPDATA%` (Roaming):
 
 Lock 元数据包含 token, pid 和 createdAt. 元数据先写入临时文件, 再通过 hard link 原子发布, 不暴露空 lock 文件. Lock 使用 PID 和 30 秒 lease 判断 stale. 普通等待每 25ms 重试, 2 秒后给出可读错误.
 
+元数据读不懂的锁按残留处理 (本程序的锁不会出现半写的元数据): mtime 超过 2 秒立即清理, 否则等到本次调用用掉一半等待预算时清理. 后一半是必须的: 文件时间戳与调用方 `Date.now()` 之间的偏移随机器而异 (CI 上就见过 mtime 比循环起点新约 20ms), 只看 mtime 时偏移为正会让清理永远晚于 busy 报错, 调用方每次都失败且锁一直留着. `LOCK_UNREADABLE_GRACE_MS` 由 `LOCK_TIMEOUT_MS` 折半派生, 两者不要再合并成一个常量.
+
 `settingsPersistence` 在启动时 hydrate store. Store 变化后使用 100ms debounce 合并 patch, 串行写入, 保存失败时保留 pending patch, 后续变更或退出时重试. `stop()` 必须幂等并 flush 所有 pending 数据.
 
 ## 轮询语义
