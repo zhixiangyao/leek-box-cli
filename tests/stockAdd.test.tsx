@@ -3,7 +3,7 @@ import { expect, test } from 'vitest'
 import { t } from '../src/i18n/core.ts'
 import { useCommandStore } from '../src/stores/useCommandStore.ts'
 import { assertFrameSize, BOARD_COLUMNS, BOARD_ROWS, renderApp, resetStores, stubBoardRows } from './helpers/app.tsx'
-import { CaptureOutput, plain, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, plain, unmountApp, waitForFrame } from './helpers/ink.tsx'
 
 test('App 的添加命令渲染自己的标题与 hint', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -21,9 +21,7 @@ test('App 的添加命令渲染自己的标题与 hint', async () => {
     expect(plain(frame)).toMatch(/请输入股票代码/)
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })

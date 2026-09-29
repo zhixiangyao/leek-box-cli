@@ -12,7 +12,7 @@ import {
   stubRemoveEntries,
 } from './helpers/app.tsx'
 import { removeEntry } from './helpers/fixtures.ts'
-import { CaptureOutput, plain, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, plain, unmountApp, waitForFrame } from './helpers/ink.tsx'
 
 test('App 的删除命令渲染自己的标题与 hint', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -31,9 +31,7 @@ test('App 的删除命令渲染自己的标题与 hint', async () => {
     expect(plain(frame)).toMatch(/删除测试股/)
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -56,9 +54,7 @@ test('删除网格在条目没有名称时单元格只显示代码', async () =>
     )
     expect(plain(frame)).toContain('[ ] sh600000')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })

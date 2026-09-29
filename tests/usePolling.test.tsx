@@ -3,7 +3,7 @@ import { createElement, type ComponentType } from 'react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import { usePolling } from '../src/hooks/usePolling.ts'
-import { CaptureOutput, createInput, renderInk } from './helpers/ink.tsx'
+import { CaptureOutput, createInput, renderInk, unmountApp } from './helpers/ink.tsx'
 
 type Options = {
   intervalMs: number
@@ -72,9 +72,7 @@ test('挂载后立即执行一次并按照 interval 重复调度', async () => {
     await vi.advanceTimersByTimeAsync(100)
     await waitFor(() => signals.length === 3)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -100,9 +98,7 @@ test('任务耗时小于 interval 时只等待剩余时间', async () => {
     await vi.advanceTimersByTimeAsync(40)
     await waitFor(() => signals.length === 2)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -135,9 +131,7 @@ test('任务超过 interval 时完成后下一轮立即开始但不并发', asyn
     await vi.advanceTimersByTimeAsync(100)
     await waitFor(() => signals.length === 3)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -157,9 +151,7 @@ test('任务抛错时调用 onError 并继续下一轮', async () => {
     await vi.advanceTimersByTimeAsync(100)
     await waitFor(() => errors.length === 2)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -196,9 +188,7 @@ test('refresh 清除定时器并立即执行, 请求中时忽略', async () => {
     await vi.advanceTimersByTimeAsync(100)
     await waitFor(() => signals.length === 3)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -225,9 +215,7 @@ test('abort 的任务不调用 onError, restartKey 变化重启并取消旧请�
     expect(signals[1]!.aborted).toBe(false)
     expect(errors).toStrictEqual([])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -250,9 +238,7 @@ test('卸载时取消当前请求并停止调度', async () => {
   try {
     await waitFor(() => signals.length === 1)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 
   expect(signals[0]!.aborted).toBe(true)
@@ -282,9 +268,7 @@ test('enabled 为 false 时不启动, 变为 true 后恢复', async () => {
     await vi.advanceTimersByTimeAsync(500)
     expect(signals).toHaveLength(1)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -308,8 +292,6 @@ test('interval 变化在非请求期间重新排程', async () => {
     await vi.advanceTimersByTimeAsync(200)
     await waitFor(() => signals.length === 2)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })

@@ -12,7 +12,7 @@ import {
   resetStores,
   stubBoardRows,
 } from './helpers/app.tsx'
-import { CaptureOutput, createInput, plain, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, createInput, plain, unmountApp, waitForFrame } from './helpers/ink.tsx'
 
 test('菜单 overlay 打开时底层命令变暗并保持命令自有的全屏 chrome', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -37,9 +37,7 @@ test('菜单 overlay 打开时底层命令变暗并保持命令自有的全屏 c
     expect(plain(dimmedFrame)).toContain(LOGO_LINES[0])
     assertFrameSize(dimmedFrame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -68,9 +66,7 @@ test('App 的 esc 接线: esc 打开菜单, 再按 esc 关闭', async () => {
     await waitForFrame(output, after, (candidate) => !isDimmed(candidate))
     expect(useDialogMenuStore.getState().highlightedType).toBeUndefined()
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })

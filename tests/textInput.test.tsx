@@ -4,7 +4,15 @@ import { Box } from 'ink'
 import { expect, test } from 'vitest'
 
 import TextInput from '../src/components/TextInput.tsx'
-import { CaptureOutput, createInput, plain, renderInk, waitForLatestFrame, waitForState } from './helpers/ink.tsx'
+import {
+  CaptureOutput,
+  createInput,
+  plain,
+  renderInk,
+  unmountApp,
+  waitForLatestFrame,
+  waitForState,
+} from './helpers/ink.tsx'
 
 const renderInput = (isActive: boolean | undefined, onSubmit: (value: string) => void, placeholder?: string) => {
   const output = new CaptureOutput(60, 6)
@@ -44,9 +52,7 @@ test('TextInput: 输入的字符累积到回车时整串提交', async () => {
     expect(plain(output.frames.at(-1) ?? '')).toContain('code: 600000')
     expect(plain(output.frames.at(-1) ?? '')).not.toContain('█')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -66,9 +72,7 @@ test('TextInput: 回车后不再接受输入', async () => {
     expect(submitted).toStrictEqual(['600000'])
     expect(plain(output.frames.at(-1) ?? '')).toBe(submittedFrame)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -84,9 +88,7 @@ test('TextInput: 省略 isActive 时默认为 true, 仍接受输入', async () =
     await waitForState(() => submitted.length === 1)
     expect(submitted).toStrictEqual(['600000'])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -102,9 +104,7 @@ test('TextInput: isActive 为 false 时忽略输入', async () => {
     expect(submitted).toStrictEqual([])
     expect(plain(output.frames.at(-1) ?? '')).toContain('code: █')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -117,8 +117,6 @@ test('TextInput: 输入为空时显示 placeholder, 输入后隐藏', async () =
     await waitForLatestFrame(output, (frame) => plain(frame).includes('code: 6█'))
     expect(plain(output.frames.at(-1) ?? '')).not.toContain('600000')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })

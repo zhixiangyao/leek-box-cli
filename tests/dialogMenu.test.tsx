@@ -12,7 +12,7 @@ import {
   stubBoardRows,
 } from './helpers/app.tsx'
 import { missingRow } from './helpers/fixtures.ts'
-import { CaptureOutput, createInput, plain, waitForFrame, waitForState } from './helpers/ink.tsx'
+import { CaptureOutput, createInput, plain, unmountApp, waitForFrame, waitForState } from './helpers/ink.tsx'
 
 test('App 的 vim 键: 菜单打开时 j/k 只移动菜单高亮, 看板选中行不动', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -38,9 +38,7 @@ test('App 的 vim 键: 菜单打开时 j/k 只移动菜单高亮, 看板选中�
     const afterMenuKeys = await waitForFrame(output, after, (candidate) => isDimmed(candidate))
     expect(selectedCodeIn(afterMenuKeys)).toBe('sh600000')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })

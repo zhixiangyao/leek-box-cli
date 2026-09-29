@@ -3,7 +3,7 @@ import { expect, test } from 'vitest'
 
 import type { IntradayPoint } from '../src/api/types.ts'
 import StockChart, { STOCK_CHART_HEIGHT } from '../src/components/StockChart/index.tsx'
-import { CaptureOutput, plain, renderInk, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, plain, renderInk, unmountApp, waitForFrame } from './helpers/ink.tsx'
 
 const CHART_WIDTH = 40
 
@@ -49,8 +49,6 @@ test('StockChart 入参未变时重渲染, 图表行数与行宽保持不变', a
       ).toBe(true)
     }
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })

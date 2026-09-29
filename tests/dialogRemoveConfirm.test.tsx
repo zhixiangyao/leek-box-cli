@@ -7,7 +7,7 @@ import { useDialogRemoveConfirmStore } from '../src/stores/useDialogRemoveConfir
 import { useStockRemoveStore } from '../src/stores/useStockRemoveStore.ts'
 import { BOARD_COLUMNS, BOARD_ROWS, renderApp, resetStores, stubBoardRows, stubRemoveEntries } from './helpers/app.tsx'
 import { removeEntry } from './helpers/fixtures.ts'
-import { CaptureOutput, createInput, plain, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, createInput, plain, unmountApp, waitForFrame } from './helpers/ink.tsx'
 
 test('删除确认弹窗 confirm 阶段忽略不在 hint 里的 esc', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -28,9 +28,7 @@ test('删除确认弹窗 confirm 阶段忽略不在 hint 里的 esc', async () =
     await delay(100)
     expect(dialogStore.getState().step.type).toBe('confirm')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -62,9 +60,7 @@ test('删除确认弹窗 confirm 阶段按 n 取消并保留网格勾选', async
     // 勾选保留: 取消只关弹窗, 网格不重挂载
     expect(useStockRemoveStore.getState().resetToken).toBe(token)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -104,9 +100,7 @@ test('删除确认弹窗 confirm 阶段按 y 删除成功后同步网格并重�
     expect(useStockRemoveStore.getState().entries.map((entry) => entry.code)).toStrictEqual(['sz000001'])
     expect(useStockRemoveStore.getState().resetToken).toBe(token + 1)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -146,9 +140,7 @@ test('删除确认弹窗 confirm 阶段按 y 删除失败时保留网格与勾�
     expect(useStockRemoveStore.getState().entries.map((entry) => entry.code)).toStrictEqual(['sh600000'])
     expect(useStockRemoveStore.getState().resetToken).toBe(token)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -172,9 +164,7 @@ test('删除确认弹窗 removing 阶段忽略 esc', async () => {
     await delay(100)
     expect(dialogStore.getState().step.type).toBe('removing')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -202,9 +192,7 @@ test('删除确认弹窗 done 阶段 esc 关闭', async () => {
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除完成'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -232,9 +220,7 @@ test('删除确认弹窗 error 阶段 esc 关闭', async () => {
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('删除失败'))
     expect(dialogStore.getState().step).toStrictEqual({ type: 'idle' })
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -254,9 +240,7 @@ test('删除确认弹窗在条目没有名称时只列代码, 不留空括号', 
     expect(plain(frame)).toContain('sh600000')
     expect(plain(frame)).not.toContain('(sh600000)')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -275,9 +259,7 @@ test('删除确认弹窗在条目有名称时列 名称 (代码)', async () => {
     const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
     expect(plain(frame)).toContain('浦发银行 (sh600000)')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })

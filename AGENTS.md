@@ -748,7 +748,11 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 - `ink.tsx` --- 渲染到固定尺寸输出 (`CaptureOutput` / `createInput` / `renderInk` / `plain`) 与四种等待:
   `waitForFrame` (after 之后任取一帧), `waitForLatestFrame` (只看最新一帧), `waitForState` (轮询状态),
-  `waitForInput` (让出一拍: 同一 tick 连写的两个按键会被 ink 合并成一个输入, 两键序列必须分开写).
+  `waitForInput` (让出一拍: 同一 tick 连写的两个按键会被 ink 合并成一个输入, 两键序列必须分开写),
+  以及所有渲染用例共用的收尾 `unmountApp(instance)`. 收尾不要自己写 `unmount()` + `waitUntilExit()`:
+  `unmount()` 摘掉的 `beforeExit` 监听会被 `waitUntilExit()` 重新挂上, 而它只在进程退出时才触发,
+  于是每个用例留下一个 (Node 从第 11 个开始告警); `unmountApp` 等的 `waitUntilRenderFlush()`
+  在卸载后走的是同一条等待路径, 但不挂监听.
 - `app.tsx` --- App 级断言: `renderApp`, `resetStores`, `assertFrameSize`, `selectedCodeIn`, `isDimmed`,
   `remainingPattern` / `remainingTextIn`, 以及把看板与删除网格钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries`.
 - `fixtures.ts` --- 行情与自选股夹具: `quote` / `quoteRow` / `missingRow` / `rowCodes` / `stockEntry` / `removeEntry`.

@@ -17,7 +17,15 @@ import {
   stubBoardRows,
 } from './helpers/app.tsx'
 import { missingRow, quote, quoteRow } from './helpers/fixtures.ts'
-import { CaptureOutput, createInput, plain, waitForFrame, waitForInput, waitForState } from './helpers/ink.tsx'
+import {
+  CaptureOutput,
+  createInput,
+  plain,
+  unmountApp,
+  waitForFrame,
+  waitForInput,
+  waitForState,
+} from './helpers/ink.tsx'
 
 test('App 的看板命令渲染自己的标题, hint 与列顺序', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -38,9 +46,7 @@ test('App 的看板命令渲染自己的标题, hint 与列顺序', async () => 
     expect(plain(frame).indexOf('名称')).toBeLessThan(plain(frame).indexOf('代码'))
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -76,9 +82,7 @@ test('App 的看板排序键 s: 按涨跌幅排序并在右上角显示方向', 
     )
     expect(plain(ascFrame)).not.toContain(t('stockList.sort.desc'))
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -115,9 +119,7 @@ test('App 的看板排序后右上角同时显示排序方向与剩余条数', a
     expect(corner).toMatch(remainingPattern())
     assertFrameSize(descFrame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -152,9 +154,7 @@ test('App 的看板排序后方向键按显示顺序移动选中行', async () =
     input.write('k')
     await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -199,9 +199,7 @@ test('App 的看板刷新后按代码保持选中行, 选中股消失时按位�
       return text.indexOf('sz300001') < text.indexOf('sz000001') && selectedCodeIn(candidate) === 'sz000001'
     })
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -233,9 +231,7 @@ test('App 的看板排序时选中行还在窗口里就不滑动窗口, 剩余�
     expect(remainingTextIn(frame)).toBe(beforeCount)
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -266,9 +262,7 @@ test('App 的看板排序把选中行带到列表底部时, 剩余条数显示 0
     expect(corner).toContain(t('stockList.remaining', { count: 0 }))
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -292,9 +286,7 @@ test('App 在 en 下渲染英文命令标题与表头', async () => {
     expect(plain(frame)).toContain('Turnover %')
     assertFrameSize(frame, columns, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -323,9 +315,7 @@ test('App 在 en 下用本地化单位渲染行情数值', async () => {
     expect(text).not.toContain('万手')
     assertFrameSize(frame, columns, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -350,9 +340,7 @@ test('App 的 vim 键: 看板 j/k 移动选中行', async () => {
     input.write('k')
     await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -393,9 +381,7 @@ test('App 的看板 vim 键: gg 跳到顶部, G 跳到底部', async () => {
     // hint 与监听同步: 序列键也展示在状态栏
     expect(plain(topFrame)).toContain('选择(↑/↓/j/k/gg/G)')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -430,9 +416,7 @@ test('App 的看板 vim 键: gg 的前缀不跨越浮层', async () => {
     input.write('k')
     await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes.at(-2)!)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })

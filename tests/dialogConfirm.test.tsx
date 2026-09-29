@@ -4,7 +4,7 @@ import { expect, test, vi } from 'vitest'
 
 import { useDialogConfirmStore } from '../src/stores/useDialogConfirmStore.ts'
 import { BOARD_COLUMNS, BOARD_ROWS, renderApp, resetStores, stubBoardRows } from './helpers/app.tsx'
-import { CaptureOutput, createInput, plain, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, createInput, plain, unmountApp, waitForFrame } from './helpers/ink.tsx'
 
 test('通用确认弹窗确认态: hint 为 取消(n) 确定(y)', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -28,9 +28,7 @@ test('通用确认弹窗确认态: hint 为 取消(n) 确定(y)', async () => {
     )
     expect(plain(frame)).toContain('确定(y)')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -61,9 +59,7 @@ test('通用确认弹窗错误态: update 换上失败信息并把 hint 切到 �
         plain(candidate).includes('重试(y)'),
     )
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -94,9 +90,7 @@ test('通用确认弹窗错误态: 不在 hint 里的 n 被忽略', async () => 
     expect(useDialogConfirmStore.getState().config?.isError).toBe(true)
     expect(useDialogConfirmStore.getState().config?.content).toBe('重置失败: 锁超时')
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -127,9 +121,7 @@ test('通用确认弹窗错误态: esc 关闭弹窗', async () => {
     await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确认重置吗'))
     expect(useDialogConfirmStore.getState().config).toBeUndefined()
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -157,9 +149,7 @@ test('通用确认弹窗错误态: y 重试成功后关闭弹窗', async () => {
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(useDialogConfirmStore.getState().config).toBeUndefined()
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -186,9 +176,7 @@ test('通用确认弹窗错误态: y 重试失败时弹窗保留', async () => {
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(useDialogConfirmStore.getState().config).not.toBeUndefined()
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })

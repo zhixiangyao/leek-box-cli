@@ -4,7 +4,7 @@ import { test } from 'vitest'
 
 import Card from '../src/components/Card.tsx'
 import { assertFrameSize } from './helpers/app.tsx'
-import { CaptureOutput, plain, renderInk, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, plain, renderInk, unmountApp, waitForFrame } from './helpers/ink.tsx'
 
 const TestCard = Card as ComponentType<Omit<ComponentProps<typeof Card>, 'children'>>
 
@@ -34,8 +34,6 @@ test('Card full 占满给定尺寸的父盒而非显式尺寸', async () => {
     const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('content'))
     assertFrameSize(frame, columns, rows)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })

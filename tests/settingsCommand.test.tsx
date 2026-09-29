@@ -4,7 +4,7 @@ import { t } from '../src/i18n/core.ts'
 import { useCommandStore } from '../src/stores/useCommandStore.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 import { assertFrameSize, BOARD_COLUMNS, BOARD_ROWS, renderApp, resetStores, stubBoardRows } from './helpers/app.tsx'
-import { CaptureOutput, createInput, plain, waitForFrame, waitForState } from './helpers/ink.tsx'
+import { CaptureOutput, createInput, plain, unmountApp, waitForFrame, waitForState } from './helpers/ink.tsx'
 
 test('App 的设置命令渲染自己的标题与 hint', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -21,9 +21,7 @@ test('App 的设置命令渲染自己的标题与 hint', async () => {
     expect(plain(frame)).toContain(t('command.settings.hint'))
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -49,9 +47,7 @@ test('App 的 vim 键: 设置命令 j/k 移动选中的配置项', async () => {
     input.write('k')
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('› 主题色系'))
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })
@@ -77,9 +73,7 @@ test('App 的 vim 键: 设置命令 h/l 切换 option 类配置项', async () =>
     input.write('h')
     await waitForState(() => useSettingsStore.getState().trendColorMode === initialMode)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
     resetStores()
   }
 })

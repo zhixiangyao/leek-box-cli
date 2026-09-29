@@ -4,7 +4,15 @@ import { Box } from 'ink'
 import { expect, test } from 'vitest'
 
 import CheckboxGrid from '../src/components/CheckboxGrid/index.tsx'
-import { CaptureOutput, createInput, plain, renderInk, waitForLatestFrame, waitForState } from './helpers/ink.tsx'
+import {
+  CaptureOutput,
+  createInput,
+  plain,
+  renderInk,
+  unmountApp,
+  waitForLatestFrame,
+  waitForState,
+} from './helpers/ink.tsx'
 
 type Item = { code: string; name: string }
 
@@ -79,9 +87,7 @@ test('CheckboxGrid: 空格勾选, 右移再勾选, 回车提交勾选项', async
     await waitForState(() => submitted.length === 1)
     expect(submitted[0]!.map((item) => item.code)).toStrictEqual(['c00', 'c01'])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -108,9 +114,7 @@ test('CheckboxGrid: vim 键 hjkl 与方向键等效, 边界处同样保持不动
     await waitForState(() => submitted.length === 1)
     expect(submitted[0]!.map((item) => item.code)).toStrictEqual(['c04'])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -126,9 +130,7 @@ test('CheckboxGrid: 光标下移超出可视区域时向下滚动', async () => 
     expect(plain(output.frames.at(-1) ?? '').includes('股票44')).toBe(true)
     expect(plain(output.frames.at(-1) ?? '').includes('股票00')).toBe(false)
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -151,9 +153,7 @@ test('CheckboxGrid: columnCount 决定每行列数与光标纵向步进', async 
     await waitForState(() => submitted.length === 1)
     expect(submitted[0]!.map((item) => item.code)).toStrictEqual(['c02'])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -166,9 +166,7 @@ test('CheckboxGrid: columnGap 决定两列之间的距离', async () => {
       const line = firstRow(output) ?? ''
       return line.indexOf('股票01') - line.indexOf('股票00')
     } finally {
-      instance.unmount()
-      await instance.waitUntilExit()
-      instance.cleanup()
+      await unmountApp(instance)
     }
   }
 
@@ -188,9 +186,7 @@ test('CheckboxGrid: isActive 为 false 时忽略输入', async () => {
     expect(plain(output.frames.at(-1) ?? '').includes('[x]')).toBe(false)
     expect(submitted).toStrictEqual([])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -206,9 +202,7 @@ test('CheckboxGrid: 未勾选时回车不触发提交', async () => {
     await delay(200)
     expect(submitted).toStrictEqual([])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -227,9 +221,7 @@ test('CheckboxGrid: 空格再次按下取消勾选', async () => {
     await delay(200)
     expect(submitted).toStrictEqual([])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
 
@@ -245,8 +237,6 @@ test('CheckboxGrid: 空列表渲染为空网格且回车不触发', async () => 
     await delay(200)
     expect(submitted).toStrictEqual([])
   } finally {
-    instance.unmount()
-    await instance.waitUntilExit()
-    instance.cleanup()
+    await unmountApp(instance)
   }
 })
