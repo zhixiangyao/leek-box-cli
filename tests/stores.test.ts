@@ -8,7 +8,7 @@ import type { StockEntry } from '../src/settings/schema.ts'
 import { createDialogRemoveConfirmStore } from '../src/stores/useDialogRemoveConfirmStore.ts'
 import { createDialogStockDetailStore } from '../src/stores/useDialogStockDetailStore.ts'
 import { createStockAddStore, type StockAddDependencies } from '../src/stores/useStockAddStore.ts'
-import { createStockListStore } from '../src/stores/useStockListStore.ts'
+import { createStockListStore, sortedRows } from '../src/stores/useStockListStore.ts'
 import {
   createStockRemoveStore,
   type StockRemoveDependencies,
@@ -355,6 +355,110 @@ test('股票列表保留自选股顺序, 选中代码和未变化的行情引用
   await store.getState().refreshQuotes()
   expect(store.getState().selectedCode).toBe('sz300001')
   expect(store.getState().scrollOffset).toBe(0)
+})
+
+/** 每个代码一个固定涨跌幅, 缺省的代码不给行情 (成为缺失行) */
+const quoteRounds = (percents: Record<string, number>) => async (codes: string[]) =>
+  codes
+    .filter((code) => percents[code] !== undefined)
+    .map((code) => ({ ...quote(code), changePercent: percents[code]! }))
+
+test('看板排序按涨跌幅循环: 降序, 升序, 回到文件顺序, 缺失行始终在末尾', async () => {
+  const entries = [entry('sh600000'), entry('sz000001'), entry('sz300001'), entry('sh600001')]
+  const store = createStockListStore({
+    loadStocks: async () => entries,
+    fetchQuotes: quoteRounds({ sh600000: 1, sz000001: 5, sz300001: -3 }),
+  })
+
+  // 排序只改显示顺序: step.rows 保持文件顺序, 因此显示顺序要按 hook 的取法派生
+  const fileCodes = () => {
+    const step = store.getState().step
+    return step.type === 'table' ? step.rows.map((row) => row.code) : []
+  }
+  const codes = () => {
+    const { step, sortMode } = store.getState()
+    return step.type === 'table' ? sortedRows(step.rows, sortMode).map((row) => row.code) : []
+  }
+
+  await store.getState().refreshQuotes()
+  expect(store.getState().sortMode).toBe('default')
+  expect(codes()).toStrictEqual(['sh600000', 'sz000001', 'sz300001', 'sh600001'])
+  expect(fileCodes()).toStrictEqual(['sh600000', 'sz000001', 'sz300001', 'sh600001'])
+
+  store.getState().moveSelection(1, 10)
+  expect(store.getState().selectedCode).toBe('sz000001')
+
+  store.getState().cycleSortMode()
+  expect(store.getState().sortMode).toBe('desc')
+  expect(codes()).toStrictEqual(['sz000001', 'sh600000', 'sz300001', 'sh600001'])
+  // 排序不改变选中行, 选中的仍是同一个代码
+  expect(store.getState().selectedCode).toBe('sz000001')
+  // 文件顺序不受排序影响, 所以再循环一次就能回到它
+  expect(fileCodes()).toStrictEqual(['sh600000', 'sz000001', 'sz300001', 'sh600001'])
+
+  store.getState().cycleSortMode()
+  expect(store.getState().sortMode).toBe('asc')
+  expect(codes()).toStrictEqual(['sz300001', 'sh600000', 'sz000001', 'sh600001'])
+
+  // 轮询刷新后排序仍然生效
+  await store.getState().refreshQuotes()
+  expect(codes()).toStrictEqual(['sz300001', 'sh600000', 'sz000001', 'sh600001'])
+  expect(store.getState().selectedCode).toBe('sz000001')
+
+  store.getState().cycleSortMode()
+  expect(store.getState().sortMode).toBe('default')
+  expect(codes()).toStrictEqual(['sh600000', 'sz000001', 'sz300001', 'sh600001'])
+
+  store.getState().reset()
+  expect(store.getState().sortMode).toBe('default')
+})
+
+test('看板排序后选中行仍落在可视窗口内', async () => {
+  const codes = Array.from({ length: 12 }, (_, index) => `sh6000${String(index).padStart(2, '0')}`)
+  const store = createStockListStore({
+    loadStocks: async () => codes.map((code) => entry(code)),
+    fetchQuotes: quoteRounds(Object.fromEntries(codes.map((code, index): [string, number] => [code, index]))),
+  })
+  const visible = 5
+
+  await store.getState().refreshQuotes()
+  const selectedCode = codes[7]!
+  store.setState({ selectedCode, scrollOffset: 5 })
+
+  store.getState().cycleSortMode()
+  const step = store.getState().step
+  expect(step.type).toBe('table')
+  if (step.type !== 'table') return
+  const nextIndex = sortedRows(step.rows, store.getState().sortMode).findIndex((row) => row.code === selectedCode)
+  expect(store.getState().scrollOffset).toBeLessThanOrEqual(nextIndex)
+  expect(nextIndex).toBeLessThan(store.getState().scrollOffset + visible)
+})
+
+test('看板排序后方向键按显示顺序移动选中行', async () => {
+  const entries = [entry('sh600000'), entry('sz000001'), entry('sz300001'), entry('sh600001')]
+  const store = createStockListStore({
+    loadStocks: async () => entries,
+    fetchQuotes: quoteRounds({ sh600000: 1, sz000001: 5, sz300001: -3 }),
+  })
+  const visible = 2
+
+  await store.getState().refreshQuotes()
+  // 降序显示顺序: sz000001(+5), sh600000(+1), sz300001(-3), sh600001(缺失)
+  store.getState().cycleSortMode()
+  store.setState({ selectedCode: 'sz000001', scrollOffset: 0 })
+
+  // 文件顺序里 sz000001 的后一行是 sz300001, 显示顺序里的后一行是 sh600000
+  store.getState().moveSelection(1, visible)
+  expect(store.getState().selectedCode).toBe('sh600000')
+
+  store.getState().moveSelection(1, visible)
+  expect(store.getState().selectedCode).toBe('sz300001')
+  // sz300001 在显示顺序里是第 3 行 (index 2), 移出窗口时滚动要跟着走
+  expect(store.getState().scrollOffset).toBeLessThanOrEqual(2)
+  expect(2).toBeLessThan(store.getState().scrollOffset + visible)
+
+  store.getState().moveSelection(-1, visible)
+  expect(store.getState().selectedCode).toBe('sh600000')
 })
 
 test('股票详情忽略先前打开代码已完成的请求', async () => {

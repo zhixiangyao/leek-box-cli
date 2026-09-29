@@ -13,7 +13,7 @@ export const zhHant = {
   /* ---------- 頁面註冊表 ---------- */
   'command.stockList.title': '自選股票看板',
   'command.stockList.description': '自選股票看板',
-  'command.stockList.hint': '選單(esc)   重新整理(r)   選擇(↑/↓/j/k)   詳情(enter)   離開(q)',
+  'command.stockList.hint': '選單(esc)   重新整理(r)   選擇(↑/↓/j/k)   詳情(enter)   排序(s)   離開(q)',
   'command.stockAdd.title': '新增自選股',
   'command.stockAdd.description': '新增自選股',
   'command.stockAdd.hint': '選單(esc)   離開(q)',
@@ -40,6 +40,8 @@ export const zhHant = {
   'stockList.sourceError': '行情介面異常, 稍後自動重試',
   'stockList.refreshFailed': '重新整理失敗: {error}, 稍後自動重試',
   'stockList.remaining': '剩餘 {count} 個',
+  'stockList.sort.desc': '漲跌幅 ▼',
+  'stockList.sort.asc': '漲跌幅 ▲',
 
   /* ---------- 新增自選股 ---------- */
   'stockAdd.codePrompt': '請輸入股票代碼, 用英文逗號分隔: ',

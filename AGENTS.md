@@ -603,6 +603,14 @@ type StockListRow = { kind: 'quote'; code: string; quote: Quote } | { kind: 'mis
 
 选择身份使用 `selectedCode`, 不使用数组 index. 刷新时保持仍存在的 code, 删除后回退到附近有效行, 并尽量保持选中行的视口相对位置.
 
+按涨跌幅排序 (`s` 键) 是**视图**, 不是数据: `step.rows` 始终是自选股文件顺序, 排序模式 `sortMode`
+(`default | desc | asc` 三态循环) 只决定显示顺序, 由 `useStockListStore` 导出的纯函数 `sortedRows` 派生.
+因此回到 `default` 不需要重读 settings.json (把排好序的行写回 `step.rows` 就会丢掉文件顺序, 再也回不去).
+`useStockList` 返回的 `rows` 是排好序的显示顺序, 看板渲染它; `moveSelection` 和 `scrollOffset` 也在显示顺序
+里计算, 而 `refreshQuotes` 里用来保持选中行视口位置的 `previousIndex` 同样先派生一次显示顺序. 缺失行没有
+涨跌幅可比, 一律排在末尾, 不参与升降序. 排序指示器只在排过序之后出现在 Card 右上角 (`涨跌幅 ▼` / `涨跌幅 ▲`,
+cyan 显示, 与剩余条数并排); 离开看板时 `reset()` 会连同排序模式一起清掉, 排序不写盘.
+
 StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, 让 Zustand selector 的 `Object.is` 跳过无意义更新.
 
 ## Card, Dialog 和 Text

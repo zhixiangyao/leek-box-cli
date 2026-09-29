@@ -38,6 +38,8 @@ export type Message = {
   'stockList.sourceError': string
   'stockList.refreshFailed': string
   'stockList.remaining': string
+  'stockList.sort.desc': string
+  'stockList.sort.asc': string
 
   /* ---------- 添加自选股 ---------- */
   'stockAdd.codePrompt': string

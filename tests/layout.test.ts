@@ -246,6 +246,79 @@ test('App 的看板命令渲染自己的标题, hint 与列顺序', async () => 
   }
 })
 
+test('App 的看板排序键 s: 按涨跌幅排序并在右上角显示方向', async () => {
+  const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
+  const rows = MIN_TERMINAL_ROWS + 6
+  const output = new CaptureOutput(columns, rows)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({
+    // 轮询不动行情, 用例只关心排序键对已有行的作用
+    refreshQuotes: async () => {},
+    step: {
+      type: 'table',
+      rows: [
+        { kind: 'missing', code: 'sz000001' },
+        {
+          kind: 'quote',
+          code: 'sh600000',
+          quote: {
+            code: 'sh600000',
+            name: '浦发银行',
+            current: 10.25,
+            prevClose: 10,
+            open: 10.1,
+            high: 10.3,
+            low: 9.95,
+            change: 0.25,
+            changePercent: 2.5,
+            timestamp: '20260820150000',
+            volume: 611_000,
+            turnover: 55_000,
+            turnoverRate: 1.2,
+            amplitude: 3.5,
+            marketCap: 2987.53,
+            volumeRatio: 1.1,
+          },
+        },
+      ],
+    },
+    selectedCode: 'sh600000',
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('sh600000'))
+    // 默认是自选股文件顺序: 缺失行在前, 右上角不显示排序方向
+    expect(plain(frame)).not.toContain(t('stockList.sort.desc'))
+    expect(plain(frame).indexOf('sz000001')).toBeLessThan(plain(frame).indexOf('sh600000'))
+
+    input.write('s')
+    const descFrame = await waitForFrame(output, after, (candidate) =>
+      plain(candidate).includes(t('stockList.sort.desc')),
+    )
+    // 降序后行情行在前, 缺失行落到末尾
+    expect(plain(descFrame).indexOf('sh600000')).toBeLessThan(plain(descFrame).indexOf('sz000001'))
+    expect(useStockListStore.getState().sortMode).toBe('desc')
+    assertFrameSize(descFrame, columns, rows)
+
+    input.write('s')
+    const ascFrame = await waitForFrame(output, after, (candidate) =>
+      plain(candidate).includes(t('stockList.sort.asc')),
+    )
+    expect(plain(ascFrame)).not.toContain(t('stockList.sort.desc'))
+    expect(useStockListStore.getState().sortMode).toBe('asc')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
 test('App 的添加命令渲染自己的标题与 hint', async () => {
   const columns = tableWidth(STOCK_LIST_COLUMNS) + 10
   const rows = MIN_TERMINAL_ROWS + 6

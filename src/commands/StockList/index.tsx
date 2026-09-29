@@ -6,14 +6,23 @@ import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
 import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
+import type { MessageKey } from '../../i18n/types.ts'
+import type { StockListSortMode } from '../../stores/useStockListStore.ts'
 import StockTable from './components/StockTable.tsx'
 import { useStockList } from './hooks/useStockList.ts'
+
+const SORT_LABEL_KEYS: Record<StockListSortMode, MessageKey | undefined> = {
+  default: undefined,
+  desc: 'stockList.sort.desc',
+  asc: 'stockList.sort.asc',
+}
 
 export default function StockList() {
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { t } = useTranslation()
   const stockList = useStockList()
+  const topRightSegments: { text: string; color?: string }[] = []
   let content: ReactNode
 
   switch (stockList.step.type) {
@@ -38,7 +47,14 @@ export default function StockList() {
     }
 
     case 'table': {
-      const list = stockList.step.rows
+      const list = stockList.rows
+      const sortLabelKey = SORT_LABEL_KEYS[stockList.sortMode]
+      if (sortLabelKey !== undefined) {
+        topRightSegments.push({ text: t(sortLabelKey), color: 'cyan' })
+      }
+      if (stockList.remainingCount > 0) {
+        topRightSegments.push({ text: t('stockList.remaining', { count: stockList.remainingCount }) })
+      }
       content = (
         <>
           <StockTable
@@ -65,8 +81,15 @@ export default function StockList() {
       bright={!overlayOpen.open}
       borderTopLeft={<Text color={theme.primary}>{t('command.stockList.title')}</Text>}
       borderTopRight={
-        stockList.step.type === 'table' && stockList.remainingCount > 0 ? (
-          <Text>{t('stockList.remaining', { count: stockList.remainingCount })}</Text>
+        topRightSegments.length > 0 ? (
+          <Text>
+            {topRightSegments.map((segment, index) => (
+              <Text key={segment.text} color={segment.color}>
+                {index > 0 ? ' ' : ''}
+                {segment.text}
+              </Text>
+            ))}
+          </Text>
         ) : undefined
       }
       footer={<StatusBar showClock hint={t('command.stockList.hint')} bright={!overlayOpen.open} />}
