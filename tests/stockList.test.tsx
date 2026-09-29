@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 
 import { setActiveLocale, t } from '../src/i18n/core.ts'
 import { stockListColumns, tableWidth } from '../src/lib/quoteTable.ts'
+import { useDialogMenuStore } from '../src/stores/useDialogMenuStore.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 import { useStockListStore } from '../src/stores/useStockListStore.ts'
 import {
@@ -16,7 +17,7 @@ import {
   stubBoardRows,
 } from './helpers/app.tsx'
 import { missingRow, quote, quoteRow } from './helpers/fixtures.ts'
-import { CaptureOutput, createInput, plain, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, createInput, plain, waitForFrame, waitForInput, waitForState } from './helpers/ink.tsx'
 
 test('App 的看板命令渲染自己的标题, hint 与列顺序', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -342,12 +343,92 @@ test('App 的 vim 键: 看板 j/k 移动选中行', async () => {
     const after = output.frames.length
     const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('sh600000'))
     // hint 与监听同步: j/k 展示在状态栏, 也只在这些键上生效
-    expect(plain(frame)).toContain('选择(↑/↓/j/k)')
+    expect(plain(frame)).toContain('选择(↑/↓/j/k/gg/G)')
 
     input.write('j')
     await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sz000001')
     input.write('k')
     await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的看板 vim 键: gg 跳到顶部, G 跳到底部', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+  // 行数多于可视窗口: 首尾两行不会同框, 窗口位置因此能从帧里断言
+  const codes = Array.from({ length: 40 }, (_, index) => `sh6000${String(index).padStart(2, '0')}`)
+
+  resetStores()
+  stubBoardRows(codes.map((code) => missingRow(code)))
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes[0])
+
+    // G 跳到底部: 选中末行, 窗口跟着贴到底
+    input.write('G')
+    const bottomFrame = await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes.at(-1)!)
+    expect(plain(bottomFrame)).not.toContain(codes[0]!)
+
+    // 单个 g 只是一个前缀: 它后面的 k 照常向上走一行, 说明 g 自己没跳
+    input.write('g')
+    await waitForInput()
+    input.write('k')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes.at(-2)!)
+
+    // gg 跳到顶部: 选中首行, 窗口跟着回到顶部
+    input.write('g')
+    await waitForInput()
+    input.write('g')
+    const topFrame = await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes[0])
+    expect(plain(topFrame)).not.toContain(codes.at(-1)!)
+    assertFrameSize(topFrame, BOARD_COLUMNS, BOARD_ROWS)
+    // hint 与监听同步: 序列键也展示在状态栏
+    expect(plain(topFrame)).toContain('选择(↑/↓/j/k/gg/G)')
+  } finally {
+    instance.unmount()
+    await instance.waitUntilExit()
+    instance.cleanup()
+    resetStores()
+  }
+})
+
+test('App 的看板 vim 键: gg 的前缀不跨越浮层', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+  const codes = Array.from({ length: 40 }, (_, index) => `sh6000${String(index).padStart(2, '0')}`)
+
+  resetStores()
+  stubBoardRows(codes.map((code) => missingRow(code)))
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes[0])
+
+    input.write('G')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes.at(-1)!)
+    // 置起前缀后开菜单再关掉: 浮层期间本 hook 收不到按键, 收尾键落在浮层之外
+    input.write('g')
+    await waitForInput()
+    input.write('\x1B')
+    await waitForState(() => useDialogMenuStore.getState().highlightedType !== undefined)
+    input.write('\x1B')
+    await waitForState(() => useDialogMenuStore.getState().highlightedType === undefined)
+
+    // 关掉菜单后的这个 g 是新的第一键, 后面的 k 照常向上走一行
+    input.write('g')
+    await waitForInput()
+    input.write('k')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes.at(-2)!)
   } finally {
     instance.unmount()
     await instance.waitUntilExit()

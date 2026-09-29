@@ -284,7 +284,7 @@ React 组件和组件 hook 优先使用窄 selector (action 引用稳定, 订阅
 - App 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`, 只在无浮层时处理 esc(打开菜单) 和 q(退出).
 - 浮层打开后 esc 由各浮层自己处理: 详情和菜单 esc 直接关闭; DialogRemoveConfirm 在 done/error 阶段 esc 关闭, 删除进行中忽略; DialogConfirm 仅在错误态 esc 关闭.
 - 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
-- 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection(input, key)`, 各处不再手写 `key.upArrow || input === 'k'`. hint 与监听并列展示 (`选择(↑/↓/j/k)`, 网格 `移动(↑/↓/←/→/hjkl)`); 该界面不响应的方向不要写进 hint (例如看板只接受上下, hint 就不含 `h`/`l`).
+- 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection(input, key)`, 各处不再手写 `key.upArrow || input === 'k'`. hint 与监听并列展示 (`选择(↑/↓/j/k/gg/G)`, 网格 `移动(↑/↓/←/→/hjkl)`); 该界面不响应的方向不要写进 hint (例如看板只接受上下, hint 就不含 `h`/`l`).
 - 底层 command 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
 - 共享输入组件的 `isActive` 由 command 传入 `!overlayOpen.open`, 组件不自己读浮层状态: `CheckboxGrid` 必填, `TextInput` 可选并默认为 true.
 - DialogMenu 自己处理上下键, Enter 和数字快捷键. 菜单的开关就是 `useDialogMenuStore` 的 `highlightedType` (`MenuItem['type'] | undefined`), 没有第二个布尔: `open(highlightedType)` 打开并定位高亮, `close()` 置回 `undefined`, `useOverlayOpen` 据此判定 `dialogMenuOpen`. 因此 store 既不持有"是否打开", 也不持有第二份默认命令: 打开时的高亮由 App 的 esc 传入当前 command (`open(command)`). `useDialogMenu` 在 `highlightedType` 为 `undefined` 时早返回 (DialogMenu 只在非 `undefined` 时挂载, 该分支是防御), 之后收窄为 `MenuItem['type']`, 而 `MENU_ITEMS` 覆盖该类型的全部取值 (注册表 + reset/exit), `findIndex` 必命中, 不存在负索引或"无高亮"分支. 被 DialogConfirm 遮住时菜单保持挂载且高亮不变.
@@ -618,7 +618,13 @@ type StockListRow = { kind: 'quote'; code: string; quote: Quote } | { kind: 'mis
 选择身份使用 `selectedCode`, 不使用数组 index. 它是 `useStockList` 的状态: 刷新后保持仍存在的 code,
 消失时按原来的下标回退到附近的行.
 
-窗口只在选中行要移出窗口时才滑动: 方向键, 排序和刷新后的锚定都走 `scrollOffsetToReveal` 这一条规则
+`gg` 跳到顶部, `G` 跳到底部: 选中首行或末行, 与方向键走同一个 `selectIndex`, 不另写一套落点规则.
+`gg` 是两键序列, 第一键只有前缀意义 (不参与渲染, 因此是 hook 里的 ref 而不是 state), 紧跟的第二个 `g`
+才跳顶部, 其余按键让序列从零开始. 浮层打开时前缀作废: 浮层期间本 hook 的 `useInput` 失活,
+收尾键落在浮层自己手里, 前缀留着的话关掉菜单后的第一个 `g` 就会跳走.
+ink 把同一 chunk 里的多个字符按粘贴一次性交出, 因此两次 `g` 必须分两次按键读入.
+
+窗口只在选中行要移出窗口时才滑动: 方向键, `gg`/`G`, 排序和刷新后的锚定都走 `scrollOffsetToReveal` 这一条规则
 (已经在窗口里就一点不动). 曾经给"换顺序"单独写过一条"让选中行停在窗口里的同一行"的规则, 那会让按一次 `s`
 把窗口整段拖到列表另一头: 选中行在窗口里的位置是保住了, 但视口已经跳走, 用户看到的是选中行莫名其妙落在中间
 (选中行本来就换了位置, 只是它没移出窗口就不该动视口).
@@ -740,8 +746,9 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 `tests/helpers/` 放共享测试设施, 不参与用例收集:
 
-- `ink.tsx` --- 渲染到固定尺寸输出 (`CaptureOutput` / `createInput` / `renderInk` / `plain`) 与三种等待:
-  `waitForFrame` (after 之后任取一帧), `waitForLatestFrame` (只看最新一帧), `waitForState` (轮询状态).
+- `ink.tsx` --- 渲染到固定尺寸输出 (`CaptureOutput` / `createInput` / `renderInk` / `plain`) 与四种等待:
+  `waitForFrame` (after 之后任取一帧), `waitForLatestFrame` (只看最新一帧), `waitForState` (轮询状态),
+  `waitForInput` (让出一拍: 同一 tick 连写的两个按键会被 ink 合并成一个输入, 两键序列必须分开写).
 - `app.tsx` --- App 级断言: `renderApp`, `resetStores`, `assertFrameSize`, `selectedCodeIn`, `isDimmed`,
   `remainingPattern` / `remainingTextIn`, 以及把看板与删除网格钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries`.
 - `fixtures.ts` --- 行情与自选股夹具: `quote` / `quoteRow` / `missingRow` / `rowCodes` / `stockEntry` / `removeEntry`.

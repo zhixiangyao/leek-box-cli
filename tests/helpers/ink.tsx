@@ -7,6 +7,9 @@ import type { ReactElement } from 'react'
 
 const DEADLINE_MS = 2000
 
+/** 够 Ink 走完一轮 readable -> 按键回调 */
+const INPUT_TICK_MS = 10
+
 /** 固定尺寸的输出: 用例断言的就是写进来的帧 */
 export class CaptureOutput extends Writable {
   readonly columns: number
@@ -97,6 +100,12 @@ export const waitForLatestFrame = async (
 
   throw new Error(`Timed out waiting for latest frame. Latest output:\n${plain(output.frames.at(-1) ?? '')}`)
 }
+
+/**
+ * 让 Ink 消化掉已经写进去的按键: 同一 tick 连写的两个按键会被合并成一个 chunk,
+ * 多字符输入按粘贴处理, 因此两键序列 (如 gg) 必须分开写, 中间让出一拍.
+ */
+export const waitForInput = () => delay(INPUT_TICK_MS)
 
 /** 按键只改变 store 状态而没有可断言的帧差异时, 轮询状态直到按键生效 */
 export const waitForState = async (check: () => boolean) => {
