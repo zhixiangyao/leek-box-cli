@@ -58,13 +58,13 @@
     "@types/node": "22.20.4",
     "@types/react": "19.3.0",
     "lint-staged": "17.6.0",
-    "oxfmt": "0.70.0",
-    "oxlint": "1.85.0",
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0",
     "simple-git-hooks": "2.14.0",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vite": "8.3.1",
-    "vitest": "5.0.2"
+    "vitest": "5.0.3"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged && pnpm typecheck && pnpm test"
@@ -79,7 +79,7 @@
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "pnpm": ">=12.6.0"
+    "pnpm": ">=12.8.1"
   },
-  "packageManager": "pnpm@12.6.0"
+  "packageManager": "pnpm@12.8.1"
 }
