@@ -306,7 +306,7 @@ test('App 在 en 下用本地化单位渲染行情数值', async () => {
   try {
     const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('Market Cap'))
     const text = plain(frame)
-    // ScrollBox 只渲染测量到的窗口, 首行即行情行
+    // 表头在 ScrollBox 之外, 窗口首行即行情行
     expect(text).toContain('611.0K lots')
     expect(text).toContain('550.0M')
     expect(text).toContain('298.75B')

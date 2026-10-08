@@ -1,8 +1,8 @@
 # leek-box-cli(韭菜盒子) 项目规范
 
-交互式终端股票自选股看板. 技术栈为 `ink@7.1.1`, `react@19.3.0`, `zustand@5`, `meow@14`, TypeScript ESM 和 Vite. 开发使用 `tsx`, 行情请求使用 Node.js 原生 `fetch`.
+交互式终端股票自选股看板. 技术栈为 `ink@8.0.0`, `react@19.3.0`, `zustand@5`, `meow@14`, TypeScript ESM 和 Vite. 开发使用 `tsx`, 行情请求使用 Node.js 原生 `fetch`.
 
-终端 UI 的 Ink 通用 API (组件, hooks, render) 见 `node_modules/ink/readme.md` (ink 7.x 官方手册).
+终端 UI 的 Ink 通用 API (组件, hooks, render) 见 `node_modules/ink/readme.md` (ink 8.x 官方手册).
 
 ## 核心原则
 
@@ -679,7 +679,15 @@ AppLogo 是应用 ASCII art (两行), 各行必须等宽, 且宽度不得超过 
 `Math.max(...每项宽度)` 再套 cap, 不要把整串宽度直接丢进 `Math.min`, 那样取到的是最短项, 弹窗会偏窄
 (文案换语言变长后更明显).
 
-SpaceMask 用在 card 被 `mask` 时铺出 Card 自己 `useBoxMetrics` 量到的 width*height 个空格 (absolute + flexDirection column, 每行一个 Text), 再由 Card 的 `overflow: hidden` 裁剪到 content 区域; 测量完成前 (`hasMeasured` 为 false, 即首帧) 不渲染, 与 ScrollBox, CheckboxGrid 用 `hasMeasured` 兜底的写法一致. Card 不再接受 `backgroundColor`, 遮蔽一律走 `mask`.
+SpaceMask 用在 card 被 `mask` 时铺出 Card 自己 `useBoxMetrics` 量到的 clientWidth*clientHeight 个空格 (absolute + flexDirection column, 每行一个 Text), 再由 Card 的 `overflow: hidden` 裁剪到 content 区域. 取 client 尺寸而不是 width/height: 后者含边框, 铺出来比内容区各多两格, 全靠裁剪兜底; clientHeight 正是 Card 内容区的高度, 只比 mask 所在的 Box (内容区再减掉 footer) 多出 footer 那几行. 测量完成前 (`hasMeasured` 为 false, 即首帧) 不渲染, 与 ScrollBox, CheckboxGrid 用 `hasMeasured` 兜底的写法一致. Card 不再接受 `backgroundColor`, 遮蔽一律走 `mask`.
+
+ScrollBox 用 ink 8 的 `contentOffsetY` 滚动: 视口是 `flexBasis={0} flexGrow={1} overflow="hidden"` 的 Box,
+整份 list (不再切片) 放在一个 `flexShrink={0}` 的 wrapper 里, `contentOffsetY` 把它上移钳制后的偏移.
+`flexBasis={0}` 不能省: 视口默认 `flexBasis: auto` 会以整段内容为基准尺寸, 内容高于视口时同一列的表头行
+会被 flex 收缩挤掉; 基准为 0 时视口高度只由 flexGrow 决定, 与内容多少无关. 可视行数取 `useBoxMetrics`
+的 clientHeight, 经 `onVisibleChange` 交给调用方 (看板的剩余条数按它算); 偏移的钳制规则与
+`commands/StockList/lib.ts` 的 `visibleWindow` 相同, 两处各有一份是分层使然 (components 不 import commands),
+改一处要同时改另一处.
 
 本地 `src/components/Text.tsx` 是项目文字入口. 它负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
 
@@ -751,10 +759,8 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 - `ink.tsx` --- 渲染到固定尺寸输出 (`CaptureOutput` / `createInput` / `renderInk` / `plain`) 与四种等待:
   `waitForFrame` (after 之后任取一帧), `waitForLatestFrame` (只看最新一帧), `waitForState` (轮询状态),
   `waitForInput` (让出一拍: 同一 tick 连写的两个按键会被 ink 合并成一个输入, 两键序列必须分开写),
-  以及所有渲染用例共用的收尾 `unmountApp(instance)`. 收尾不要自己写 `unmount()` + `waitUntilExit()`:
-  `unmount()` 摘掉的 `beforeExit` 监听会被 `waitUntilExit()` 重新挂上, 而它只在进程退出时才触发,
-  于是每个用例留下一个 (Node 从第 11 个开始告警); `unmountApp` 等的 `waitUntilRenderFlush()`
-  在卸载后走的是同一条等待路径, 但不挂监听.
+  以及所有渲染用例共用的收尾 `unmountApp(instance)`: `unmount()` 后 `await waitUntilExit()`,
+  等 ink 把 unmount 写出的最后一帧落盘 (只调 `unmount()` 会断言到卸载前的帧).
 - `app.tsx` --- App 级断言: `renderApp`, `resetStores`, `assertFrameSize`, `selectedCodeIn`, `isDimmed`,
   `remainingPattern` / `remainingTextIn`, 以及把看板与删除网格钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries`.
 - `fixtures.ts` --- 行情与自选股夹具: `quote` / `quoteRow` / `missingRow` / `rowCodes` / `stockEntry` / `removeEntry`.

@@ -64,7 +64,7 @@ export default function Card(props: CardProps) {
 
       <Box flexGrow={1} overflow={mask ? 'hidden' : undefined}>
         {mask && boxMetrics.hasMeasured && (
-          <SpaceMask bright={bright} width={boxMetrics.width} height={boxMetrics.height} />
+          <SpaceMask bright={bright} width={boxMetrics.clientWidth} height={boxMetrics.clientHeight} />
         )}
 
         <Box flexGrow={1} flexDirection="column" padding={1}>

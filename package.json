@@ -48,7 +48,7 @@
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
-    "ink": "7.1.1",
+    "ink": "8.0.0",
     "meow": "14.1.0",
     "react": "19.3.0",
     "string-width": "8.3.0",

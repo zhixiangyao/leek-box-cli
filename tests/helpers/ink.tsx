@@ -56,9 +56,9 @@ export const renderInk = (
   }: { output: CaptureOutput; input?: TestInput; interactive?: boolean },
 ): Instance =>
   render(element, {
-    stdout: output as unknown as NodeJS.WriteStream,
-    stdin: input as unknown as NodeJS.ReadStream,
-    stderr: new PassThrough() as unknown as NodeJS.WriteStream,
+    stdout: output,
+    stdin: input,
+    stderr: new PassThrough(),
     debug: true,
     interactive,
     patchConsole: false,
@@ -67,17 +67,10 @@ export const renderInk = (
 /** 去掉 SGR 序列, 只看可见文本 */
 export const plain = (frame: string) => stripVTControlCharacters(frame)
 
-/**
- * 用例收尾: 卸载, 等 ink 退干净, 再摘掉它在 stdout 上的实例.
- * 这里不能用 waitUntilExit(): unmount() 已经摘掉 ink 的 beforeExit 监听, 它又会挂回一个新的,
- * 而那个监听只在进程退出时才触发, 于是每个渲染用例都留下一个 (Node 从第 11 个开始告警).
- * waitUntilRenderFlush() 在卸载后走的是"等 exit promise"这条早返回路径, 不做这件事,
- * 因此同样等到了 unmount 的 stdout 写完.
- */
+/** 用例收尾: 卸载并等 ink 把最后一帧写完 */
 export const unmountApp = async (instance: Instance) => {
   instance.unmount()
-  await instance.waitUntilRenderFlush()
-  instance.cleanup()
+  await instance.waitUntilExit()
 }
 
 /**
