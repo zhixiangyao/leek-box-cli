@@ -107,7 +107,7 @@
 
 ## 环境要求
 
-- [Node.js](https://nodejs.org/) >= 22.19.0 (或 >= 24)
+- [Node.js](https://nodejs.org/) >= 22.22.1 (或 >= 24)
 - [pnpm](https://pnpm.io/) >= 12.10.1
 
 行情通过 Node.js 原生 `fetch` 获取, 无 curl 等外部运行工具依赖.
