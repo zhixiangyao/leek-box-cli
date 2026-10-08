@@ -44,11 +44,7 @@ const matchLocale = (tag: string): Locale | undefined => {
   return undefined
 }
 
-/**
- * 按 LC_ALL > LC_MESSAGES > LANG 读取语言标签, 跳过 C 和 POSIX 这类中性取值.
- * 明确指定了受支持语言就立即采用; 明确指定了不支持的语言 (如 ja_JP) 按默认语言处理,
- * 不再回退到 Intl: 环境变量比系统默认值更能代表用户意图.
- */
+/** 按 LC_ALL > LC_MESSAGES > LANG 读取语言标签, 跳过 C 和 POSIX 这类中性取值; 不支持的取值按默认语言处理 */
 const localeFromEnvironment = (): Locale | undefined => {
   for (const name of ['LC_ALL', 'LC_MESSAGES', 'LANG']) {
     const raw = process.env[name]
@@ -60,7 +56,7 @@ const localeFromEnvironment = (): Locale | undefined => {
   return undefined
 }
 
-/** 读取 Node 解析出的系统 locale, Windows 下这是唯一的可用来源 */
+/** 读取 Node Intl 解析出的系统 locale */
 const localeFromIntl = (): Locale | undefined => {
   try {
     return matchLocale(normalizeTag(Intl.DateTimeFormat().resolvedOptions().locale))
@@ -69,7 +65,7 @@ const localeFromIntl = (): Locale | undefined => {
   }
 }
 
-/** 检测系统语言, 每次调用实时计算以便测试替换环境变量 */
+/** 检测系统语言: 环境变量优先, 回退 Intl */
 export const detectLocale = (): Locale => localeFromEnvironment() ?? localeFromIntl() ?? DEFAULT_LOCALE
 
 /** 将语言设置解析为具体 locale */

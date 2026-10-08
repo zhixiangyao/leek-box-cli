@@ -18,10 +18,7 @@ export type RunDependencies = {
   startApp: StartApp
 }
 
-/**
- * stdout 上的 EPIPE 是异步 'error' 事件 (下游 `-h | head` 关掉管道), 接不到 try/catch.
- * 只装给一次性的 help/version 输出: 应用启动路径不装, 免得 TUI 在 stdout 断开后一直挂着.
- */
+/** stdout 的 'error' 监听: 吞掉 EPIPE, 其它错误照常抛出 */
 const ignoreBrokenPipe = (error: NodeJS.ErrnoException): void => {
   if (error.code !== 'EPIPE') throw error
 }
@@ -31,10 +28,7 @@ const printOnceIgnoringBrokenPipe = (text: string): void => {
   console.log(text)
 }
 
-/**
- * 入口顶层: parseCli 与 startApp 的异常在这里统一报成 "运行失败" 并置退出码,
- * 让 -h 与启动失败走同一条提示 (抛到模块顶层只会打印原始堆栈).
- */
+/** 入口顶层: parseCli 与 startApp 的异常统一报成 "运行失败" 并置退出码 */
 export const run = async ({ parseCli, startApp }: RunDependencies): Promise<void> => {
   try {
     const { settingsDocument, helpMessage, command, showHelp, showVersion } = await parseCli()

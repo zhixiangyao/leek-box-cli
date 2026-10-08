@@ -7,5 +7,5 @@ export function parseYesNo(answer: string): 'y' | 'n' | undefined {
   return undefined
 }
 
-/** 延迟到调用时取文案, 保证跟随当前界面语言 */
+/** y/n 校验失败的提示文案 */
 export const yesNoErrorMessage = (): string => t('common.yesNoError')

@@ -169,10 +169,7 @@ const COLUMN_SPECS: readonly ColumnSpec[] = [
   },
 ]
 
-/**
- * 解析指定 locale 下的列: 文案绑定该 locale 翻译, 数值按该 locale 的单位格式化.
- * 必须用 createTranslator(locale) 而不是全局 t, 否则传参 locale 不会生效.
- */
+/** 解析指定 locale 下的列: 文案绑定该 locale 翻译, 数值按该 locale 单位格式化 */
 const resolveColumns = (locale: Locale): Column[] => {
   const translate = createTranslator(locale)
   return COLUMN_SPECS.map((spec) => ({
@@ -255,14 +252,7 @@ export const stockDetailColumns = (locale: Locale = DEFAULT_LOCALE): Column[] =>
 export const tableWidth = (columns: readonly Column[]): number =>
   columns.reduce((sum, column) => sum + column.width, 0) + (columns.length - 1)
 
-/**
- * 根据终端可用列宽等比例放大各列宽.
- * 每列先取比例值的整数下界, 再把剩余的列宽按小数部分从大到小逐列 +1 (最大余额法),
- * 保证最终列宽之和 === target, 恰好填满整行, 且没有哪一列会独吞残差.
- * 残差全部压给首列时它可能被压到内容宽度以下 (124 列下曾压到 6, 窄于 8 列宽的中文名),
- * 于是整行超宽, cell() 只补齐不截断, 末列会被折到下一行.
- * 需保证 target >= 列宽之和 (WindowSizeGuard 已保证), 此时每列只增不减, 列宽不小于内容宽度.
- */
+/** 按终端可用列宽等比例放大各列宽, 残差按小数部分从大到小逐列 +1 分配 (最大余额法); 要求 target >= 列宽之和 */
 export const scaleColumns = (columns: readonly Column[], targetContentWidth: number): Column[] => {
   const baseSum = columns.reduce((sum, column) => sum + column.width, 0)
   const ideals = columns.map((column) => (column.width / baseSum) * targetContentWidth)

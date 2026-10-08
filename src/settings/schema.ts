@@ -158,17 +158,11 @@ export class SchemaVersionTooNewError extends Error {
   }
 }
 
-/** 取文档里写的 language, 缺失或非法时返回 undefined. 与 parseLanguage 的区别是不抛 */
+/** 取文档里写的 language, 缺失或非法时返回 undefined (不抛) */
 const peekLanguage = (value: unknown): Language | undefined =>
   typeof value === 'string' && LANGUAGES.includes(value as Language) ? (value as Language) : undefined
 
-/**
- * 校验文档格式版本. 缺失时按当前版本接受 (旧文件里没有这个字段);
- * 高于当前版本说明这份文件由更新的程序写入, 当前程序读不懂它, 直接报错而不是尽力解析:
- * 白名单重建会把读不懂的字段静默写掉, 那样是丢数据.
- * 报错文案带来源路径: 这类错误不套 loadExistingSettings 的 corruptFile 包装 (文件没坏),
- * 否则用户起不来又不知道该动哪个文件.
- */
+/** 校验文档格式版本: 缺失时按当前版本接受, 高于当前版本抛 SchemaVersionTooNewError */
 const parseSchemaVersion = (document: Record<string, unknown>, path: string): number => {
   const value = document['schemaVersion']
   if (value === undefined) return CURRENT_SCHEMA_VERSION

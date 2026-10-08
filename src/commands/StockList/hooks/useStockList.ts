@@ -66,7 +66,7 @@ export function useStockList() {
     setVisible(value)
   }
 
-  /** 选中某个下标 (越界钳制, 空列表不动): 方向键与 gg/G 都经它落地, 视口规则也只有一个 */
+  /** 选中某个下标: 越界钳制, 空列表不动, 并同步视口 */
   function selectIndex(index: number) {
     if (rows.length === 0) return
     const nextIndex = clampSelection(index, rows.length)

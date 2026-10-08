@@ -195,7 +195,7 @@ export function useSettings() {
     { isActive: !overlayOpen.open },
   )
 
-  /** 语言项显示母语名称, 保证切错语言后仍能找回 */
+  /** 取配置项当前值的显示文案 */
   const valueOf = (item: SettingItem): string => {
     if (item.type === 'theme') return t(THEME_PRESET_KEYS[themePreset])
     if (item.type === 'trendColor') return t(TREND_COLOR_MODE_KEYS[trendColorMode])

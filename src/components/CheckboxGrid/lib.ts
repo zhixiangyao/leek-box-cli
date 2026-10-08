@@ -37,10 +37,7 @@ export function scrollForCursor(
   return Math.min(Math.max(next, 0), maxOffset)
 }
 
-/**
- * 行滚动窗口 [start, end): 起点由 scrollOffset 决定 (越界钳制).
- * 行数不超过可视高度时展示全部.
- */
+/** 行滚动窗口 [start, end): 起点由 scrollOffset 决定并越界钳制 */
 export function rowWindow(
   totalRows: number,
   scrollOffset: number,
@@ -61,10 +58,7 @@ const MIN_COLUMN_COUNT = 2
 /** 内容区过宽时不再增加列数, 避免单元格被拉得过散 */
 const MAX_COLUMN_COUNT = 8
 
-/**
- * 按内容区宽度推导网格列数: 单元格等分内容区,
- * 取每格仍不小于 MIN_CELL_WIDTH 的最大列数.
- */
+/** 按内容区宽度推导网格列数: 取每格仍不小于 MIN_CELL_WIDTH 的最大列数 */
 export function gridColumnCount(contentWidth: number, columnGap: number): number {
   const count = Math.floor((contentWidth + columnGap) / (MIN_CELL_WIDTH + columnGap))
   return Math.min(Math.max(count, MIN_COLUMN_COUNT), MAX_COLUMN_COUNT)

@@ -1,9 +1,6 @@
 import type { StockListRow, StockListStep } from '../../stores/useStockListStore.ts'
 
-/**
- * 滚动窗口 [start, end): 窗口起点由 scrollOffset 决定 (越界钳制), 不与选中行绑定.
- * 否则窗口保持原位 (从末尾往上选时视图不变, 选中行先走完整个窗口).
- */
+/** 滚动窗口 [start, end): 起点由 scrollOffset 决定并越界钳制, 不与选中行绑定 */
 export const visibleWindow = (total: number, scrollOffset: number, visible: number): { start: number; end: number } => {
   if (total <= visible) return { start: 0, end: total }
   const maxStart = total - visible
@@ -21,10 +18,7 @@ export const SORT_MODE_CYCLE: Record<StockListSortMode, StockListSortMode> = {
   asc: 'default',
 }
 
-/**
- * 按涨跌幅排序, default 原样返回 (即自选股文件顺序).
- * 缺失行没有涨跌幅可比排在末尾, 同涨跌幅的行由 sort 的稳定性保持文件顺序.
- */
+/** 按涨跌幅排序, default 原样返回 (即自选股文件顺序), 缺失行一律排在末尾 */
 export const sortedRows = (rows: StockListRow[], sortMode: StockListSortMode): StockListRow[] => {
   if (sortMode === 'default') return rows
   const quotes = rows.filter((row): row is Extract<StockListRow, { kind: 'quote' }> => row.kind === 'quote')
@@ -34,7 +28,7 @@ export const sortedRows = (rows: StockListRow[], sortMode: StockListSortMode): S
   return [...quotes, ...missing]
 }
 
-/** 从 step 取显示顺序的行 (非 table 时为空): 看板渲染, 方向键和视口锚定都按它算 */
+/** 从 step 取按当前排序模式排好的行, 非 table 时为空 */
 export const displayedRows = (step: StockListStep, sortMode: StockListSortMode): StockListRow[] =>
   step.type === 'table' ? sortedRows(step.rows, sortMode) : []
 
@@ -47,11 +41,7 @@ export const rowIndex = (rows: StockListRow[], code: string | undefined) => {
   return index < 0 ? 0 : index
 }
 
-/**
- * 让某个下标进入窗口所需的最小滚动偏移: 已经看得见就一点不动.
- * 方向键和换顺序 (排序或刷新) 都走这一条, 因此窗口只在选中行要移出窗口时才滑,
- * 排序不会把整个窗口拖到列表另一头.
- */
+/** 让某个下标进入窗口所需的最小滚动偏移: 已经看得见就一点不动 */
 export const scrollOffsetToReveal = (index: number, rowCount: number, scrollOffset: number, visible: number) => {
   const maxOffset = Math.max(0, rowCount - visible)
   if (index < scrollOffset) return index

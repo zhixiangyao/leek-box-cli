@@ -40,7 +40,7 @@ export function settingsPath(): string {
   return join(configDirectory(), 'settings.json')
 }
 
-/** 去除 UTF-8 BOM, 兼容 Windows 编辑器(如记事本, PowerShell 重定向)写入的配置文件 */
+/** 去除文本开头的 UTF-8 BOM */
 const stripBom = (text: string): string => (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text)
 
 /** 读取 JSON 文件, 不存在时返回 undefined */
@@ -66,10 +66,7 @@ export const loadExistingSettings = async (): Promise<SettingsDocument | undefin
   }
 }
 
-/**
- * 原子写入设置文档. 先校验再盖版本字段, 两步都必要:
- * 校验拦下读不懂的文档 (版本过新的文档不该被降级重写), 盖章让写出去的文档总是描述当前程序.
- */
+/** 原子写入设置文档: 先校验, 再盖上 schemaVersion 与 appVersion */
 const writeSettingsFile = async (document: SettingsDocument): Promise<void> => {
   const path = settingsPath()
   const normalized = parseSettingsDocument(document, path)
@@ -108,11 +105,7 @@ export async function initializeSettings(): Promise<SettingsDocument> {
   return (await loadExistingSettings()) ?? withFileLock(settingsPath(), loadOrCreateSettings)
 }
 
-/**
- * 在锁内将设置文件重置为默认文档: 覆盖现有内容, 损坏文件也能修复.
- * 只有版本过新的文件例外, 它不算损坏, 只是这份程序读不懂, 覆盖它等于丢数据
- * (与读改写路径同一条判断; 重设不是它的逃生门, 用户只能升级或手动处理该文件).
- */
+/** 在锁内将设置文件重置为默认文档 (含默认自选股): 覆盖现有内容, 损坏文件也能修复; 版本过新的文件拒绝覆盖 */
 export async function resetSettingsFile(): Promise<void> {
   const document = createDocument(DEFAULT_SETTINGS, createDefaultStocks())
   await withFileLock(settingsPath(), async () => {

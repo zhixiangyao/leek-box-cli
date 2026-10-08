@@ -89,12 +89,7 @@ const MARKET_CAP_UNITS: Record<Locale, readonly Unit[]> = {
 /** 按单个档位渲染数值部分 */
 const renderValue = (value: number, unit: Unit): string => (value * unit.scale).toFixed(unit.decimals)
 
-/**
- * 按 locale 的单位表格式化, 非正值返回占位符.
- * 档位边界上四舍五入会进位: 999950 手若用 K 档会渲染成 '1000.0K lots',
- * 因此渲染值达到上一档起点时改用上一档, 输出 '1.0M lots'.
- * 起点按本档小数位取整后再比较, 避免 scale 的浮点误差把边界推高一格.
- */
+/** 按单位表格式化数值, 渲染值达到上一档起点时改用上一档; 非正值返回占位符 */
 const formatWithUnits = (value: number, units: readonly Unit[]): string => {
   if (!isPositive(value)) return EMPTY_VALUE
   let index = units.findIndex((candidate) => value >= candidate.min)

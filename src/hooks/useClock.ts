@@ -43,7 +43,7 @@ const TICK_MS: Record<ClockFormat, number> = {
   'hour-minute': 60_000,
 }
 
-/** 上海时区时钟: 按 format 返回不同形态的时间字符串, 内部自刷新 (含秒每秒, 否则每分) */
+/** 上海时区时钟: 按 format 返回对应形态的时间字符串, 内部自刷新 */
 export function useClock(format: ClockFormat): string {
   const [now, setNow] = useState(() => new Date())
 

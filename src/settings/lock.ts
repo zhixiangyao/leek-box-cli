@@ -79,10 +79,7 @@ const publishLock = async (lockPath: string, contents: string) => {
   }
 }
 
-/**
- * 在目标文件旁的文件锁保护下执行异步操作.
- * lockPath = filePath + '.lock', 元数据先写入临时文件, 再通过 hard link 原子发布.
- */
+/** 在目标文件旁的锁文件 (filePath + '.lock') 保护下执行异步操作 */
 export async function withFileLock<Result>(filePath: string, operation: () => Promise<Result>): Promise<Result> {
   const lockPath = `${filePath}.lock`
   const lockToken = randomUUID()

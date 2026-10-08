@@ -1,7 +1,7 @@
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import { HistoricalPoint } from '../types.ts'
 
-/** 规范化股票代码为腾讯行情前缀格式 (如 "600000"/"600000.SH" → "sh600000"); 无法识别返回 undefined */
+/** 把股票代码规范化为腾讯行情前缀格式 (如 "600000.SH" -> "sh600000"), 无法识别返回 undefined */
 export function normalizeCode(input: string): string | undefined {
   let code = input.trim().toUpperCase()
   code = code.replace(/\.(SH|SZ|BJ)$/, '')
@@ -38,7 +38,7 @@ const abortableDelay = (milliseconds: number, signal?: AbortSignal) => {
   })
 }
 
-/** 包裹请求: 组合调用方取消信号与全局超时, 并让成功请求至少持续 minimumRequestDurationMs 以避免 UI 闪烁 */
+/** 包裹请求: 组合调用方取消信号与全局超时, 成功请求补足 minimumRequestDurationMs */
 export const withRequestTiming = async <Result>(
   signal: AbortSignal | undefined,
   request: (signal: AbortSignal) => Promise<Result>,

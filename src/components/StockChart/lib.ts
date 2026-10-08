@@ -4,10 +4,7 @@ import { DEFAULT_TREND_COLOR_MODE, trendColor, type TrendColor, type TrendColorM
 /** 图表单元格: 字符 + 可选颜色, 行渲染时相邻同色合并 */
 type ChartCell = { ch: string; color?: TrendColor }
 
-/**
- * 合并相邻同色 cell, 颜色变化处断开.
- * 返回的 cell 都是新对象: 结果会被 useMemo 缓存, 复用入参 cell 时后续拼接会写进缓存.
- */
+/** 合并相邻同色 cell, 颜色变化处断开 */
 export const mergeChartCell = (row: readonly ChartCell[]): ChartCell[] =>
   row.reduce<ChartCell[]>((acc, cell) => {
     const last = acc.at(-1)
@@ -29,7 +26,7 @@ type Bucket = {
   volume: number
 }
 
-/** 交易分钟序号: 09:30=0, 11:30=120, 13:00=120, 15:00=240; 解析失败/越界返回 undefined (盘前集合竞价点钳到 0) */
+/** 交易分钟序号: 09:30=0, 11:30=120, 13:00=120, 15:00=240; 解析失败返回 undefined */
 const tradingMinute = (time: string): number | undefined => {
   if (!/^\d{4}$/.test(time)) return undefined
   const minutes = Number(time.slice(0, 2)) * 60 + Number(time.slice(2)) - 570
@@ -38,11 +35,7 @@ const tradingMinute = (time: string): number | undefined => {
   return minutes
 }
 
-/**
- * 把分时点按交易时间比例归入 width 个桶 (午休空隙自然落在午休附近列).
- * 有数据桶之后 (但未到末尾) 的空桶用前桶价格续线 (平线过午休), 尾部空桶留空 (盘中数据未到).
- * 成交量 (接口为累计值) 转分钟增量, 空桶/增量小于等于 0 计 0.
- */
+/** 把分时点按交易时间比例归入 width 个桶, 成交量累计值转分钟增量 */
 export const bucketize = (points: IntradayPoint[], width: number): Bucket[] => {
   if (width <= 0) return []
 
@@ -163,10 +156,7 @@ const bucketizeHistorical = (points: HistoricalPoint[], width: number): Bucket[]
   })
 }
 
-/**
- * Braille 点阵: 每字符 2 子列 × 4 子行. 子行 0-2 走 6 点码位 (位 = 1 << (r + c*3)),
- * 子行 3 用 8 点制的 dot7/dot8 (位 = 1 << (6 + c)), c 为子列奇偶 (0 左 / 1 右).
- */
+/** 子列 c / 子行 r 在 Braille 字符里的点位掩码 */
 const DOT_BIT = (c: number, r: number): number => (r < 3 ? 1 << (r + c * 3) : 1 << (6 + c))
 
 /** Braille 字符: U+2800 + 点阵位掩码 */
@@ -187,14 +177,7 @@ export type BuildChartRowsParams = {
   trendColorMode?: TrendColorMode
 }
 
-/**
- * 生成行情图字符矩阵: 价格折线 (Braille 2×4 点阵, 垂直 4 倍 + 水平 2 倍分辨率; 子列间按相邻桶
- * lastPrice 线性插值, 陡坡补垂直间隙; 分时整线按现价 vs 昨收红绿灰, 历史按相邻价格段红绿灰)
- * + 分时昨收虚线 (Braille 点, 2 子列开 1 子列停, 灰, 折线优先) + 成交量柱 (Braille 点阵,
- * 双子列整列填, 高度 4×volumeHeight 档, 按各桶相对上一桶涨跌红绿, 首桶回退比较基准, 平盘灰)
- * + 底部时间轴行.
- * 返回 (priceHeight + volumeHeight + 1) 行 × width 列.
- */
+/** 生成行情图字符矩阵: 价格折线 + 分时昨收虚线 + 成交量柱 + 时间轴行, (priceHeight + volumeHeight + 1) 行 × width 列 */
 export const buildChartRows = (params: BuildChartRowsParams): ChartCell[][] => {
   const {
     points,

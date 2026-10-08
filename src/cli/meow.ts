@@ -7,11 +7,7 @@ import { COMMAND_LIST, COMMAND_REGISTRY_ENTRIES } from '../navigation/registry.t
 import { loadExistingSettings } from '../settings/file.ts'
 import { SchemaVersionTooNewError, type SettingsDocument } from '../settings/schema.ts'
 
-/**
- * 读配置不创建文件, 读不到 (缺失, 损坏或版本过新) 就当没有配置: 不抛出, 报错留给后面的 initializeSettings.
- * language 一并交出来而不是留给调用方从文档里取: 版本过新时文档整体被拒绝 (读不懂的字段不能让它写掉),
- * 但紧接着要打的那句 "请升级" 得用用户配置的语言说.
- */
+/** 读配置不创建文件, 读不到 (缺失, 损坏或版本过新) 返回空文档, 不抛出; 一并交出渲染文案用的 language */
 const tryLoadSettings = async (): Promise<{ document: SettingsDocument | undefined; language: Language }> => {
   try {
     const document = await loadExistingSettings()
