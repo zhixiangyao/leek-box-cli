@@ -2,7 +2,7 @@ import { chmodSync } from 'node:fs'
 import { builtinModules } from 'node:module'
 import { resolve } from 'node:path'
 
-import { defineConfig } from 'vite'
+import { defineConfig, defaultServerConditions } from 'vite'
 
 const outDir = 'dist'
 const outFileName = 'main.mjs'
@@ -16,7 +16,7 @@ export default defineConfig({
      * 在 Node 下颜色级别恒为 0, 产物颜色全部丢失.
      * 把 browser 换成 node 即可命中 node 导出.
      */
-    conditions: ['module', 'node', 'development|production'],
+    conditions: [...defaultServerConditions],
   },
   input: resolve(import.meta.dirname, 'src/main.tsx'),
   build: {
