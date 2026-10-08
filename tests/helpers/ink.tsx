@@ -12,8 +12,8 @@ const INPUT_TICK_MS = 10
 
 /** 固定尺寸的输出: 用例断言的就是写进来的帧 */
 export class CaptureOutput extends Writable {
-  readonly columns: number
-  readonly rows: number
+  columns: number
+  rows: number
   readonly isTTY = true
   readonly frames: string[] = []
 
@@ -21,6 +21,13 @@ export class CaptureOutput extends Writable {
     super()
     this.columns = columns
     this.rows = rows
+  }
+
+  /** 模拟终端尺寸变化: 改尺寸并通知 Ink, 它监听 stdout 的 'resize' */
+  resize(columns: number, rows: number) {
+    this.columns = columns
+    this.rows = rows
+    this.emit('resize')
   }
 
   override _write(chunk: Buffer | string, _encoding: BufferEncoding, callback: (error?: Error | null) => void) {

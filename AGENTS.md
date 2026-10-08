@@ -283,7 +283,10 @@ React 组件和组件 hook 优先使用窄 selector (action 引用稳定, 订阅
 
 共享 overlay 包含菜单, 股票详情, 删除确认和通用确认弹窗 (DialogConfirm).
 
-- App 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`, 只在无浮层时处理 esc(打开菜单) 和 q(退出).
+- App 的 `useInput` 常驻注册, 在回调里用 `overlayOpen.open` 早返回, 因此只在无浮层时处理 esc(打开菜单) 和 q(退出).
+  不使用 `isActive`: 尺寸不足时 WindowSizeGuard 会卸载整棵子树, 浮层 (持有此时唯一活跃的 useInput) 随之消失,
+  一个活跃的 useInput 都不剩时 ink 会 `setRawMode(false)` 并 unref stdin, 事件循环空转触发 beforeExit,
+  应用会在用户拖动终端尺寸时退出. App 是唯一在整个进程生命周期内都挂载的组件, 由它持有这条不变量.
 - 浮层打开后 esc 由各浮层自己处理: 详情和菜单 esc 直接关闭; DialogRemoveConfirm 在 done/error 阶段 esc 关闭, 删除进行中忽略; DialogConfirm 仅在错误态 esc 关闭.
 - 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
 - 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection(input, key)`, 各处不再手写 `key.upArrow || input === 'k'`. hint 与监听并列展示 (`选择(↑/↓/j/k/gg/G)`, 网格 `移动(↑/↓/←/→/hjkl)`); 该界面不响应的方向不要写进 hint (例如看板只接受上下, hint 就不含 `h`/`l`).
