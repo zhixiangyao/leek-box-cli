@@ -3,7 +3,7 @@ import { useInput } from 'ink'
 import { useTranslation } from '../../../hooks/useTranslation.ts'
 import { parseYesNo } from '../../../lib/yesNo.ts'
 import { useDialogRemoveConfirmStore } from '../../../stores/useDialogRemoveConfirmStore.ts'
-import { useStockRemoveStore, type StockRemoveEntry } from '../../../stores/useStockRemoveStore.ts'
+import type { StockRemoveEntry } from '../../../stores/useStockRemoveStore.ts'
 
 const entryLabel = (entry: StockRemoveEntry) =>
   entry.name === undefined ? entry.code : `${entry.name} (${entry.code})`
@@ -14,7 +14,6 @@ export function useDialogRemoveConfirm() {
   const entries = useDialogRemoveConfirmStore((state) => state.entries)
   const confirmDelete = useDialogRemoveConfirmStore((state) => state.confirmDelete)
   const close = useDialogRemoveConfirmStore((state) => state.close)
-  const removeByCodes = useStockRemoveStore((state) => state.removeByCodes)
   const isConfirm = step.type === 'confirm'
   const isError = step.type === 'error'
   const isDone = step.type === 'done'
@@ -46,7 +45,7 @@ export function useDialogRemoveConfirm() {
       switch (step.type) {
         case 'confirm': {
           const inputYesOrNo = parseYesNo(input)
-          if (inputYesOrNo === 'y') void confirmDelete(removeByCodes)
+          if (inputYesOrNo === 'y') void confirmDelete()
           else if (inputYesOrNo === 'n') close()
           break
         }

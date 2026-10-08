@@ -8,6 +8,7 @@ import { usePolling } from '../../../hooks/usePolling.ts'
 import { useTranslation } from '../../../hooks/useTranslation.ts'
 import { keyDirection } from '../../../lib/keys.ts'
 import { scaleColumns, stockListColumns } from '../../../lib/quoteTable.ts'
+import { useDialogRemoveConfirmStore } from '../../../stores/useDialogRemoveConfirmStore.ts'
 import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
@@ -28,7 +29,8 @@ export function useStockList() {
   const step = useStockListStore((state) => state.step)
   const refreshQuotes = useStockListStore((state) => state.refreshQuotes)
   const reset = useStockListStore((state) => state.reset)
-  const open = useDialogStockDetailStore((state) => state.open)
+  const openStockDetail = useDialogStockDetailStore((state) => state.open)
+  const openRemoveConfirm = useDialogRemoveConfirmStore((state) => state.open)
   const [sortMode, setSortMode] = useState<StockListSortMode>('default')
   const [selectedCode, setSelectedCode] = useState<string>()
   const [scrollOffset, setScrollOffset] = useState(0)
@@ -78,7 +80,7 @@ export function useStockList() {
     setScrollOffset(scrollOffsetToReveal(nextIndex, rows.length, scrollOffset, visible))
   }
 
-  usePolling(refreshAndAnchor, { intervalMs: pollIntervalMs })
+  const { refresh } = usePolling(refreshAndAnchor, { intervalMs: pollIntervalMs })
 
   useEffect(() => () => reset(), [reset])
 
@@ -114,10 +116,15 @@ export function useStockList() {
 
       if (step.type !== 'table' || !selectedCode) return
       const direction = keyDirection(input, key)
+      const selectedRow = rows.find((item) => item.code === selectedCode)
 
       if (key.return) {
-        const selectedRow = rows.find((item) => item.code === selectedCode)
-        if (selectedRow) open(selectedRow.code)
+        if (selectedRow) openStockDetail(selectedRow.code)
+      } else if (input === 'd') {
+        if (selectedRow) {
+          const name = selectedRow.kind === 'quote' ? selectedRow.quote.name : undefined
+          openRemoveConfirm([{ code: selectedRow.code, name }], refresh)
+        }
       } else if (direction === 'up') {
         moveSelection(-1)
       } else if (direction === 'down') {

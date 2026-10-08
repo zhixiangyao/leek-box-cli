@@ -15,11 +15,10 @@ import { useStockRemove } from './hooks/useStockRemove.ts'
 
 export default function StockRemove() {
   const { columns } = useWindowSize()
-
   const overlayOpen = useOverlayOpen()
   const theme = useTheme()
   const { t } = useTranslation()
-  const { entries, errorMessage, resetToken, open } = useStockRemove()
+  const { entries, errorMessage, resetToken, cursor, onCursorChange, openRemoveConfirm } = useStockRemove()
   const columnGap = 2
   const columnCount = gridColumnCount(columns - TABLE_CHROME, columnGap)
   let content: ReactNode
@@ -31,11 +30,9 @@ export default function StockRemove() {
       <Text color="yellow">{t('common.watchlistEmpty')}</Text>
     )
   } else {
-    // 网格常驻: 无浮层时可交互, 确认/删除阶段作为底层被弹窗覆盖并变暗.
-    // key 绑定 resetToken: 取消或删除后网格重新挂载, 清空已勾选的股票.
     content = (
       <CheckboxGrid<StockRemoveEntry>
-        key={resetToken}
+        key={resetToken} // key 绑定 resetToken, 取消或删除后网格重新挂载, 清空已勾选的股票
         items={entries}
         getKey={(entry) => entry.code}
         getLabel={(entry) => entry.name ?? entry.code}
@@ -43,7 +40,9 @@ export default function StockRemove() {
         columnCount={columnCount}
         columnGap={columnGap}
         isActive={!overlayOpen.open}
-        onSubmit={open}
+        defaultCursor={cursor}
+        onCursorChange={onCursorChange}
+        onSubmit={openRemoveConfirm}
       />
     )
   }

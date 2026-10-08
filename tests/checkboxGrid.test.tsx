@@ -35,6 +35,8 @@ type GridOptions = {
   height?: number
   columnCount?: number
   columnGap?: number
+  defaultCursor?: number
+  onCursorChange?: (cursor: number) => void
 }
 
 /** 默认按 90 列宽, 12 行高, 3 列 2 间距渲染, 用例按需覆盖 */
@@ -44,7 +46,7 @@ const renderGrid = (
   onSubmit: (selected: Item[]) => void,
   options: GridOptions = {},
 ) => {
-  const { height = 12, columnCount = 3, columnGap = 2 } = options
+  const { height = 12, columnCount = 3, columnGap = 2, defaultCursor, onCursorChange } = options
   const output = new CaptureOutput(90, height)
   const input = createInput()
   const instance = renderInk(
@@ -56,6 +58,8 @@ const renderGrid = (
         columnCount={columnCount}
         columnGap={columnGap}
         isActive={isActive}
+        defaultCursor={defaultCursor}
+        onCursorChange={onCursorChange}
         onSubmit={onSubmit}
       />
     </Box>,
@@ -236,6 +240,44 @@ test('CheckboxGrid: 空列表渲染为空网格且回车不触发', async () => 
     await press(input, '\r')
     await delay(200)
     expect(submitted).toStrictEqual([])
+  } finally {
+    await unmountApp(instance)
+  }
+})
+
+test('CheckboxGrid: defaultCursor 决定初始光标, onCursorChange 回传移动后的下标', async () => {
+  const cursors: number[] = []
+  const { output, input, instance } = renderGrid(makeItems(9), true, () => undefined, {
+    defaultCursor: 4,
+    onCursorChange: (cursor) => cursors.push(cursor),
+  })
+
+  try {
+    // 初始就停在下标 4: 空格勾的是 股票04
+    await press(input, ' ')
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票04'))
+
+    await press(input, RIGHT) // 4 -> 5
+    await press(input, ' ')
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票05'))
+    // 初始位置不回传, 只有移动才回传
+    expect(cursors).toStrictEqual([5])
+  } finally {
+    await unmountApp(instance)
+  }
+})
+
+test('CheckboxGrid: defaultCursor 越界时钳制到末格', async () => {
+  const cursors: number[] = []
+  const { output, input, instance } = renderGrid(makeItems(9), true, () => undefined, {
+    defaultCursor: 99,
+    onCursorChange: (cursor) => cursors.push(cursor),
+  })
+
+  try {
+    await press(input, ' ')
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票08'))
+    expect(cursors).toStrictEqual([])
   } finally {
     await unmountApp(instance)
   }

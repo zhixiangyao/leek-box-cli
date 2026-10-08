@@ -17,17 +17,21 @@ type Props<T> = {
   getKey: (item: T) => string
   getLabel: (item: T) => string
   getHint?: (item: T) => string | undefined
+  defaultCursor?: number
+  onCursorChange?: (cursor: number) => void
   onSubmit: (items: T[]) => void
 }
 
 export default function CheckboxGrid<T>(props: Props<T>) {
   const { items, columnCount, columnGap, isActive } = props
-  const { getKey, getLabel, getHint, onSubmit } = props
+  const { getKey, getLabel, getHint, defaultCursor, onCursorChange, onSubmit } = props
   const { gridRef, cursor, selectedKeys, visibleRange } = useCheckboxGrid({
     items,
     getKey,
     columnCount,
     isActive,
+    defaultCursor,
+    onCursorChange,
     onSubmit,
   })
   const rows = useMemo(() => toGridRows(items, columnCount), [items, columnCount])

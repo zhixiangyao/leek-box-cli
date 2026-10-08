@@ -13,7 +13,7 @@ export const zhHant = {
   /* ---------- 頁面註冊表 ---------- */
   'command.stockList.title': '自選股票看板',
   'command.stockList.description': '自選股票看板',
-  'command.stockList.hint': '選單(esc)   選擇(↑/↓/j/k/gg/G)   詳情(enter)   排序(s)   離開(q)',
+  'command.stockList.hint': '選單(esc)   選擇(↑/↓/j/k/gg/G)   詳情(enter)   刪除(d)   排序(s)   離開(q)',
   'command.stockAdd.title': '新增自選股',
   'command.stockAdd.description': '新增自選股',
   'command.stockAdd.hint': '選單(esc)   離開(q)',

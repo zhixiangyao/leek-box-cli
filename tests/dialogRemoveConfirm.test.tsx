@@ -7,7 +7,7 @@ import { useDialogRemoveConfirmStore } from '../src/stores/useDialogRemoveConfir
 import { useStockRemoveStore } from '../src/stores/useStockRemoveStore.ts'
 import { BOARD_COLUMNS, BOARD_ROWS, renderApp, resetStores, stubBoardRows, stubRemoveEntries } from './helpers/app.tsx'
 import { removeEntry } from './helpers/fixtures.ts'
-import { CaptureOutput, createInput, plain, unmountApp, waitForFrame } from './helpers/ink.tsx'
+import { CaptureOutput, createInput, plain, unmountApp, waitForFrame, waitForInput } from './helpers/ink.tsx'
 
 test('删除确认弹窗 confirm 阶段忽略不在 hint 里的 esc', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
@@ -81,17 +81,21 @@ test('删除确认弹窗 confirm 阶段按 y 删除成功后同步网格并重�
 
     const dialogStore = useDialogRemoveConfirmStore
     const token = useStockRemoveStore.getState().resetToken
-    // 存储动作 stub 成"删掉 1 条": 弹窗自己收尾, 网格同步交给 hook
+    // 存储动作 stub 成"删掉 1 条": 弹窗自己收尾, 网格同步走命令的 hook 在 open 时登记的回调
     dialogStore.setState({
-      confirmDelete: async (cb) => {
-        cb?.(['sh600000'])
-        dialogStore.setState({ step: { type: 'idle' }, entries: [] })
+      confirmDelete: async () => {
+        dialogStore.getState().onRemoved?.(['sh600000'])
+        dialogStore.setState({ step: { type: 'idle' }, entries: [], onRemoved: undefined })
       },
     })
 
+    // 光标默认在第一格: 空格勾选后回车提交, 网格把 removeByCodes 登记给弹窗
     after = output.frames.length
-    dialogStore.getState().open([removeEntry('sh600000', '浦发银行')])
+    input.write(' ')
+    await waitForInput()
+    input.write('\r')
     await waitForFrame(output, after, (candidate) => plain(candidate).includes('确定删除选中的'))
+    expect(dialogStore.getState().onRemoved).toBeDefined()
 
     after = output.frames.length
     input.write('y')

@@ -3,6 +3,7 @@ import { expect, test } from 'vitest'
 import { setActiveLocale, t } from '../src/i18n/core.ts'
 import { stockListColumns, tableWidth } from '../src/lib/quoteTable.ts'
 import { useDialogMenuStore } from '../src/stores/useDialogMenuStore.ts'
+import { useDialogRemoveConfirmStore } from '../src/stores/useDialogRemoveConfirmStore.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 import { useStockListStore } from '../src/stores/useStockListStore.ts'
 import {
@@ -158,6 +159,109 @@ test('App 的看板在首轮行情返回前也显示刷新间隔', async () => {
     const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes(t('stockList.loading')))
     // 间隔来自设置而不是某次刷新的结果, 因此 loading 态也在
     expect(plain(frame)).toContain(interval)
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板按 d 打开删除确认弹窗, n 取消不动看板', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+  const dialogStore = useDialogRemoveConfirmStore
+  const title = t('dialogRemoveConfirm.titleConfirm', { count: 1 })
+  let refreshCalls = 0
+
+  resetStores()
+  useStockListStore.setState({
+    step: { type: 'table', rows: [quoteRow('sh600000', 1), missingRow('sz000001')] },
+    refreshQuotes: async () => {
+      refreshCalls += 1
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
+    const beforeRefreshCalls = refreshCalls
+
+    // d 打开确认弹窗: 条目取选中行的代码与实时行情里的名称
+    input.write('d')
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes(title))
+    expect(plain(frame)).toContain('浦发银行 (sh600000)')
+    expect(dialogStore.getState().entries).toStrictEqual([{ code: 'sh600000', name: '浦发银行' }])
+
+    // n 取消: 弹窗关闭, 看板没被改动, 也不触发刷新
+    let closedAfter = output.frames.length
+    input.write('n')
+    const closedFrame = await waitForFrame(output, closedAfter, (candidate) => !plain(candidate).includes(title))
+    expect(dialogStore.getState().step.type).toBe('idle')
+    expect(refreshCalls).toBe(beforeRefreshCalls)
+    expect(selectedCodeIn(closedFrame)).toBe('sh600000')
+
+    // 缺失行 (行情没返回该代码) 也允许删: 弹窗条目没有名称, 因此只列代码
+    input.write('j')
+    await waitForFrame(output, closedAfter, (candidate) => selectedCodeIn(candidate) === 'sz000001')
+    closedAfter = output.frames.length
+    input.write('d')
+    await waitForFrame(output, closedAfter, (candidate) => plain(candidate).includes(title))
+    expect(dialogStore.getState().entries).toStrictEqual([{ code: 'sz000001', name: undefined }])
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板按 d 删除后刷新一次, 那一行消失且选中行回退到邻近行', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+  const dialogStore = useDialogRemoveConfirmStore
+  const title = t('dialogRemoveConfirm.titleConfirm', { count: 1 })
+  const boardRows = [quoteRow('sh600000', 1), missingRow('sz000001'), missingRow('sz300001')]
+  // 删除写盘后重读自选股: 少了一开始的选中股
+  const rowsAfterDelete = [missingRow('sz000001'), missingRow('sz300001')]
+  let deleted = false
+  let refreshCalls = 0
+
+  resetStores()
+  useStockListStore.setState({
+    step: { type: 'table', rows: boardRows },
+    refreshQuotes: async () => {
+      refreshCalls += 1
+      useStockListStore.setState({ step: { type: 'table', rows: deleted ? rowsAfterDelete : boardRows } })
+    },
+  })
+  // 存储动作 stub: 弹窗自己收尾, 收尾动作是看板的 hook 在 open 时登记的
+  dialogStore.setState({
+    confirmDelete: async () => {
+      deleted = true
+      dialogStore.getState().onRemoved?.(['sh600000'])
+      dialogStore.setState({ step: { type: 'idle' }, entries: [], onRemoved: undefined })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
+    const beforeRefreshCalls = refreshCalls
+
+    input.write('d')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes(title))
+    expect(dialogStore.getState().onRemoved).toBeDefined()
+
+    input.write('y')
+    // 收尾动作触发一次刷新: 被删的那只离开列表, 选中行按原下标落到 sz000001
+    const frame = await waitForFrame(
+      output,
+      after,
+      (candidate) => !plain(candidate).includes('sh600000') && selectedCodeIn(candidate) === 'sz000001',
+    )
+    expect(refreshCalls).toBe(beforeRefreshCalls + 1)
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
     await unmountApp(instance)

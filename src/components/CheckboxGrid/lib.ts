@@ -9,10 +9,14 @@ export function toGridRows<T>(items: readonly T[], columns: number): T[][] {
   return rows
 }
 
+/** 把光标下标钳制到有效范围: 空网格取 0 */
+export const clampCursor = (cursor: number, total: number) =>
+  total <= 0 ? 0 : Math.min(Math.max(cursor, 0), total - 1)
+
 /** 方向键移动后的新光标下标, 越界时保持不动 */
 export function nextCursor(cursor: number, total: number, direction: CursorDirection, columns: number): number {
   if (total <= 0) return 0
-  const clamped = Math.min(Math.max(cursor, 0), total - 1)
+  const clamped = clampCursor(cursor, total)
   const column = clamped % columns
   if (direction === 'left') return column > 0 ? clamped - 1 : clamped
   if (direction === 'right') return column < columns - 1 && clamped + 1 < total ? clamped + 1 : clamped

@@ -255,10 +255,12 @@ Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(de
 视口锚定也在 hook 里做 (`refreshQuotes` 只管数据), 因为它需要"上一次的显示顺序", 而那个顺序只有 hook 有.
 `useStockListStore` 因此只有 `step`, `refreshQuotes` 和 `reset`.
 
-删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交, 列数随终端宽度变化), 提交的条目交给 DialogRemoveConfirm 确认删除; 全部删除成功后直接关闭并重置勾选, 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅关闭弹窗并保留勾选, 可重新打开确认.
+删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交, 列数随终端宽度变化), 提交的条目交给 DialogRemoveConfirm 确认删除; 看板按 `d` 打开的是同一个弹窗 (只放一条 entry, 见看板一节). 全部删除成功后直接关闭并重置勾选, 光标停在删除前的位置 (同一个下标, 超出新的条目数时落到末格; 看板那边是刷新一次), 部分条目已不在自选股时进入 done 提示已删除数量, 取消时仅关闭弹窗并保留勾选 (光标也不动), 可重新打开确认.
 
-网格同步由确认弹窗的 hook 负责, 两个 store 不互相 import: `confirmDelete()` 接受一个可选回调 (参数是这次提交删除的
-条目代码), 自己收尾并**只在确实删掉条目后**调用它; hook 把网格 store 的 `removeByCodes` 当回调传进去.
+收尾动作由打开者登记, 两个 store 不互相 import: `open(entries, onRemoved)` 把回调存进 store, `confirmDelete()`
+自己收尾并**只在确实删掉条目后**调用它 (每次打开都覆盖该回调, 回 idle/done/error 时清空); 删除页登记的网格 store 的
+`removeByCodes` (删掉的那几条离开网格并重挂载), 看板登记的是"立刻刷新一次". 弹窗的 hook 因此不认识任何 command 的
+store, 只留 `StockRemoveEntry` 这个类型导入 (entry 的词汇仍归删除域的 store).
 "没删掉任何条目" (失败, 或所选已不在自选股: `stocksRemove()` 返回 0) 都在调用点之前收尾并 return, 网格条目与
 勾选因此都保留, esc 关闭后可以直接重试; 也避免按 y 后无条件同步把"其实没删掉"的条目从网格里抹掉.
 
@@ -289,7 +291,7 @@ React 组件和组件 hook 优先使用窄 selector (action 引用稳定, 订阅
 - 共享输入组件的 `isActive` 由 command 传入 `!overlayOpen.open`, 组件不自己读浮层状态: `CheckboxGrid` 必填, `TextInput` 可选并默认为 true.
 - DialogMenu 自己处理上下键, Enter 和数字快捷键. 菜单的开关就是 `useDialogMenuStore` 的 `highlightedType` (`MenuItem['type'] | undefined`), 没有第二个布尔: `open(highlightedType)` 打开并定位高亮, `close()` 置回 `undefined`, `useOverlayOpen` 据此判定 `dialogMenuOpen`. 因此 store 既不持有"是否打开", 也不持有第二份默认命令: 打开时的高亮由 App 的 esc 传入当前 command (`open(command)`). `useDialogMenu` 在 `highlightedType` 为 `undefined` 时早返回 (DialogMenu 只在非 `undefined` 时挂载, 该分支是防御), 之后收窄为 `MenuItem['type']`, 而 `MENU_ITEMS` 覆盖该类型的全部取值 (注册表 + reset/exit), `findIndex` 必命中, 不存在负索引或"无高亮"分支. 被 DialogConfirm 遮住时菜单保持挂载且高亮不变.
 - DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (浮层打开时底层输入一律失活), 无需判断菜单状态.
-- DialogRemoveConfirm 只在 confirm 阶段接受 n/y, done/error 阶段只接受 esc. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error 并保留网格勾选, esc 关闭后可直接重试.
+- DialogRemoveConfirm 只在 confirm 阶段接受 n/y, done/error 阶段只接受 esc. Step 机为 idle/confirm/removing/done/error: 全部删除成功直接关闭, 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error (删除页据此保留网格勾选, 看板只等下一次轮询), esc 关闭后可直接重试. 打开者可以是删除页, 也可以是看板的 `d` 键.
 - DialogConfirm 目前用于菜单的"重置"入口: 确认后经 `settings/resetAll.ts` 的 `resetAll()` 重置设置文件为默认文档 (含默认自选股) 并同步设置与自选股内存; 确认失败时弹窗保留并进入错误态 (`config.isError`), 确认方经 `config.update` 把内容替换为失败信息. 错误态 hint 为 `关闭(esc)   重试(y)` (esc 关闭, n 忽略, y 重试), 确认态 hint 为 `取消(n)   确定(y)` 且不处理 esc. 确认弹窗关闭后菜单保持打开 (高亮位置保留).
 
 详情周期快捷键:
@@ -644,7 +646,12 @@ StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, �
 右上角固定有一段刷新间隔 (`{value} ms`): 它取设置里的 `quotePollIntervalMs`, 不是某次刷新的耗时, 也不随
 刷新变化, 因此在 loading/empty/error 各 step 都在, 改设置后立即跟着变, 位置排在排序指示器之后, 两段之间用
 `|` 分隔 (分隔符自己一个 Text, 不跟着相邻那段的颜色走). 除这两段外右上角不再显示别的角标.
-不设手动刷新键: 刷新只由轮询驱动.
+不设手动刷新键: 刷新只由轮询驱动, 只有删除成功后会额外触发一次.
+
+看板按 `d` 删除选中那一只: 用选中行拼一条 `StockRemoveEntry` (名称取行内实时行情, 缺失行没有名称, 弹窗因此只列代码)
+打开共享的 DialogRemoveConfirm, 并把 `usePolling` 的 `refresh` 登记成收尾动作 —— 删除成功后立刻走一遍"刷新 + 重新锚定"
+(读文件 + 拉行情, 选中股消失时按原下标回退到邻近的行, 删空则进入 empty). 一个都不算删掉时 (所选条目已不在自选股)
+弹窗进 error, 收尾动作不调用, 那一行要等下一次轮询才消失. `refresh()` 在请求进行中不并发, 那种情况下同样等下一轮.
 
 ## Card, Dialog 和 Text
 
@@ -692,6 +699,10 @@ ScrollBox 用 ink 8 的 `contentOffsetY` 滚动: 视口是 `flexBasis={0} flexGr
 本地 `src/components/Text.tsx` 是项目文字入口. 它负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
 
 CheckboxGrid 是多选网格: 方向键移动, 空格勾选, 回车提交勾选项 (至少一个才触发). 内部处理光标滚动窗口, `isActive` 控制输入, 外部通过 key 重挂载 (resetToken 变化) 清空勾选.
+
+重挂载会把光标带回第一格, 因此另有 `defaultCursor` (可选, 默认 0, 越界时按 `clampCursor` 钳制) 与
+`onCursorChange` (光标移动时回传新下标, 初始位置不回传): 删除页用它们让删除后的光标停在原来的位置,
+即同一个下标 (列表缩短后它可能指向别的条目), 越界时落到末格. 网格自身不受这两个值影响, 它们只在挂载时读一次.
 
 列数和列间距都不写死在组件里: `columnCount` (至少为 1) 与 `columnGap` (至少为 2) 都是必填 prop,
 组件不设默认值, 也不读终端尺寸, 只消费传入的值.

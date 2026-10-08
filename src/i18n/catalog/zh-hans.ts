@@ -13,7 +13,7 @@ export const zhHans = {
   /* ---------- 命令注册表 ---------- */
   'command.stockList.title': '自选股票看板',
   'command.stockList.description': '自选股票看板',
-  'command.stockList.hint': '菜单(esc)   选择(↑/↓/j/k/gg/G)   详情(enter)   排序(s)   退出(q)',
+  'command.stockList.hint': '菜单(esc)   选择(↑/↓/j/k/gg/G)   详情(enter)   删除(d)   排序(s)   退出(q)',
   'command.stockAdd.title': '添加自选股',
   'command.stockAdd.description': '添加自选股',
   'command.stockAdd.hint': '菜单(esc)   退出(q)',

@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 
 import {
+  clampCursor,
   gridColumnCount,
   nextCursor,
   rowWindow,
@@ -19,6 +20,13 @@ test('toGridRows 行优先切分, 末行可不足列数', () => {
     [4, 5, 6],
   ])
   expect(toGridRows([], 3)).toStrictEqual([])
+})
+
+test('clampCursor 把下标钳制到有效范围, 空列表取 0', () => {
+  expect(clampCursor(2, 5)).toBe(2)
+  expect(clampCursor(-1, 5)).toBe(0)
+  expect(clampCursor(99, 5)).toBe(4)
+  expect(clampCursor(0, 0)).toBe(0)
 })
 
 test('nextCursor 在网格内移动, 边界处保持不动', () => {

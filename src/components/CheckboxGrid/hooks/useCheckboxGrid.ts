@@ -2,20 +2,30 @@ import { type DOMElement, useBoxMetrics, useInput } from 'ink'
 import { useRef, useState } from 'react'
 
 import { keyDirection } from '../../../lib/keys.ts'
-import { nextCursor, rowWindow, scrollForCursor } from '../lib.ts'
+import { clampCursor, nextCursor, rowWindow, scrollForCursor } from '../lib.ts'
 
 type UseCheckboxGridParams<T> = {
   items: readonly T[]
   getKey: (item: T) => string
   columnCount: number
   isActive: boolean
+  defaultCursor?: number
+  onCursorChange?: (cursor: number) => void
   onSubmit: (items: T[]) => void
 }
 
-export function useCheckboxGrid<T>({ items, getKey, columnCount, isActive, onSubmit }: UseCheckboxGridParams<T>) {
+export function useCheckboxGrid<T>({
+  items,
+  getKey,
+  columnCount,
+  isActive,
+  defaultCursor,
+  onCursorChange,
+  onSubmit,
+}: UseCheckboxGridParams<T>) {
   const gridRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(gridRef)
-  const [cursor, setCursor] = useState(0)
+  const [cursor, setCursor] = useState(() => clampCursor(defaultCursor ?? 0, items.length))
   const [scrollOffset, setScrollOffset] = useState(0)
   const [selectedKeys, setSelectedKeys] = useState<ReadonlySet<string>>(() => new Set())
 
@@ -36,6 +46,7 @@ export function useCheckboxGrid<T>({ items, getKey, columnCount, isActive, onSub
       if (direction) {
         const cursorNext = nextCursor(cursor, total, direction, columnCount)
         setCursor(cursorNext)
+        onCursorChange?.(cursorNext)
         setScrollOffset(scrollForCursor(cursorNext, totalRows, scrollOffset, Math.max(1, visibleRows), columnCount))
       } else if (input === ' ') {
         const item = items[cursor]
