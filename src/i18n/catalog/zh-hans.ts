@@ -13,7 +13,7 @@ export const zhHans = {
   /* ---------- 命令注册表 ---------- */
   'command.stockList.title': '自选股票看板',
   'command.stockList.description': '自选股票看板',
-  'command.stockList.hint': '菜单(esc)   刷新(r)   选择(↑/↓/j/k/gg/G)   详情(enter)   排序(s)   退出(q)',
+  'command.stockList.hint': '菜单(esc)   选择(↑/↓/j/k/gg/G)   详情(enter)   排序(s)   退出(q)',
   'command.stockAdd.title': '添加自选股',
   'command.stockAdd.description': '添加自选股',
   'command.stockAdd.hint': '菜单(esc)   退出(q)',
@@ -39,7 +39,7 @@ export const zhHans = {
   'stockList.loading': '正在获取行情数据...',
   'stockList.sourceError': '行情接口异常, 稍后自动重试',
   'stockList.refreshFailed': '刷新失败: {error}, 稍后自动重试',
-  'stockList.remaining': '剩余 {count} 个',
+  'stockList.refreshInterval': '{value} ms',
   'stockList.sort.desc': '涨跌幅 ▼',
   'stockList.sort.asc': '涨跌幅 ▲',
 

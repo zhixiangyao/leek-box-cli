@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 
 import App from '../../src/app.tsx'
 import { MIN_TERMINAL_ROWS } from '../../src/components/WindowSizeGuard.tsx'
-import { setActiveLocale, t } from '../../src/i18n/core.ts'
+import { setActiveLocale } from '../../src/i18n/core.ts'
 import { DEFAULT_LOCALE } from '../../src/i18n/locale.ts'
 import { stockListColumns, tableWidth } from '../../src/lib/quoteTable.ts'
 import { useCommandStore } from '../../src/stores/useCommandStore.ts'
@@ -88,7 +88,3 @@ export const selectedCodeIn = (frame: string): string | undefined =>
 
 /** 变暗: 浮层打开时底层命令与旧浮层都带 dim, 据此判定谁不亮 */
 export const isDimmed = (frame: string) => frame.includes('\u001B[2m')
-
-/** 剩余条数随可视高度和窗口位置变化, 不是定值, 因此按文案模板取 */
-export const remainingPattern = () => new RegExp(t('stockList.remaining', { count: 0 }).replace('0', '\\d+'))
-export const remainingTextIn = (frame: string) => plain(frame).match(remainingPattern())?.[0]

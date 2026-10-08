@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 
 import Card from '../../components/Card.tsx'
 import StatusBar from '../../components/StatusBar.tsx'
@@ -22,7 +22,9 @@ export default function StockList() {
   const theme = useTheme()
   const { t } = useTranslation()
   const stockList = useStockList()
-  const topRightSegments: { text: string; color?: string }[] = []
+  const topRightSegments: { text: string; color?: string }[] = [
+    { text: t('stockList.refreshInterval', { value: stockList.pollIntervalMs }) },
+  ]
   let content: ReactNode
 
   switch (stockList.step.type) {
@@ -50,10 +52,7 @@ export default function StockList() {
       const list = stockList.rows
       const sortLabelKey = SORT_LABEL_KEYS[stockList.sortMode]
       if (sortLabelKey !== undefined) {
-        topRightSegments.push({ text: t(sortLabelKey), color: 'cyan' })
-      }
-      if (stockList.remainingCount !== undefined) {
-        topRightSegments.push({ text: t('stockList.remaining', { count: stockList.remainingCount }) })
+        topRightSegments.unshift({ text: t(sortLabelKey), color: 'cyan' })
       }
       content = (
         <>
@@ -80,16 +79,14 @@ export default function StockList() {
       bright={!overlayOpen.open}
       borderTopLeft={<Text color={theme.primary}>{t('command.stockList.title')}</Text>}
       borderTopRight={
-        topRightSegments.length > 0 ? (
-          <Text>
-            {topRightSegments.map((segment, index) => (
-              <Text key={segment.text} color={segment.color}>
-                {index > 0 ? ' ' : ''}
-                {segment.text}
-              </Text>
-            ))}
-          </Text>
-        ) : undefined
+        <Text>
+          {topRightSegments.map((segment, index) => (
+            <Fragment key={segment.text}>
+              {index > 0 && <Text> | </Text>}
+              <Text color={segment.color}>{segment.text}</Text>
+            </Fragment>
+          ))}
+        </Text>
       }
       footer={<StatusBar showClock hint={t('command.stockList.hint')} bright={!overlayOpen.open} />}
     >

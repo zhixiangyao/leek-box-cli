@@ -34,7 +34,7 @@ test('t 替换 {name} 占位符, 缺参时保留原文', () => {
 
 test('t 把数值参数转为字符串, 且 0 不被当作缺参', () => {
   expect(t('windowGuard.width', { value: 0 })).toBe('宽度 = 0')
-  expect(t('stockList.remaining', { count: 0 })).toBe('剩余 0 个')
+  expect(t('dialogRemoveConfirm.allMissing', { count: 0 })).toBe('所选 0 个条目已不在自选股中.')
 })
 
 test('t 对无占位符的文案直接返回', () => {

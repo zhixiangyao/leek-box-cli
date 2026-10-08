@@ -17,7 +17,6 @@ import {
   rowIndex,
   scrollOffsetToReveal,
   SORT_MODE_CYCLE,
-  visibleWindow,
   type StockListSortMode,
 } from '../lib.ts'
 
@@ -40,10 +39,6 @@ export function useStockList() {
   const contentWidth = columns - TABLE_CHROME - (columnsForLocale.length - 1)
   const scaledColumns = scaleColumns(columnsForLocale, contentWidth)
   const rows = displayedRows(step, sortMode)
-  // 右上角的条数是窗口下面还有几行, 因此滑到底部时会变成 0 (显示 0, 不隐藏);
-  // 列表整个放得下时没有这个信息, 用 undefined 表示不显示
-  const remainingCount =
-    rows.length > visible ? rows.length - visibleWindow(rows.length, scrollOffset, visible).end : undefined
 
   async function refreshAndAnchor(signal: AbortSignal) {
     await refreshQuotes(signal)
@@ -59,8 +54,6 @@ export function useStockList() {
     setSelectedCode(nextRows[nextIndex]?.code)
     setScrollOffset(scrollOffsetToReveal(nextIndex, nextRows.length, scrollOffset, visible))
   }
-
-  const { refresh } = usePolling(refreshAndAnchor, { intervalMs: pollIntervalMs })
 
   function handlesVisibleChange(value: number) {
     setVisible(value)
@@ -84,6 +77,8 @@ export function useStockList() {
     setSortMode(nextSortMode)
     setScrollOffset(scrollOffsetToReveal(nextIndex, rows.length, scrollOffset, visible))
   }
+
+  usePolling(refreshAndAnchor, { intervalMs: pollIntervalMs })
 
   useEffect(() => () => reset(), [reset])
 
@@ -109,11 +104,6 @@ export function useStockList() {
 
       if (input === 'G') {
         selectIndex(rows.length - 1)
-        return
-      }
-
-      if (input === 'r') {
-        refresh()
         return
       }
 
@@ -144,7 +134,7 @@ export function useStockList() {
     selectedCode,
     scrollOffset,
     scaledColumns,
-    remainingCount,
+    pollIntervalMs,
     handlesVisibleChange,
   }
 }

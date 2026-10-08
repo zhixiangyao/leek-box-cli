@@ -13,7 +13,7 @@ export const en = {
   /* ---------- Command registry ---------- */
   'command.stockList.title': 'Watchlist',
   'command.stockList.description': 'Watchlist',
-  'command.stockList.hint': 'Menu(esc)   Refresh(r)   Select(↑/↓/j/k/gg/G)   Detail(enter)   Sort(s)   Quit(q)',
+  'command.stockList.hint': 'Menu(esc)   Select(↑/↓/j/k/gg/G)   Detail(enter)   Sort(s)   Quit(q)',
   'command.stockAdd.title': 'Add stocks',
   'command.stockAdd.description': 'Add stocks',
   'command.stockAdd.hint': 'Menu(esc)   Quit(q)',
@@ -39,7 +39,7 @@ export const en = {
   'stockList.loading': 'Loading quotes...',
   'stockList.sourceError': 'Quote source error, retrying automatically',
   'stockList.refreshFailed': 'Refresh failed: {error}, retrying automatically',
-  'stockList.remaining': '{count} more',
+  'stockList.refreshInterval': '{value} ms',
   'stockList.sort.desc': 'Change % ▼',
   'stockList.sort.asc': 'Change % ▲',
 

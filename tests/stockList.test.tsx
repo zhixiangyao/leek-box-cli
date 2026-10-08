@@ -9,8 +9,6 @@ import {
   assertFrameSize,
   BOARD_COLUMNS,
   BOARD_ROWS,
-  remainingPattern,
-  remainingTextIn,
   renderApp,
   resetStores,
   selectedCodeIn,
@@ -87,37 +85,80 @@ test('App 的看板排序键 s: 按涨跌幅排序并在右上角显示方向', 
   }
 })
 
-test('App 的看板排序后右上角同时显示排序方向与剩余条数', async () => {
+test('App 的看板排序后右上角用 | 分隔排序方向与刷新间隔', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
   const input = createInput()
+  const interval = t('stockList.refreshInterval', { value: 3000 })
 
   resetStores()
-  // 行数多于可视窗口才有剩余条数可显示
-  stubBoardRows(Array.from({ length: 40 }, (_, index) => missingRow(`sh6000${String(index).padStart(2, '0')}`)))
+  useSettingsStore.setState({ quotePollIntervalMs: 3000 })
+  stubBoardRows([missingRow('sh600000'), missingRow('sz000001')])
 
   const instance = renderApp(output, input)
 
   try {
     const after = output.frames.length
-    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('sh600000'))
-    const beforeCorner = plain(frame)
-      .split('\n')
-      .find((line) => remainingPattern().test(line))
-    // 还没排序: 右上角只有剩余条数
-    expect(beforeCorner).toBeDefined()
-    expect(beforeCorner).not.toContain(t('stockList.sort.desc'))
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes(interval))
 
     input.write('s')
     const descFrame = await waitForFrame(output, after, (candidate) =>
       plain(candidate).includes(t('stockList.sort.desc')),
     )
-    // 排序后两段并排在同一行: 排序方向与剩余条数
+    // 排序后两段并排在同一行, 中间是分隔符
     const corner = plain(descFrame)
       .split('\n')
       .find((line) => line.includes(t('stockList.sort.desc')))
-    expect(corner).toBeDefined()
-    expect(corner).toMatch(remainingPattern())
+    expect(corner).toContain(`${t('stockList.sort.desc')} | ${interval}`)
     assertFrameSize(descFrame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板右上角固定显示刷新间隔', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const interval = t('stockList.refreshInterval', { value: 3000 })
+
+  resetStores()
+  useSettingsStore.setState({ quotePollIntervalMs: 3000 })
+  // 两行放得下整个窗口, 又没有排序: 除了刷新间隔右上角没有别的段
+  stubBoardRows([missingRow('sh600000'), missingRow('sz000001')])
+
+  const instance = renderApp(output)
+
+  try {
+    const after = output.frames.length
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes(interval))
+    const corner = plain(frame)
+      .split('\n')
+      .find((line) => line.includes(interval))
+    // 间隔和标题同在上边框那一行, 没有排序时右上角只有它一段, 因此没有分隔符
+    expect(corner).toContain(t('command.stockList.title'))
+    expect(corner).toContain(`|${interval}|`)
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板在首轮行情返回前也显示刷新间隔', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const interval = t('stockList.refreshInterval', { value: 3000 })
+
+  resetStores()
+  useSettingsStore.setState({ quotePollIntervalMs: 3000 })
+  // 行情一直不返回: 看板停在 loading 态
+  useStockListStore.setState({ refreshQuotes: () => new Promise<void>(() => {}) })
+
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes(t('stockList.loading')))
+    // 间隔来自设置而不是某次刷新的结果, 因此 loading 态也在
+    expect(plain(frame)).toContain(interval)
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
     await unmountApp(instance)
     resetStores()
@@ -161,13 +202,14 @@ test('App 的看板排序后方向键按显示顺序移动选中行', async () =
 
 test('App 的看板刷新后按代码保持选中行, 选中股消失时按位置回退', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
-  const input = createInput()
   const rowCodes = ['sh600000', 'sz000001', 'sz300001']
   // 每轮行情给一份新的自选股: 先是原样, 然后少一只, 最后换顺序
   const rounds = [rowCodes, ['sz000001', 'sz300001'], ['sz300001', 'sz000001']]
   let round = 0
 
   resetStores()
+  // 刷新只由轮询驱动, 间隔调小, 用例不必等满一个默认周期
+  useSettingsStore.setState({ quotePollIntervalMs: 100 })
   useStockListStore.setState({
     refreshQuotes: async () => {
       const codes = rounds[Math.min(round, rounds.length - 1)]!
@@ -178,14 +220,13 @@ test('App 的看板刷新后按代码保持选中行, 选中股消失时按位�
     },
   })
 
-  const instance = renderApp(output, input)
+  const instance = renderApp(output)
 
   try {
     const after = output.frames.length
     await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
 
     // 选中的股票被删掉: 按它原来的位置回退到 sz000001
-    input.write('r')
     await waitForFrame(
       output,
       after,
@@ -193,7 +234,6 @@ test('App 的看板刷新后按代码保持选中行, 选中股消失时按位�
     )
 
     // 选中的股票还在, 只是换了位置: 选中行跟到新位置
-    input.write('r')
     await waitForFrame(output, after, (candidate) => {
       const text = plain(candidate)
       return text.indexOf('sz300001') < text.indexOf('sz000001') && selectedCodeIn(candidate) === 'sz000001'
@@ -204,7 +244,7 @@ test('App 的看板刷新后按代码保持选中行, 选中股消失时按位�
   }
 })
 
-test('App 的看板排序时选中行还在窗口里就不滑动窗口, 剩余条数也不变', async () => {
+test('App 的看板排序时选中行还在窗口里就不滑动窗口', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
   const input = createInput()
   const codes = Array.from({ length: 40 }, (_, index) => `sh6000${String(index).padStart(2, '0')}`)
@@ -218,17 +258,14 @@ test('App 的看板排序时选中行还在窗口里就不滑动窗口, 剩余�
 
   try {
     const after = output.frames.length
-    const beforeFrame = await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes[0])
-    const beforeCount = remainingTextIn(beforeFrame)
-    expect(beforeCount).toBeDefined()
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes[0])
 
     input.write('s')
     const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes(t('stockList.sort.desc')))
     const text = plain(frame)
-    // 选中行换了位置, 但没移出窗口: 窗口原位不动, 条数因此不变
+    // 选中行换了位置, 但没移出窗口: 窗口原位不动, 显示顺序的第一行还在窗口里
     expect(selectedCodeIn(frame)).toBe(codes[0])
     expect(text).toContain(codes.at(-1)!)
-    expect(remainingTextIn(frame)).toBe(beforeCount)
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
     await unmountApp(instance)
@@ -236,7 +273,7 @@ test('App 的看板排序时选中行还在窗口里就不滑动窗口, 剩余�
   }
 })
 
-test('App 的看板排序把选中行带到列表底部时, 剩余条数显示 0 而不是消失', async () => {
+test('App 的看板排序把选中行带到列表底部时窗口跟着贴到底', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
   const input = createInput()
   // 文件顺序按涨跌幅递增: 降序后首行落到列表末尾, 窗口被带到最底部
@@ -254,12 +291,9 @@ test('App 的看板排序把选中行带到列表底部时, 剩余条数显示 0
     input.write('s')
     const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes(t('stockList.sort.desc')))
     const text = plain(frame)
-    // 视口贴到底部: 列表最上面的行被截掉, 选中的行还在
+    // 视口贴到底部: 显示顺序最上面的行被截掉, 选中的行还在
     expect(text).not.toContain(codes.at(-1)!)
     expect(text).toContain(codes[0]!)
-    // 下面没有行了, 条数是 0 而不是被隐藏
-    const corner = text.split('\n').find((line) => line.includes(t('stockList.sort.desc')))
-    expect(corner).toContain(t('stockList.remaining', { count: 0 }))
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
     await unmountApp(instance)

@@ -37,7 +37,7 @@ export type Message = {
   'stockList.loading': string
   'stockList.sourceError': string
   'stockList.refreshFailed': string
-  'stockList.remaining': string
+  'stockList.refreshInterval': string
   'stockList.sort.desc': string
   'stockList.sort.asc': string
 

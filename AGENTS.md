@@ -636,15 +636,15 @@ ink 把同一 chunk 里的多个字符按粘贴一次性交出, 因此两次 `g`
 (把排好序的行写回 `step.rows` 就会丢掉文件顺序, 再也回不去). 显示顺序只经由 `commands/StockList/lib.ts` 的
 `displayedRows(step, sortMode)` 取出, `sortedRows(rows, sortMode)` 是它的底座: 看板渲染, `moveSelection`,
 `cycleSortMode` 和刷新后的视口锚定都用它, 因此只有一个来源. 缺失行没有涨跌幅可比, 一律排在末尾, 不参与升降序.
-排序指示器只在排过序之后出现在 Card 右上角 (`涨跌幅 ▼` / `涨跌幅 ▲`, cyan 显示, 与剩余条数并排);
+排序指示器只在排过序之后出现在 Card 右上角 (`涨跌幅 ▼` / `涨跌幅 ▲`, cyan 显示, 与刷新间隔并排);
 排序是 hook 的内存状态, 不写盘, 离开看板随组件一起消失.
 
 StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, 让 Zustand selector 的 `Object.is` 跳过无意义更新.
 
-右上角的剩余条数是"窗口下面还有几行" (按 `scrollOffset` 与可视高度算, 与 ScrollBox 同一套钳制),
-列表整个放得下时是 `undefined`, 不显示这一段. 它为 0 时显示 `剩余 0 个` 而不是隐藏: 滑到底部时下面确实没有
-行了, 但上面还有行被截掉, 隐藏会看起来像条数丢了 (曾按"没显示出来的行数"算过, 那样条数在滚动时纹丝不动,
-和窗口滑到底部对不上).
+右上角固定有一段刷新间隔 (`{value} ms`): 它取设置里的 `quotePollIntervalMs`, 不是某次刷新的耗时, 也不随
+刷新变化, 因此在 loading/empty/error 各 step 都在, 改设置后立即跟着变, 位置排在排序指示器之后, 两段之间用
+`|` 分隔 (分隔符自己一个 Text, 不跟着相邻那段的颜色走). 除这两段外右上角不再显示别的角标.
+不设手动刷新键: 刷新只由轮询驱动.
 
 ## Card, Dialog 和 Text
 
@@ -685,7 +685,7 @@ ScrollBox 用 ink 8 的 `contentOffsetY` 滚动: 视口是 `flexBasis={0} flexGr
 整份 list (不再切片) 放在一个 `flexShrink={0}` 的 wrapper 里, `contentOffsetY` 把它上移钳制后的偏移.
 `flexBasis={0}` 不能省: 视口默认 `flexBasis: auto` 会以整段内容为基准尺寸, 内容高于视口时同一列的表头行
 会被 flex 收缩挤掉; 基准为 0 时视口高度只由 flexGrow 决定, 与内容多少无关. 可视行数取 `useBoxMetrics`
-的 clientHeight, 经 `onVisibleChange` 交给调用方 (看板的剩余条数按它算); 偏移的钳制规则与
+的 clientHeight, 经 `onVisibleChange` 交给调用方 (看板按它算选中行要不要滚动窗口); 偏移的钳制规则与
 `commands/StockList/lib.ts` 的 `visibleWindow` 相同, 两处各有一份是分层使然 (components 不 import commands),
 改一处要同时改另一处.
 
@@ -762,7 +762,7 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
   以及所有渲染用例共用的收尾 `unmountApp(instance)`: `unmount()` 后 `await waitUntilExit()`,
   等 ink 把 unmount 写出的最后一帧落盘 (只调 `unmount()` 会断言到卸载前的帧).
 - `app.tsx` --- App 级断言: `renderApp`, `resetStores`, `assertFrameSize`, `selectedCodeIn`, `isDimmed`,
-  `remainingPattern` / `remainingTextIn`, 以及把看板与删除网格钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries`.
+  以及把看板与删除网格钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries`.
 - `fixtures.ts` --- 行情与自选股夹具: `quote` / `quoteRow` / `missingRow` / `rowCodes` / `stockEntry` / `removeEntry`.
 
 测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在渲染用例之间由
