@@ -187,7 +187,7 @@ test('App 的看板上边框中间显示大盘指数', async () => {
     const top = plain(frame).split('\n')[0]!
     // 标题/指数/间隔 三段在同一行且不互相覆盖
     expect(top).toContain(title)
-    expect(top).toContain(`${name} ${current} +${change} +${changePercent}%`)
+    expect(top).toContain(`|${name} ${current} +${change} +${changePercent}%|`)
     expect(top).toContain(`|${interval}|`)
     expect(top.indexOf(title)).toBeLessThan(top.indexOf(name))
     expect(top.indexOf(name)).toBeLessThan(top.indexOf(interval))

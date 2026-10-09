@@ -44,9 +44,9 @@ export default function Card(props: CardProps) {
       borderDimColor={bright === false}
     >
       {borderTopCenter && (
-        <Box top={-1} left={0} right={0} position="absolute" height={1} justifyContent="center" overflow="hidden">
+        <CardCorner top={-1} left={0} right={0} justifyContent="center">
           {borderTopCenter}
-        </Box>
+        </CardCorner>
       )}
       {borderTopLeft && (
         <CardCorner bright={bright} top={-1} left={1}>

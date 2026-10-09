@@ -669,7 +669,8 @@ StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, �
 打字机按显示宽度逐字写出 (CJK 不切半个字), 并把整行补空格到最终宽度: 它常被摆在居中槽位里,
 行宽随进度变化会让文字左右跳. 首帧直接整行显示第一个指数, 不播过渡 (过渡只属于"换"这个动作);
 只有一条时没有可换的对象, 切换定时器不挂, 因此那一条是静止的.
-行情没返回的指数不占位 (轮播按 `indices.length` 取模), 一条都没有时该组件不渲染任何东西.
+行情没返回的指数不占位 (轮播按 `indices.length` 取模), 一条都没有时该组件不渲染任何东西,
+上边框中间只留下槽位自己的空管道 `||`.
 角标落在边框槽位上, 与右上角的刷新间隔同级: 看板的 loading/empty/error 各 step 都在.
 
 看板按 `d` 删除选中那一只: 用选中行拼一条 `StockRemoveEntry` (名称取行内实时行情, 缺失行没有名称, 弹窗因此只列代码)
@@ -685,9 +686,10 @@ Card 负责:
 
 - `full` 或显式 width/height
 - 主题 border style 和 border color
-- 左上 borderTopLeft, 右上 borderTopRight, 左下 borderBottomLeft, 右下 borderBottomRight (四角内容由 CardCorner 渲染, 绝对定位压在边框行上, 固定单行并裁剪溢出)
-- 上边框中段 borderTopCenter (绝对定位压在上边框行, 水平居中, 自己裁剪溢出; 不带 CardCorner 的 `|` 装饰).
-  它与四个角同在一行, 因此顺序上排在四角**之前**绘制: 万一内容过宽, 被压住的是中间而不是标题和角标
+- 左上 borderTopLeft, 右上 borderTopRight, 左下 borderBottomLeft, 右下 borderBottomRight 与上边框中段 borderTopCenter
+  (五处内容都由 CardCorner 渲染, 绝对定位压在边框行上, 固定单行并裁剪溢出, 内容两侧各一个 `|`)
+- 上边框中段跨满内容区并 `justifyContent="center"`. 它与四个角同在一行, 因此顺序上排在四角**之前**绘制:
+  万一内容过宽, 被压住的是中间而不是标题和角标
 - 内容 padding 和可选 `mask` (打开时用 SpaceMask 盖住其后内容)
 - footer
 

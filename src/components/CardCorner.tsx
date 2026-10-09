@@ -7,14 +7,23 @@ type Props = {
   /** 默认为 false */
   bright?: boolean
   children: ReactNode
-} & Pick<BoxProps, 'top' | 'right' | 'bottom' | 'left'>
+} & Pick<BoxProps, 'top' | 'right' | 'bottom' | 'left' | 'justifyContent'>
 
 export default function CardCorner(props: Props) {
-  const { top, right, bottom, left } = props
+  const { top, right, bottom, left, justifyContent } = props
   const { bright = false, children } = props
 
   return (
-    <Box top={top} right={right} bottom={bottom} left={left} position="absolute" height={1} overflow="hidden">
+    <Box
+      top={top}
+      right={right}
+      bottom={bottom}
+      left={left}
+      position="absolute"
+      height={1}
+      justifyContent={justifyContent}
+      overflow="hidden"
+    >
       <Text bright={bright}>|</Text>
       {children}
       <Text bright={bright}>|</Text>
