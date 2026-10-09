@@ -38,6 +38,12 @@ export function useStockList() {
   const [selectedCode, setSelectedCode] = useState<string>()
   const [scrollOffset, setScrollOffset] = useState(0)
   const [visible, setVisible] = useState(DEFAULT_VISIBLE)
+  // 刷新要跨一次网络往返, 期间用户照常可以移动选中行, 换排序或改终端尺寸: 刷新落地后的锚定
+  // 读这份最新的视图状态, 读发起刷新那一帧的闭包会把选中行拉回按下方向键之前的位置
+  const viewRef = useRef({ sortMode, selectedCode, scrollOffset, visible })
+  useEffect(() => {
+    viewRef.current = { sortMode, selectedCode, scrollOffset, visible }
+  }, [sortMode, selectedCode, scrollOffset, visible])
   // gg 的第一键: 只决定下一个按键怎么解释, 不参与渲染, 因此用 ref 而不是 state
   const gPrefix = useRef(false)
   const columnsForLocale = stockListColumns(locale)
@@ -46,18 +52,21 @@ export function useStockList() {
   const rows = displayedRows(step, sortMode)
 
   async function refreshAndAnchor(signal: AbortSignal) {
+    // 刷新前的显示顺序: 选中股被删掉时按它在旧顺序里的位置兜底
+    const beforeRows = displayedRows(useStockListStore.getState().step, viewRef.current.sortMode)
     await refreshQuotes(signal)
-    const nextRows = displayedRows(useStockListStore.getState().step, sortMode)
+    const view = viewRef.current
+    const nextRows = displayedRows(useStockListStore.getState().step, view.sortMode)
     if (nextRows.length === 0) {
       setSelectedCode(undefined)
       setScrollOffset(0)
       return
     }
-    const previousIndex = rowIndex(rows, selectedCode)
-    const preservedIndex = selectedCode ? nextRows.findIndex((row) => row.code === selectedCode) : -1
-    const nextIndex = preservedIndex >= 0 ? preservedIndex : clampSelection(previousIndex, nextRows.length)
+    const preservedIndex = view.selectedCode ? nextRows.findIndex((row) => row.code === view.selectedCode) : -1
+    const nextIndex =
+      preservedIndex >= 0 ? preservedIndex : clampSelection(rowIndex(beforeRows, view.selectedCode), nextRows.length)
     setSelectedCode(nextRows[nextIndex]?.code)
-    setScrollOffset(scrollOffsetToReveal(nextIndex, nextRows.length, scrollOffset, visible))
+    setScrollOffset(scrollOffsetToReveal(nextIndex, nextRows.length, view.scrollOffset, view.visible))
   }
 
   function handlesVisibleChange(value: number) {

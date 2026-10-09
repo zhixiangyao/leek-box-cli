@@ -156,7 +156,7 @@ useFeatureStore.ts
 
 Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器. `useSettingsStore` 是纯内存投影, 不注入依赖. 注入字段直接写 `typeof` 指向真实函数 (`fetchQuotes: typeof fetchQuotes`), 不手抄函数签名; 只有没有对应真实函数的字段 (`now`) 才手写签名, 并在注释里说明原因.
 
-看板的选中行, 滚动位置和排序模式是视图状态, 放在 `useStockList` 的 `useState` 里而不是 store: 它们是"显示顺序里的下标", 而显示顺序由排序决定, store 只持按自选股文件顺序排列的行情行. 刷新后的视口锚定同样在 hook 里做 (`refreshQuotes` 只管数据), 它需要"上一次的显示顺序". `useStockListStore` 因此只有 `step`, `refreshQuotes` 和 `reset`.
+看板的选中行, 滚动位置和排序模式是视图状态, 放在 `useStockList` 的 `useState` 里而不是 store: 它们是"显示顺序里的下标", 而显示顺序由排序决定, store 只持按自选股文件顺序排列的行情行. 刷新后的视口锚定同样在 hook 里做 (`refreshQuotes` 只管数据), 它需要"上一次的显示顺序"; 锚定跨越一次网络往返, 期间用户仍可移动选中行, 因此它读 `viewRef` 里最新的选中行, 滚动位置和排序模式, 不读发起刷新那一帧的闭包 (否则行情返回时会把选中行拉回按下方向键之前的位置). `useStockListStore` 因此只有 `step`, `refreshQuotes` 和 `reset`.
 
 删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交, 列数随终端宽度变化), 提交的条目交给 DialogRemoveConfirm 确认删除; 看板按 `d` 打开的是同一个弹窗 (只放一条 entry). Step 机为 idle/confirm/removing/done/error: 全部删除成功后直接关闭并重置勾选, 光标停在删除前的位置 (同一个下标, 超出新的条目数时落到末格; 看板那边是刷新一次), 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error (删除页据此保留网格勾选, 看板只等下一次轮询), 取消时仅关闭弹窗并保留勾选 (光标也不动). esc 关闭后可直接重试.
 

@@ -24,6 +24,7 @@ import {
   unmountApp,
   waitForFrame,
   waitForInput,
+  waitForLatestFrame,
   waitForState,
 } from './helpers/ink.tsx'
 
@@ -374,6 +375,61 @@ test('App 的看板刷新后按代码保持选中行, 选中股消失时按位�
       const text = plain(candidate)
       return text.indexOf('sz300001') < text.indexOf('sz000001') && selectedCodeIn(candidate) === 'sz000001'
     })
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板刷新期间换了选中行, 刷新返回后不回退', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+  const rows = [missingRow('sh600000'), missingRow('sz000001'), missingRow('sz300001')]
+  // 挂起的那一轮行情多带一只股票: 它出现即说明刷新已经落地
+  const arrived = [...rows, missingRow('sz000004')]
+  let hang = false
+  let land = false
+  let release: (() => void) | undefined
+
+  resetStores()
+  useSettingsStore.setState({ quotePollIntervalMs: 50 })
+  useStockListStore.setState({
+    step: { type: 'table', rows },
+    refreshQuotes: async () => {
+      if (hang) {
+        await new Promise<void>((resolve) => {
+          release = resolve
+        })
+      }
+      useStockListStore.setState({ step: { type: 'table', rows: land ? arrived : rows } })
+    },
+  })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    // 首轮立即返回, 选中行落到第一行
+    const firstFrame = await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
+    assertFrameSize(firstFrame, BOARD_COLUMNS, BOARD_ROWS)
+
+    // 让下一轮行情挂在路上, 然后在它返回之前移动选中行
+    hang = true
+    await waitForState(() => release !== undefined)
+    input.write('j')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sz000001')
+    input.write('j')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sz300001')
+
+    // 行情落地后锚定还会再写一帧, 让出一拍再看最终停在哪一行:
+    // 选中行停在按键之后的那一行, 不被刷新的锚定拉回发起刷新时的位置
+    land = true
+    release?.()
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('sz000004'))
+    await waitForInput()
+    const frame = await waitForLatestFrame(output, (candidate) => plain(candidate).includes('sz000004'))
+    expect(selectedCodeIn(frame)).toBe('sz300001')
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
     await unmountApp(instance)
     resetStores()
