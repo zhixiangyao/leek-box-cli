@@ -15,6 +15,7 @@ export type CardProps = {
   width?: BoxProps['width']
   height?: BoxProps['height']
   borderTopLeft?: ReactNode
+  borderTopCenter?: ReactNode
   borderTopRight?: ReactNode
   borderBottomLeft?: ReactNode
   borderBottomRight?: ReactNode
@@ -24,7 +25,8 @@ export type CardProps = {
 
 export default function Card(props: CardProps) {
   const { bright = false, mask = false } = props
-  const { borderTopLeft, borderTopRight, borderBottomLeft, borderBottomRight, footer, children } = props
+  const { borderTopLeft, borderTopCenter, borderTopRight, borderBottomLeft, borderBottomRight, footer, children } =
+    props
   const { full, width, height } = props
   const theme = useTheme()
   const borderStyle = useSettingsStore((state) => state.borderStyle)
@@ -41,6 +43,11 @@ export default function Card(props: CardProps) {
       borderColor={theme.primary}
       borderDimColor={bright === false}
     >
+      {borderTopCenter && (
+        <Box top={-1} left={0} right={0} position="absolute" height={1} justifyContent="center" overflow="hidden">
+          {borderTopCenter}
+        </Box>
+      )}
       {borderTopLeft && (
         <CardCorner bright={bright} top={-1} left={1}>
           {borderTopLeft}

@@ -53,7 +53,7 @@ src/commands/<Feature>/lib.ts
   滚动窗口, 排序, 选中行与视口下标
 
 src/components/
-  Card, Dialog, AppLogo, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量, 并在尺寸达标分支把 children 包进一个终端尺寸的 Box, 作为 `full` Card 百分比尺寸的基准
+  Card, Dialog, AppLogo, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid, MarketIndexTicker (指数轮播, 目录: index.tsx + hooks/ + lib.ts) 和复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 DIALOG_CHROME 和 DIALOG_WIDTH_RESERVE; WindowSizeGuard 持有 MIN_TERMINAL_ROWS 与 MIN_TERMINAL_COLUMNS, 两者都是与界面语言无关的常量, 并在尺寸达标分支把 children 包进一个终端尺寸的 Box, 作为 `full` Card 百分比尺寸的基准
 
 src/hooks/
   usePolling, useOverlayOpen, useClock, useTheme, useTranslation
@@ -651,6 +651,27 @@ StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, �
 `|` 分隔 (分隔符自己一个 Text, 不跟着相邻那段的颜色走). 除这两段外右上角不再显示别的角标.
 不设手动刷新键: 刷新只由轮询驱动, 只有删除成功后会额外触发一次.
 
+上边框中间 (`borderTopCenter`) 是公共组件 `components/MarketIndexTicker/`: 传入一串指数行情,
+它让上证指数与深证成指轮流显示, 每 5 秒换一个, 换的时候用 1 秒打字机把新的一行从左往右写出来.
+行情来自独立的 `useMarketIndexStore`: 它只请求 `MARKET_INDEX_CODES` (上证指数与深证成指),
+按代码顺序落地, 缺哪条就少哪条. 它与自选股互不认识, 指数也不进表格行, 拉取失败保留上一次的行情
+(指数只是角标, 不为它单开错误状态, 离开看板也不清空, 因此不像自选股那样有 loading 态).
+轮询接线在看板自己的 `hooks/useStockList.ts`: 它窄 selector 订阅该 store, 除自选股那条之外另挂一条
+`usePolling`, 间隔同样取设置里的 `quotePollIntervalMs` (与看板同一个值, 因此不新增第二份间隔设置),
+两条请求各自独立.
+名称来自实时行情, 数值用 `formatPrice` / `formatSigned` / `formatPercent`, 与界面语言无关,
+因此这项功能一个文案键都不占. 组件自己不认识 store: 行情走 props (看板 `index.tsx` 把
+`useStockList()` 返回的 `indices` 传给 `MarketIndexTicker`), 只有涨跌色订阅 `useSettingsStore`.
+轮播与打字机状态在组件自己的 `MarketIndexTicker/hooks/useMarketIndexTicker.ts` (与 CheckboxGrid 同构),
+它按帧重渲染的只有这一个组件, 并排的表格不跟着重渲染;
+行与动画的纯函数 (`indexSegments` / `typewriterSegments` 与三个 `INDEX_*_MS`) 在组件自己的 `MarketIndexTicker/lib.ts`,
+段类型直接复用 `lib/quoteTable.ts` 的 `Row`, 渲染复用 `QuoteRow`.
+打字机按显示宽度逐字写出 (CJK 不切半个字), 并把整行补空格到最终宽度: 它常被摆在居中槽位里,
+行宽随进度变化会让文字左右跳. 首帧直接整行显示第一个指数, 不播过渡 (过渡只属于"换"这个动作);
+只有一条时没有可换的对象, 切换定时器不挂, 因此那一条是静止的.
+行情没返回的指数不占位 (轮播按 `indices.length` 取模), 一条都没有时该组件不渲染任何东西.
+角标落在边框槽位上, 与右上角的刷新间隔同级: 看板的 loading/empty/error 各 step 都在.
+
 看板按 `d` 删除选中那一只: 用选中行拼一条 `StockRemoveEntry` (名称取行内实时行情, 缺失行没有名称, 弹窗因此只列代码)
 打开共享的 DialogRemoveConfirm, 并把 `usePolling` 的 `refresh` 登记成收尾动作 —— 删除成功后立刻走一遍"刷新 + 重新锚定"
 (读文件 + 拉行情, 选中股消失时按原下标回退到邻近的行, 删空则进入 empty). 一个都不算删掉时 (所选条目已不在自选股)
@@ -665,6 +686,8 @@ Card 负责:
 - `full` 或显式 width/height
 - 主题 border style 和 border color
 - 左上 borderTopLeft, 右上 borderTopRight, 左下 borderBottomLeft, 右下 borderBottomRight (四角内容由 CardCorner 渲染, 绝对定位压在边框行上, 固定单行并裁剪溢出)
+- 上边框中段 borderTopCenter (绝对定位压在上边框行, 水平居中, 自己裁剪溢出; 不带 CardCorner 的 `|` 装饰).
+  它与四个角同在一行, 因此顺序上排在四角**之前**绘制: 万一内容过宽, 被压住的是中间而不是标题和角标
 - 内容 padding 和可选 `mask` (打开时用 SpaceMask 盖住其后内容)
 - footer
 
@@ -765,8 +788,8 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 `src/commands/StockList/index.tsx` -> `tests/stockList.test.tsx`.
 命令目录与 settings 目录重名时命令侧带 `Command` 后缀: `tests/settingsCommand.test.tsx` 测
 `commands/Settings/index.tsx`, `tests/schema.test.ts` / `tests/file.test.ts` 测 `settings/` 下的同名文件.
-命令的 `lib.ts` 用 `<feature>Lib.test.ts` (`tests/stockListLib.test.ts`, `tests/checkboxGridLib.test.ts`,
-`tests/stockChartLib.test.ts`), 因此同一 feature 的 lib 与组件各有一个测试文件.
+命令或组件的 `lib.ts` 用 `<feature>Lib.test.ts` (`tests/stockListLib.test.ts`, `tests/checkboxGridLib.test.ts`,
+`tests/stockChartLib.test.ts`, `tests/marketIndexTickerLib.test.ts`), 因此同一 feature 的 lib 与组件各有一个测试文件.
 
 `tests/helpers/` 放共享测试设施, 不参与用例收集:
 
@@ -776,11 +799,14 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
   以及所有渲染用例共用的收尾 `unmountApp(instance)`: `unmount()` 后 `await waitUntilExit()`,
   等 ink 把 unmount 写出的最后一帧落盘 (只调 `unmount()` 会断言到卸载前的帧).
 - `app.tsx` --- App 级断言: `renderApp`, `resetStores`, `assertFrameSize`, `selectedCodeIn`, `isDimmed`,
-  以及把看板与删除网格钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries`.
+  以及把看板, 删除网格和指数角标钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries` / `stubMarketIndices`.
 - `fixtures.ts` --- 行情与自选股夹具: `quote` / `quoteRow` / `missingRow` / `rowCodes` / `stockEntry` / `removeEntry`.
 
 测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在渲染用例之间由
-`tests/helpers/app.tsx` 的 `resetStores()` 用 `getInitialState()` 恢复.
+`tests/helpers/app.tsx` 的 `resetStores()` 用 `getInitialState()` 恢复; 指数 store 是例外, 它改为钉成空角标
+(`stubMarketIndices()`), 因为看板一挂载就会发起第二条请求, 不钉住的话每个 App 级用例都会真的联网
+(自选股那条一直由各用例的 `stubBoardRows()` / `refreshQuotes` 覆盖兜住). 需要指数数据的用例在
+`resetStores()` 之后自己 `stubMarketIndices([...])` 覆盖.
 
 断言选中行反显与浮层 dim 的用例需要 Ink 真的输出 SGR 序列, 因此 `FORCE_COLOR` 由 `vitest.config.ts`
 的 `test.env` 提供: chalk 在模块求值时就定下颜色档位, 写在测试文件顶部或 helper 里都太迟

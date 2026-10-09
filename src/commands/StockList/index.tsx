@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 
 import Card from '../../components/Card.tsx'
+import MarketIndexTicker from '../../components/MarketIndexTicker/index.tsx'
 import StatusBar from '../../components/StatusBar.tsx'
 import Text from '../../components/Text.tsx'
 import { useOverlayOpen } from '../../hooks/useOverlayOpen.ts'
@@ -78,6 +79,7 @@ export default function StockList() {
       full
       bright={!overlayOpen.open}
       borderTopLeft={<Text color={theme.primary}>{t('command.stockList.title')}</Text>}
+      borderTopCenter={<MarketIndexTicker indices={stockList.indices} />}
       borderTopRight={
         <Text>
           {topRightSegments.map((segment, index) => (

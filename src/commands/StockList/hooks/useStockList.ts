@@ -10,6 +10,7 @@ import { keyDirection } from '../../../lib/keys.ts'
 import { scaleColumns, stockListColumns } from '../../../lib/quoteTable.ts'
 import { useDialogRemoveConfirmStore } from '../../../stores/useDialogRemoveConfirmStore.ts'
 import { useDialogStockDetailStore } from '../../../stores/useDialogStockDetailStore.ts'
+import { useMarketIndexStore } from '../../../stores/useMarketIndexStore.ts'
 import { useSettingsStore } from '../../../stores/useSettingsStore.ts'
 import { useStockListStore } from '../../../stores/useStockListStore.ts'
 import {
@@ -29,6 +30,8 @@ export function useStockList() {
   const step = useStockListStore((state) => state.step)
   const refreshQuotes = useStockListStore((state) => state.refreshQuotes)
   const reset = useStockListStore((state) => state.reset)
+  const indices = useMarketIndexStore((state) => state.indices)
+  const refreshIndices = useMarketIndexStore((state) => state.refreshIndices)
   const openStockDetail = useDialogStockDetailStore((state) => state.open)
   const openRemoveConfirm = useDialogRemoveConfirmStore((state) => state.open)
   const [sortMode, setSortMode] = useState<StockListSortMode>('default')
@@ -81,6 +84,7 @@ export function useStockList() {
   }
 
   const { refresh } = usePolling(refreshAndAnchor, { intervalMs: pollIntervalMs })
+  usePolling(refreshIndices, { intervalMs: pollIntervalMs })
 
   useEffect(() => () => reset(), [reset])
 
@@ -137,6 +141,7 @@ export function useStockList() {
   return {
     step,
     rows,
+    indices,
     sortMode,
     selectedCode,
     scrollOffset,

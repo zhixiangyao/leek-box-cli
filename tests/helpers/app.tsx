@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { expect } from 'vitest'
 
+import type { Quote } from '../../src/api/types.ts'
 import App from '../../src/app.tsx'
 import { MIN_TERMINAL_ROWS } from '../../src/components/WindowSizeGuard.tsx'
 import { setActiveLocale } from '../../src/i18n/core.ts'
@@ -11,6 +12,7 @@ import { useDialogConfirmStore } from '../../src/stores/useDialogConfirmStore.ts
 import { useDialogMenuStore } from '../../src/stores/useDialogMenuStore.ts'
 import { useDialogRemoveConfirmStore } from '../../src/stores/useDialogRemoveConfirmStore.ts'
 import { useDialogStockDetailStore } from '../../src/stores/useDialogStockDetailStore.ts'
+import { useMarketIndexStore } from '../../src/stores/useMarketIndexStore.ts'
 import { useSettingsStore } from '../../src/stores/useSettingsStore.ts'
 import { useStockAddStore } from '../../src/stores/useStockAddStore.ts'
 import type { StockListRow } from '../../src/stores/useStockListStore.ts'
@@ -28,6 +30,8 @@ export const BOARD_ROWS = MIN_TERMINAL_ROWS + 6
 /**
  * 语言固定为简体中文: 默认值 auto 会跟随运行环境的系统语言,
  * 断言渲染帧的测试必须与机器语言无关.
+ * 指数角标是看板的第二个轮询源, 这里一并钉成空: App 级用例一律不联网,
+ * 需要指数数据的用例在 resetStores 之后自己调用 stubMarketIndices 覆盖.
  */
 export const resetStores = () => {
   useStockAddStore.setState(useStockAddStore.getInitialState(), true)
@@ -39,6 +43,7 @@ export const resetStores = () => {
   useSettingsStore.setState({ ...useSettingsStore.getInitialState(), language: DEFAULT_LOCALE }, true)
   useDialogStockDetailStore.setState(useDialogStockDetailStore.getInitialState(), true)
   useStockListStore.setState(useStockListStore.getInitialState(), true)
+  stubMarketIndices()
   setActiveLocale(DEFAULT_LOCALE)
 }
 
@@ -54,6 +59,11 @@ export const stubBoardRows = (rows: StockListRow[] = []) => {
     },
     step: { type: 'table', rows },
   })
+}
+
+/** 把指数角标钉在给定行情上: 不钉住的话看板一挂载就会真的去请求指数 */
+export const stubMarketIndices = (indices: Quote[] = []) => {
+  useMarketIndexStore.setState({ indices, refreshIndices: async () => {} })
 }
 
 /** 把删除网格钉在给定条目上: loadEntries 直接铺出条目, 不读文件也不拉行情 */

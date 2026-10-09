@@ -14,6 +14,7 @@ import {
   resetStores,
   selectedCodeIn,
   stubBoardRows,
+  stubMarketIndices,
 } from './helpers/app.tsx'
 import { missingRow, quote, quoteRow } from './helpers/fixtures.ts'
 import {
@@ -159,6 +160,37 @@ test('App 的看板在首轮行情返回前也显示刷新间隔', async () => {
     const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes(t('stockList.loading')))
     // 间隔来自设置而不是某次刷新的结果, 因此 loading 态也在
     expect(plain(frame)).toContain(interval)
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板上边框中间显示大盘指数', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const interval = t('stockList.refreshInterval', { value: 5000 })
+  const title = t('command.stockList.title')
+  const name = '上证指数'
+  const current = 3245.67
+  const change = 12.34
+  const changePercent = 0.38
+
+  resetStores()
+  stubBoardRows([])
+  stubMarketIndices([quote({ code: 'sh000001', name, current, change, changePercent })])
+
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes(name))
+    const top = plain(frame).split('\n')[0]!
+    // 标题/指数/间隔 三段在同一行且不互相覆盖
+    expect(top).toContain(title)
+    expect(top).toContain(`${name} ${current} +${change} +${changePercent}%`)
+    expect(top).toContain(`|${interval}|`)
+    expect(top.indexOf(title)).toBeLessThan(top.indexOf(name))
+    expect(top.indexOf(name)).toBeLessThan(top.indexOf(interval))
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
   } finally {
     await unmountApp(instance)
