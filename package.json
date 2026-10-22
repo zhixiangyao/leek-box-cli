@@ -50,7 +50,7 @@
   "dependencies": {
     "ink": "8.0.0",
     "meow": "14.1.0",
-    "react": "19.3.0",
+    "react": "19.3.1",
     "string-width": "8.3.0",
     "zustand": "5.0.15"
   },
@@ -58,13 +58,13 @@
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "lint-staged": "17.6.0",
-    "oxfmt": "0.72.0",
-    "oxlint": "1.87.0",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
     "simple-git-hooks": "2.14.0",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
-    "vite": "8.3.3",
-    "vitest": "5.0.3"
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged && pnpm typecheck && pnpm test"
@@ -79,7 +79,7 @@
   },
   "engines": {
     "node": "^22.22.1 || >=24.0.0",
-    "pnpm": ">=12.10.1"
+    "pnpm": ">=12.15.0"
   },
-  "packageManager": "pnpm@12.10.1"
+  "packageManager": "pnpm@12.15.0"
 }
