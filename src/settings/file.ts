@@ -123,7 +123,10 @@ export async function resetSettingsFile(): Promise<void> {
 export async function patchSettings(patch: Partial<Settings>): Promise<void> {
   await withFileLock(settingsPath(), async () => {
     const current = await loadOrCreateSettings()
-    const settings = { ...settingsFromDocument(current), ...patch }
+    const existing = settingsFromDocument(current)
+    const settings = { ...existing, ...patch }
+    // 没有实际变化时不写盘: 例如全量重置后 persistence 仍会补一次默认值
+    if (!(Object.keys(patch) as (keyof Settings)[]).some((key) => settings[key] !== existing[key])) return
     await writeSettingsFile(createDocument(settings, current.stocks))
   })
 }

@@ -62,7 +62,7 @@ export default function StockList() {
             scrollOffset={stockList.scrollOffset}
             list={list}
             selectedCode={stockList.selectedCode}
-            onVisibleChange={stockList.handlesVisibleChange}
+            onVisibleChange={stockList.onVisibleChange}
           />
 
           {!!stockList.step.errorLine && (

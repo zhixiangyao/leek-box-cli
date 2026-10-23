@@ -1,4 +1,4 @@
-import { TextProps } from 'ink'
+import type { TextProps } from 'ink'
 
 import { t } from '../i18n/core.ts'
 import { DEFAULT_LANGUAGE, LANGUAGES } from '../i18n/locale.ts'

@@ -178,6 +178,16 @@ test('patchSettings 只修改设置字段并保留已有自选股', async () => 
   expect(await loadStocks()).toStrictEqual([validStock])
 })
 
+test('patchSettings 内容未变化时不重复写盘', async () => {
+  await mkdir(dirname(settingsPath()), { recursive: true })
+  await writeFile(settingsPath(), JSON.stringify({ ...validDocument(), appVersion: '0.0.0-old' }), 'utf8')
+
+  await patchSettings({ themePreset: 'classic' })
+
+  // 没有发生写盘, 因此文件里的 appVersion 保持原样
+  expect((await storedDocument())['appVersion']).toBe('0.0.0-old')
+})
+
 test('stocksRemove 删除匹配的自选股并持久化结果', async () => {
   await replaceStocks([])
   await stocksAdd([validStock, secondStock])

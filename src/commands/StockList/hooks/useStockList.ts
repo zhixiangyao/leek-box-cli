@@ -69,10 +69,6 @@ export function useStockList() {
     setScrollOffset(scrollOffsetToReveal(nextIndex, nextRows.length, view.scrollOffset, view.visible))
   }
 
-  function handlesVisibleChange(value: number) {
-    setVisible(value)
-  }
-
   /** 选中某个下标: 越界钳制, 空列表不动, 并同步视口 */
   function selectIndex(index: number) {
     if (rows.length === 0) return
@@ -156,6 +152,6 @@ export function useStockList() {
     scrollOffset,
     scaledColumns,
     pollIntervalMs,
-    handlesVisibleChange,
+    onVisibleChange: setVisible,
   }
 }

@@ -51,6 +51,7 @@ commands/components -> hooks/stores -> settings/file -> settings/schema -> lib
 components -> navigation (DialogMenu 读 MENU_ITEMS; navigation 不反向 import commands)
 main -> cli/run + navigation/registry + settings/persistence -> stores -> settings/file
 cli/run -> cli/meow
+api/lib/tools -> stores/useSettingsStore (withRequestTiming 读取最新请求配置; api 唯一的 stores 依赖)
 navigation -> i18n (只依赖 i18n 类型, 不 import commands)
 lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTranslation, main -> i18n
 ```
@@ -200,7 +201,7 @@ React 组件和组件 hook 优先使用窄 selector. 非组件代码 (store 动�
 6 年 K
 ```
 
-`useOverlayOpen()` 是唯一的浮层状态聚合点, 返回 `overlayOpen`. App 读取全部字段决定浮层渲染, 其余组件只取 `overlayOpen.open`. 不新增重复的 overlay Context.
+`useOverlayOpen()` 是唯一的浮层状态聚合点, 返回 `overlayOpen`. App 读取全部字段决定浮层渲染, 其余组件只取 `overlayOpen.open`. 只需要 dim 布尔值的高频渲染组件 (Text) 用 `useOverlayOpenValue()`: 它在模块级合并四个 store 的订阅, 所有使用者共享一份监听, 避免每个 Text 各订阅四次. 不新增重复的 overlay Context.
 
 ## Settings 和主题
 
@@ -340,7 +341,7 @@ $XDG_CONFIG_HOME/leek-box-cli/settings.json   # 设置了 XDG_CONFIG_HOME
 - 版本字段只做判断, 不做迁移: 低版本文件按当前规则解析, 字段缺失走默认值, 没有 migration 层. 损坏文件直接报错, 不静默丢弃字段, 不 fallback 到旧格式.
 - `StockEntry` 为 `{code, addedAt}`. 名称**不是持久化数据** (行情里的名称会变, 存下来的那份会过期), 只来自实时行情 (看板行用 quote.name, 详情弹窗标题同源).
 - `parseStocks()` 校验 code, addedAt 和重复 code; 旧文档里的 name 按白名单重建丢弃.
-- `patchSettings()` 只合并变化的 settings 字段, 保留锁内读取到的最新 stocks. `stocksAdd()`, `stocksRemove()` 在锁内读取最新文档后修改. `replaceStocks()` 表示明确的整表替换, 当前仅用于 mock reset.
+- `patchSettings()` 只合并变化的 settings 字段, 保留锁内读取到的最新 stocks; 合并结果与文件相同时不写盘 (全量重置后 persistence 补写默认值时走这条短路). `stocksAdd()`, `stocksRemove()` 在锁内读取最新文档后修改. `replaceStocks()` 表示明确的整表替换, 当前仅用于 mock reset.
 - `resetSettingsFile()` 重置为默认文档, 损坏文件也能修复; 应用内由 `settings/resetAll.ts` 的 `resetAll()` 触发 (重置文件 → 设置内存默认值 → 自选股重新载入). 它在锁内先读一次只为判断版本: 读得出来就照常覆盖, 读不出来 (损坏或缺失) 直接修. 版本过新的文件也拒绝覆盖 (重设不是它的逃生门).
 
 写入流程:
@@ -379,7 +380,7 @@ Lock 元数据包含 token, pid 和 createdAt. 元数据先写入临时文件, �
 
 `src/api/index.ts` 的全部行情请求使用统一 timing wrapper.
 
-- 每次请求开始时读取最新 `requestTimeoutMs` 和 `minimumRequestDurationMs`.
+- 每次请求开始时读取最新 `requestTimeoutMs` 和 `minimumRequestDurationMs` (`api/lib/tools.ts` 直接读 `useSettingsStore.getState()`, 这就是依赖图里 api -> stores 那条边).
 - 调用者 signal 与 `AbortSignal.timeout()` 使用 `AbortSignal.any()` 合并.
 - minimum duration 只作用于成功请求, 失败和 HTTP error 立即返回.
 - minimum duration 补时支持调用者 signal 中止.

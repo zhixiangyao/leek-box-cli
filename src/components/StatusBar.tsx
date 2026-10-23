@@ -7,7 +7,7 @@ import Text from './Text.tsx'
 type ClockProps = Pick<StatusBarProps, 'bright'>
 
 function Clock({ bright = false }: ClockProps) {
-  const clock = useClock('date-time')
+  const clock = useClock()
 
   return (
     <Text bright={bright} color="white">

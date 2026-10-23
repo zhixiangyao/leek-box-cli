@@ -20,11 +20,11 @@ export type StockAddStep =
   | { type: 'error'; message: string }
 
 /** 处于代码输入阶段 (等待股票代码输入) */
-export const isAddInputStep = (step: StockAddStep): step is Extract<StockAddStep, { type: 'input-code' }> =>
+const isAddInputStep = (step: StockAddStep): step is Extract<StockAddStep, { type: 'input-code' }> =>
   step.type === 'input-code'
 
 /** 处于确认阶段 (接受 y/n 或回车确认) */
-export const isAddConfirmStep = (step: StockAddStep): step is Extract<StockAddStep, { type: 'confirm' }> =>
+const isAddConfirmStep = (step: StockAddStep): step is Extract<StockAddStep, { type: 'confirm' }> =>
   step.type === 'confirm'
 
 /** 处于结果展示阶段 (already-exists/done/error, 返回即重置流程) */

@@ -1,5 +1,5 @@
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
-import { HistoricalPoint } from '../types.ts'
+import type { HistoricalPoint } from '../types.ts'
 
 /** 把股票代码规范化为腾讯行情前缀格式 (如 "600000.SH" -> "sh600000"), 无法识别返回 undefined */
 export function normalizeCode(input: string): string | undefined {

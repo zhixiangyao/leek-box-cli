@@ -101,7 +101,7 @@ test('parseCli 在设置文件损坏时不抛错, 回退系统语言并照常生
     const { settingsDocument, helpMessage } = await parseWithArgv('--help')
 
     // parseCli 自身不抛: 这里抛出会命中入口的 catch, 把 -h 也变成 "运行失败".
-    // 损坏文件的报错留给后面的 initializeSettings (见 tests/settings.test.ts).
+    // 损坏文件的报错留给后面的 initializeSettings (见 tests/file.test.ts).
     expect(settingsDocument).toBeUndefined()
     expect(getActiveLocale()).toBe(detectLocale())
     expect(helpMessage).toContain(t('cli.usage'))

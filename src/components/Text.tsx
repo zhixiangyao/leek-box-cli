@@ -1,6 +1,6 @@
 import { Text as InkText, type TextProps } from 'ink'
 
-import { useOverlayOpen } from '../hooks/useOverlayOpen.ts'
+import { useOverlayOpenValue } from '../hooks/useOverlayOpen.ts'
 import { useTheme } from '../hooks/useTheme.ts'
 
 type Props = {
@@ -9,9 +9,9 @@ type Props = {
 } & Omit<TextProps, 'dimColor'>
 
 export default function Text({ bright = false, color, ...props }: Props) {
-  const overlayOpen = useOverlayOpen()
+  const overlayOpen = useOverlayOpenValue()
   const theme = useTheme()
-  const dimColor = bright ? false : overlayOpen.open
+  const dimColor = bright ? false : overlayOpen
 
   return <InkText {...props} color={color ?? theme.foreground} dimColor={dimColor} />
 }
