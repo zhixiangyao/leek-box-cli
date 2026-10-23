@@ -1,7 +1,12 @@
 import { beforeEach, expect, test } from 'vitest'
 
-import { DEFAULT_SETTINGS, type Settings } from '../src/settings/schema.ts'
+import { DEFAULT_SETTINGS, type NumericSettingKey, SETTING_LIMITS, type Settings } from '../src/settings/schema.ts'
 import { settingsEqual, settingsPatch, settingsSnapshot, useSettingsStore } from '../src/stores/useSettingsStore.ts'
+
+const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]
+
+/** 构造与默认值不同的值: 数值 +1, 其余追加后缀. 只用于比较函数, 不要求是合法设置值 */
+const differentValue = (value: Settings[keyof Settings]) => (typeof value === 'number' ? value + 1 : `${value}-changed`)
 
 beforeEach(() => {
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
@@ -24,6 +29,28 @@ test('settingsPatch 仅返回发生变化的字段', () => {
   const current: Settings = { ...previous, themePreset: 'ocean', quotePollIntervalMs: 6000 }
   expect(settingsPatch(current, previous)).toStrictEqual({ themePreset: 'ocean', quotePollIntervalMs: 6000 })
   expect(settingsPatch(previous, previous)).toStrictEqual({})
+})
+
+test('settingsEqual 与 settingsPatch 覆盖 Settings 的全部字段', () => {
+  for (const key of SETTING_KEYS) {
+    const changed = { ...DEFAULT_SETTINGS, [key]: differentValue(DEFAULT_SETTINGS[key]) } as Settings
+    expect(settingsEqual(DEFAULT_SETTINGS, changed), key).toBe(false)
+    expect(settingsPatch(changed, DEFAULT_SETTINGS), key).toStrictEqual({ [key]: changed[key] })
+  }
+})
+
+test('每个数值设置都有边界, 且 hydrateSettings 会钳制越界值', () => {
+  const numericKeys = SETTING_KEYS.filter((key) => typeof DEFAULT_SETTINGS[key] === 'number')
+  expect([...numericKeys].sort()).toStrictEqual(Object.keys(SETTING_LIMITS).sort())
+
+  for (const key of Object.keys(SETTING_LIMITS) as NumericSettingKey[]) {
+    const limits = SETTING_LIMITS[key]
+    useSettingsStore.getState().hydrateSettings({ ...DEFAULT_SETTINGS, [key]: limits.max + 1 })
+    expect(useSettingsStore.getState()[key], `${key} 上界`).toBe(limits.max)
+
+    useSettingsStore.getState().hydrateSettings({ ...DEFAULT_SETTINGS, [key]: limits.min - 1 })
+    expect(useSettingsStore.getState()[key], `${key} 下界`).toBe(limits.min)
+  }
 })
 
 test('adjustNumericSetting 按步长调整并钳制到区间边界', () => {

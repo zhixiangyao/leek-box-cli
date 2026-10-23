@@ -1,7 +1,44 @@
 import { expect, test } from 'vitest'
 
+import type { Quote } from '../src/api/types.ts'
 import { createStockListStore } from '../src/stores/useStockListStore.ts'
 import { quote, stockEntry } from './helpers/fixtures.ts'
+
+type StockListStore = ReturnType<typeof createStockListStore>
+
+const QUOTE_KEYS = Object.keys(quote()) as (keyof Quote)[]
+
+const quoteOf = (store: StockListStore): Quote => {
+  const step = store.getState().step
+  if (step.type !== 'table') throw new Error('expected table step')
+  const row = step.rows[0]
+  if (row?.kind !== 'quote') throw new Error('expected quote row')
+  return row.quote
+}
+
+/** 只改一个字段: 数值 +1, 其余追加后缀. code 由行情 map 的键决定, 不做逐字段比较 */
+const changedQuote = (key: keyof Quote, base: Quote): Quote => {
+  const value = base[key]
+  return { ...base, [key]: typeof value === 'number' ? value + 1 : `${value}changed` } as Quote
+}
+
+test('quotesEqual 覆盖 Quote 的全部可观察字段', async () => {
+  for (const key of QUOTE_KEYS.filter((candidate) => candidate !== 'code')) {
+    const base = quote()
+    let round = 0
+    const store = createStockListStore({
+      loadStocks: async () => [stockEntry('sh600000')],
+      fetchQuotes: async () => [round++ === 0 ? base : changedQuote(key, base)],
+    })
+
+    await store.getState().refreshQuotes()
+    const first = quoteOf(store)
+    await store.getState().refreshQuotes()
+    const second = quoteOf(store)
+
+    expect(second, key).not.toBe(first)
+  }
+})
 
 test('股票列表保留自选股顺序并复用未变化的行情引用', async () => {
   const firstEntries = [stockEntry('sh600000'), stockEntry('sz000001'), stockEntry('sz300001')]

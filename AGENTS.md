@@ -504,6 +504,8 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 `tests/quoteTable.test.ts` 持有三语言列宽的守卫用例: 表头宽度, 停牌/缺失占位文案宽度, 以及单位列在档位边界 (含四舍五入) 的渲染文本宽度都不超过列宽, 另有 `LIST_WIDTH_SUM` 锁定各 locale 的列宽之和. 改动 `ColumnSpec.widths` 或 `format.ts` 的单位档位时必须同步更新这些常量. `cell()` 只补齐不截断, 因此超宽文本会撑宽整行并让后续列错位. `tests/windowSizeGuard.test.ts` 另有一条用例校验 `MIN_TERMINAL_COLUMNS` 覆盖全部 locale 的看板占宽.
 
+`tests/useSettingsStore.test.ts` 与 `tests/useStockListStore.test.ts` 持有字段覆盖守卫: 逐个字段翻转让 `settingsEqual` / `settingsPatch` / `quotesEqual` 必须识别, 新增 `Settings` 或 `Quote` 字段而漏改这三个函数时用例失败 (`Quote.code` 由行情 map 的键决定, 不参与逐字段比较). `Settings` 里的数值项还必须同步 `SETTING_LIMITS`, 否则边界覆盖用例失败; 越界值由 `hydrateSettings` clamp.
+
 修改后至少运行:
 
 ```bash
