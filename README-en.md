@@ -82,7 +82,7 @@
 - **Real-time dashboard**: Displays the latest price, percentage change, price change, open, high, low, volume, turnover, turnover rate, and total market capitalization for every stock in your watchlist. Refreshes every 5 seconds by default.
 - **Row selection and details**: Use `↑`/`↓` (or `j`/`k`) to select a stock and `enter` to open its quote details and trend chart. Press `1`-`6` to switch between intraday, five-day, daily, weekly, monthly, and yearly views.
 - **Multiple time frames**: Intraday and five-day minute charts refresh every 30 seconds. Daily, weekly, monthly, and yearly charts refresh every 5 minutes.
-- **Refresh controls**: Press `r` to refresh immediately. Configure the automatic refresh interval in Settings in 500 ms increments, from 1 to 60 seconds.
+- **Refresh controls**: Configure the automatic refresh interval in Settings in 500 ms increments, from 1 to 60 seconds. Refreshes are driven by polling only; removing a stock triggers one extra refresh.
 - **Watchlist management**: Add or remove Shanghai, Shenzhen, and Beijing A-shares and ETFs. Stock codes can be entered as `600000`, `sh600000`, `600000.SH`, and other common formats.
 - **Resilient display**: Suspended stocks, incomplete quotes, and refresh failures each have a dedicated state. The display recovers automatically after a later poll succeeds.
 - **Interface language**: Simplified Chinese, Traditional Chinese, and English. It follows the system language by default and can be pinned in Settings. Switching applies to both interface text and quote units immediately, so `61.1万手` becomes `611.0K lots` in English.
@@ -91,12 +91,12 @@
 
 - `esc`: Open the menu. If stock details are open, close them first; if the menu is open, close it.
 - In the menu, use `↑`/`↓` (or `j`/`k`), `enter`, or a number key to select a command.
-- In the dashboard, use `↑`/`↓` (or `j`/`k`), `enter`, and `r`.
+- In the dashboard, use `↑`/`↓` (or `j`/`k`, `gg`/`G`) to select a stock, `enter` to open details, `d` to delete the selected stock, and `s` to cycle the change-percent sort.
 - On the remove-stocks command, use `↑`/`↓`/`←`/`→` (or `h`/`j`/`k`/`l`) to move the cursor, `space` to toggle, and `enter` to submit.
 - In Settings, use `↑`/`↓` (or `j`/`k`) to select an item, `←`/`→` (or `h`/`l`) or `enter` to adjust it, and `d` to restore defaults.
 - In Settings, `Language` cycles through `Auto` / `简体中文` / `繁體中文` / `English`; `Auto` follows the system.
 - In stock details, press `1`-`6` to switch between `Intraday`, `Five-day`, `Daily`, `Weekly`, `Monthly`, and `Yearly`.
-- `q`: Exit when no menu or stock details overlay is open. It does nothing while an overlay is open to prevent accidental exits.
+- `q`: Exit when no menu or stock details overlay is open. It does nothing while an overlay is open to prevent accidental exits. While a text input is focused, `q` is treated as input and does not exit.
 - The right side of the status bar displays `YYYY-MM-DD HH:MM:SS` in the Asia/Shanghai time zone.
 
 Language detection reads `LC_ALL`, then `LC_MESSAGES`, then `LANG`, and falls back to the Node `Intl`
@@ -139,7 +139,7 @@ Then run it from anywhere:
 leek-box-cli
 ```
 
-> Requires Node.js 22.19+ (or 24+) on the machine that runs the command.
+> Requires Node.js 22.22.1+ (or 24+) on the machine that runs the command.
 
 Alternatively, run it once without installing:
 
@@ -258,7 +258,7 @@ Pushing a `v*` tag triggers GitHub Actions (`.github/workflows/release.yml`): it
 ## Tech Stack
 
 - TypeScript / ESM
-- Ink 7 + React 19
+- Ink 8 + React 19
 - Zustand 5
 - meow
 - Vite
