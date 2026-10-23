@@ -123,7 +123,3 @@ export const formatRatio = (value: number) => (isPositive(value) ? value.toFixed
 /** 总市值 (亿) -> '2987.53亿' / '298.75B'; 非正值 '--' */
 export const formatMarketCap = (value: number, locale: Locale = DEFAULT_LOCALE) =>
   formatWithUnits(value, MARKET_CAP_UNITS[locale])
-
-/** 行情时间戳 (yyyyMMddHHmmss) -> 'HH:MM:SS' */
-export const formatClock = (timestamp: string) =>
-  `${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}:${timestamp.slice(12, 14)}`

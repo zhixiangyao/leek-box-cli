@@ -40,7 +40,6 @@ test('parseQuoteText 映射腾讯字段并跳过格式错误的记录', () => {
     low: 9.95,
     change: 0.25,
     changePercent: 2.5,
-    timestamp: '20260820150000',
     volume: 12345,
     turnover: 6789,
     turnoverRate: 1.2,

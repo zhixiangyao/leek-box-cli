@@ -36,7 +36,6 @@ const quotesEqual = (left: Quote, right: Quote) =>
   left.low === right.low &&
   left.change === right.change &&
   left.changePercent === right.changePercent &&
-  left.timestamp === right.timestamp &&
   left.volume === right.volume &&
   left.turnover === right.turnover &&
   left.turnoverRate === right.turnoverRate &&

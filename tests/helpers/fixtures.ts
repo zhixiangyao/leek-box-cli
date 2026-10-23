@@ -17,7 +17,6 @@ export const quote = (overrides: Partial<Quote> = {}): Quote => ({
   low: 9.95,
   change: 0.25,
   changePercent: 2.5,
-  timestamp: '20260820150000',
   volume: 611_000,
   turnover: 55_000,
   turnoverRate: 1.2,

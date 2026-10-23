@@ -59,7 +59,6 @@ export function parseQuoteText(text: string): Quote[] {
       low: numericField(fields, 34),
       change: numericField(fields, 31),
       changePercent: numericField(fields, 32),
-      timestamp: fields[30]!,
       volume: numericField(fields, 36),
       turnover: numericField(fields, 37),
       turnoverRate: numericField(fields, 38),

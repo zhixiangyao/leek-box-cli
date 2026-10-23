@@ -2,7 +2,6 @@ import { expect, test } from 'vitest'
 
 import {
   EMPTY_VALUE,
-  formatClock,
   formatMarketCap,
   formatPercent,
   formatPrice,
@@ -71,11 +70,6 @@ test('formatRatio 保留两位小数, 非正值显示占位符', () => {
 test('formatMarketCap 追加亿单位, 非正值显示占位符', () => {
   expect(formatMarketCap(2987.53)).toBe('2987.53亿')
   expect(formatMarketCap(0)).toBe(EMPTY_VALUE)
-})
-
-test('formatClock 从时间戳截取时分秒', () => {
-  expect(formatClock('20260820150000')).toBe('15:00:00')
-  expect(formatClock('20260820093015')).toBe('09:30:15')
 })
 
 /* ---------- 多语言单位 ---------- */

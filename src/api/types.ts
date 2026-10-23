@@ -17,8 +17,6 @@ export type Quote = {
   change: number
   /** 涨跌幅 (%) */
   changePercent: number
-  /** yyyyMMddHHmmss */
-  timestamp: string
   /** 成交量 (手) */
   volume: number
   /** 成交额 (万元) */
