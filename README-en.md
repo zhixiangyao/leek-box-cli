@@ -107,7 +107,7 @@ starts in English. A language chosen in Settings takes priority over the system 
 
 ## Requirements
 
-- [Node.js](https://nodejs.org/) >= 22.22.1 (or >= 24)
+- [Node.js](https://nodejs.org/) >= 22.23.4 (or >= 24.22.1)
 - [pnpm](https://pnpm.io/) >= 12.15.0
 
 Market data is retrieved with the native Node.js `fetch` API, with no external runtime dependency such as curl.
@@ -139,7 +139,7 @@ Then run it from anywhere:
 leek-box-cli
 ```
 
-> Requires Node.js 22.22.1+ (or 24+) on the machine that runs the command.
+> Requires Node.js 22.23.4+ (or 24.22.1+) on the machine that runs the command.
 
 Alternatively, run it once without installing:
 
