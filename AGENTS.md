@@ -446,9 +446,9 @@ Dialog 支持 `above`, `borderTopLeft`, `borderTopRight`, `borderBottomLeft`, `b
 
 AppLogo 是应用 ASCII art (两行), 各行必须等宽, 且宽度不得超过 `MIN_TERMINAL_COLUMNS` (否则在恰好卡着宽度下限的终端上 art 会被裁). `tests/appLogo.test.ts` 有守卫用例锁定这两条; 组件不铺 mask, 也不接受宽度参数.
 
-弹窗宽度一律按 `Math.max(标题宽, Math.min(内容宽, CONTENT_WIDTH_CAP), hint 宽, 下限)` 计算: 外层取各部分的**最大**值, `CONTENT_WIDTH_CAP` 只用来给内容单独设上限. 内容是列表时先 `Math.max(...每项宽度)` 再套 cap, 不要把整串宽度直接丢进 `Math.min` (那样取到的是最短项, 弹窗会偏窄).
+弹窗宽度由 `components/Dialog.tsx` 的 `dialogContentWidth(...)` 与 `dialogWidth(columns, widest)` 统一计算, 各弹窗不再各写一份公式: 内容侧先取最宽的一项并套上限, 外层取标题, 内容, hint 的最大值 (下限 24), 再加 `DIALOG_CHROME` 与 `DIALOG_WIDTH_RESERVE`, 上限为终端宽度减 2. 内容是列表时把每项宽度逐个传给 `dialogContentWidth`, 不要先把整串宽度拼出来.
 
-SpaceMask 用在 card 被 `mask` 时铺出 Card 自己 `useBoxMetrics` 量到的 clientWidth*clientHeight 个空格 (absolute + flexDirection column, 每行一个 Text), 再由 Card 的 `overflow: hidden` 裁剪到 content 区域. 取 client 尺寸而不是 width/height: 后者含边框, 铺出来比内容区各多两格, 全靠裁剪兜底. 测量完成前 (`hasMeasured` 为 false, 即首帧) 不渲染, 与 ScrollBox, CheckboxGrid 用 `hasMeasured` 兜底的写法一致. Card 不接受 `backgroundColor`, 遮蔽一律走 `mask`.
+SpaceMask 用在 card 被 `mask` 时铺出内容区 clientWidth*clientHeight 个空格 (absolute + flexDirection column, 每行一个 Text). 测量在 Card 内部的 `MaskedContent` 里完成: 它只在该 Card 需要 `mask` 时挂载, 自身带着 `useBoxMetrics`, 普通 Card 因此完全不做布局测量. 测量完成前 (`hasMeasured` 为 false, 即首帧) 不渲染, 与 ScrollBox, CheckboxGrid 用 `hasMeasured` 兜底的写法一致. Card 不接受 `backgroundColor`, 遮蔽一律走 `mask`.
 
 ScrollBox 用 ink 8 的 `contentOffsetY` 滚动: 视口是 `flexBasis={0} flexGrow={1} overflow="hidden"` 的 Box, 整份 list (不切片) 放在一个 `flexShrink={0}` 的 wrapper 里, `contentOffsetY` 把它上移钳制后的偏移. `flexBasis={0}` 不能省: 视口默认 `flexBasis: auto` 会以整段内容为基准尺寸, 内容高于视口时同一列的表头行会被 flex 收缩挤掉. 可视行数取 `useBoxMetrics` 的 clientHeight, 经 `onVisibleChange` 交给调用方; 偏移的钳制规则与 `commands/StockList/lib.ts` 的 `visibleWindow` 相同, 两处各有一份是分层使然 (components 不 import commands), 改一处要同时改另一处.
 

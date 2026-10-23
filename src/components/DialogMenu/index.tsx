@@ -5,12 +5,9 @@ import { useTheme } from '../../hooks/useTheme.ts'
 import { useTranslation } from '../../hooks/useTranslation.ts'
 import { MENU_ITEMS } from '../../navigation/menu.ts'
 import AppLogo from '../AppLogo.tsx'
-import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from '../Dialog.tsx'
+import Dialog, { dialogContentWidth, dialogWidth } from '../Dialog.tsx'
 import Text from '../Text.tsx'
 import { useDialogMenu } from './hooks/useDialogMenu.ts'
-
-/** 选项列表计入弹窗宽度的上限, 避免超长内容撑宽弹窗 */
-const CONTENT_WIDTH_CAP = 60
 
 export default function DialogMenu() {
   const { bright, highlightedType } = useDialogMenu()
@@ -21,14 +18,10 @@ export default function DialogMenu() {
   const hint = t('menu.hint')
   const widest = Math.max(
     stringWidth(title),
-    Math.min(
-      Math.max(...MENU_ITEMS.map((item, index) => stringWidth(`  ${index + 1}) ${t(item.label)}`))),
-      CONTENT_WIDTH_CAP,
-    ),
+    dialogContentWidth(...MENU_ITEMS.map((item, index) => stringWidth(`  ${index + 1}) ${t(item.label)}`))),
     stringWidth(hint),
-    24,
   )
-  const width = Math.min(Math.max(columns - 2, 1), widest + DIALOG_CHROME + DIALOG_WIDTH_RESERVE)
+  const width = dialogWidth(columns, widest)
 
   return (
     <Dialog

@@ -23,19 +23,33 @@ export type CardProps = {
   children: ReactNode
 }
 
-export default function Card(props: CardProps) {
-  const { bright = false, mask = false } = props
-  const { borderTopLeft, borderTopCenter, borderTopRight, borderBottomLeft, borderBottomRight, footer, children } =
-    props
-  const { full, width, height } = props
-  const theme = useTheme()
-  const borderStyle = useSettingsStore((state) => state.borderStyle)
+function MaskedContent(props: { bright: boolean; children: ReactNode }) {
+  const { bright, children } = props
   const containerRef = useRef<DOMElement>(null)
   const boxMetrics = useBoxMetrics(containerRef)
 
   return (
+    <Box ref={containerRef} flexGrow={1} overflow="hidden">
+      {boxMetrics.hasMeasured && (
+        <SpaceMask bright={bright} width={boxMetrics.clientWidth} height={boxMetrics.clientHeight} />
+      )}
+
+      <Box flexGrow={1} flexDirection="column" padding={1}>
+        {children}
+      </Box>
+    </Box>
+  )
+}
+
+export default function Card(props: CardProps) {
+  const { bright = false, mask = false, full, width, height } = props
+  const { borderTopLeft, borderTopCenter, borderTopRight, borderBottomLeft, borderBottomRight } = props
+  const { footer, children } = props
+  const theme = useTheme()
+  const borderStyle = useSettingsStore((state) => state.borderStyle)
+
+  return (
     <Box
-      ref={containerRef}
       flexDirection="column"
       width={full ? '100%' : width}
       height={full ? '100%' : height}
@@ -69,15 +83,13 @@ export default function Card(props: CardProps) {
         </CardCorner>
       )}
 
-      <Box flexGrow={1} overflow={mask ? 'hidden' : undefined}>
-        {mask && boxMetrics.hasMeasured && (
-          <SpaceMask bright={bright} width={boxMetrics.clientWidth} height={boxMetrics.clientHeight} />
-        )}
-
+      {mask ? (
+        <MaskedContent bright={bright}>{children}</MaskedContent>
+      ) : (
         <Box flexGrow={1} flexDirection="column" padding={1}>
           {children}
         </Box>
-      </Box>
+      )}
 
       {footer}
     </Box>

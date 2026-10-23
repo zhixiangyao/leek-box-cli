@@ -5,7 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation.ts'
 import { EMPTY_VALUE, formatPercent, formatPrice, formatSigned, trendColor } from '../../lib/format.ts'
 import { headerRow, missingRow, quoteRow, stockDetailColumns, tableWidth } from '../../lib/quoteTable.ts'
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
-import Dialog, { DIALOG_CHROME, DIALOG_WIDTH_RESERVE } from '../Dialog.tsx'
+import Dialog, { DIALOG_CHROME, dialogWidth } from '../Dialog.tsx'
 import QuoteRow from '../QuoteRow.tsx'
 import StockChart, { STOCK_CHART_HEIGHT } from '../StockChart/index.tsx'
 import StockLogo from '../StockLogo.tsx'
@@ -22,7 +22,7 @@ export default function DialogStockDetail() {
   const periodLabel = periodOption ? t(periodOption.labelKey) : undefined
   const hint = t('dialogStockDetail.hint')
   const widest = Math.max(tableWidth(columnsForLocale), stringWidth(hint))
-  const width = Math.min(Math.max(columns - 2, 1), widest + DIALOG_CHROME + DIALOG_WIDTH_RESERVE)
+  const width = dialogWidth(columns, widest)
   const stockChartWidth = width - DIALOG_CHROME
 
   return (
