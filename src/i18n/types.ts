@@ -71,10 +71,8 @@ export type Message = {
   'dialogStockDetail.hint': string
   'dialogStockDetail.loading': string
   'dialogStockDetail.empty': string
-  'dialogStockDetail.sourceUnavailable': string
   'chart.period.intraday': string
   'chart.period.fiveDay': string
-  'chart.period.kline': string
   'chart.period.day': string
   'chart.period.week': string
   'chart.period.month': string

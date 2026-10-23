@@ -2,7 +2,6 @@ import { create } from 'zustand'
 
 import { fetchFiveDay, fetchHistorical, fetchIntraday } from '../api/index.ts'
 import type { ChartPeriod, ChartPoint, HistoricalRequest, KlinePeriod } from '../api/types.ts'
-import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
 
 const KLINE_REQUEST_BY_PERIOD: Record<KlinePeriod, Omit<HistoricalRequest, 'period' | 'signal'>> = {
@@ -13,7 +12,6 @@ const KLINE_REQUEST_BY_PERIOD: Record<KlinePeriod, Omit<HistoricalRequest, 'peri
 }
 
 const DEFAULT_PERIOD: ChartPeriod = 'intraday'
-const isKlinePeriod = (period: ChartPeriod): period is KlinePeriod => period !== 'intraday' && period !== 'five-day'
 
 type DialogStockDetailState = {
   code: string | undefined
@@ -29,8 +27,8 @@ type DialogStockDetailState = {
 
 export type DialogStockDetailDependencies = {
   fetchIntraday: typeof fetchIntraday
-  fetchFiveDay?: typeof fetchFiveDay
-  fetchHistorical?: typeof fetchHistorical
+  fetchFiveDay: typeof fetchFiveDay
+  fetchHistorical: typeof fetchHistorical
 }
 
 const defaultDependencies: DialogStockDetailDependencies = { fetchIntraday, fetchFiveDay, fetchHistorical }
@@ -39,18 +37,14 @@ export function createDialogStockDetailStore(dependencies: DialogStockDetailDepe
   return create<DialogStockDetailState>()((set, get) => {
     const refreshChart = async (code: string, period: ChartPeriod, signal?: AbortSignal) => {
       try {
-        let points: ChartPoint[] | undefined
+        let points: ChartPoint[]
         if (period === 'intraday') {
           points = await dependencies.fetchIntraday(code, signal)
         } else if (period === 'five-day') {
-          points = await dependencies.fetchFiveDay?.(code, signal)
-        } else if (isKlinePeriod(period)) {
+          points = await dependencies.fetchFiveDay(code, signal)
+        } else {
           const request = KLINE_REQUEST_BY_PERIOD[period]
-          points = await dependencies.fetchHistorical?.(code, { period, ...request, signal })
-        }
-        if (!points) {
-          const label = period === 'five-day' ? t('chart.period.fiveDay') : t('chart.period.kline')
-          throw new Error(t('dialogStockDetail.sourceUnavailable', { period: label }))
+          points = await dependencies.fetchHistorical(code, { period, ...request, signal })
         }
         if (get().code !== code || get().period !== period || signal?.aborted) return
         set({ status: 'ready', points, errorMessage: undefined })
