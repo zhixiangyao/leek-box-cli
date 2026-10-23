@@ -475,11 +475,11 @@ TextInput 的 value 和 submitted 是组件本地状态. 业务 store 保存:
 
 resetToken 变化时清空输入并重新激活. 命令给不同步骤添加 token 前缀, 例如 `code-1` 和 `confirm-1`. 不依赖 React key 强制 remount.
 
-TextInput 和全局快捷键没有事件冒泡停止机制. 新增自由文本编辑模式时, 必须同步设计全局 q/esc 的 keyboard ownership, 避免输入字符触发退出或菜单.
+TextInput 和全局快捷键没有事件冒泡停止机制. TextInput 在激活期间 (isActive 且未提交) 通过 `useInputFocusStore` 做引用计数: App 的 `useInput` 在计数大于 0 时忽略 q, 让输入字符归输入框所有; esc 仍打开菜单, 它是输入页唯一的返回入口, 且 TextInput 不消费 escape. 因此 StockAdd 的 hint 只列 `菜单(esc)`, 不再宣传 `退出(q)`. 新增自由文本编辑模式时复用 TextInput 即可, 不要再让输入字符触发全局动作.
 
 ## 行情解析和显示
 
-A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 停牌显示 `--` 和 `common.suspended` (英文 `Suspended`), 接口缺失显示 `--` 和 `common.noData` (英文 `No data`).
+A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 停牌显示 `--` 和 `common.suspended` (英文 `Suspended`), 但只替换数值列, 代码与名称列照常显示; 接口缺失显示 `--` 和 `common.noData` (英文 `No data`).
 
 `src/api/lib/parsers.ts` 是纯解析层: `parseQuoteText()` (实时行情文本), `parseIntradayResponse()` (当日分时), `parseFiveDayResponse()` (五日分钟数据), `parseHistoricalResponse()` (日, 周, 月 K).
 

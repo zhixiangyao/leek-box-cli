@@ -16,7 +16,7 @@ export const en = {
   'command.stockList.hint': 'Menu(esc)   Select(↑/↓/j/k/gg/G)   Detail(enter)   Delete(d)   Sort(s)   Quit(q)',
   'command.stockAdd.title': 'Add stocks',
   'command.stockAdd.description': 'Add stocks',
-  'command.stockAdd.hint': 'Menu(esc)   Quit(q)',
+  'command.stockAdd.hint': 'Menu(esc)',
   'command.stockRemove.title': 'Remove stocks',
   'command.stockRemove.description': 'Remove stocks',
   'command.stockRemove.hint': 'Menu(esc)   Move(↑/↓/←/→/hjkl)   Select(space)   Remove(enter)   Quit(q)',

@@ -12,6 +12,7 @@ import { useDialogConfirmStore } from '../../src/stores/useDialogConfirmStore.ts
 import { useDialogMenuStore } from '../../src/stores/useDialogMenuStore.ts'
 import { useDialogRemoveConfirmStore } from '../../src/stores/useDialogRemoveConfirmStore.ts'
 import { useDialogStockDetailStore } from '../../src/stores/useDialogStockDetailStore.ts'
+import { useInputFocusStore } from '../../src/stores/useInputFocusStore.ts'
 import { useMarketIndexStore } from '../../src/stores/useMarketIndexStore.ts'
 import { useSettingsStore } from '../../src/stores/useSettingsStore.ts'
 import { useStockAddStore } from '../../src/stores/useStockAddStore.ts'
@@ -42,6 +43,7 @@ export const resetStores = () => {
   useCommandStore.setState(useCommandStore.getInitialState(), true)
   useSettingsStore.setState({ ...useSettingsStore.getInitialState(), language: DEFAULT_LOCALE }, true)
   useDialogStockDetailStore.setState(useDialogStockDetailStore.getInitialState(), true)
+  useInputFocusStore.setState(useInputFocusStore.getInitialState(), true)
   useStockListStore.setState(useStockListStore.getInitialState(), true)
   stubMarketIndices()
   setActiveLocale(DEFAULT_LOCALE)
@@ -98,3 +100,11 @@ export const selectedCodeIn = (frame: string): string | undefined =>
 
 /** 变暗: 浮层打开时底层命令与旧浮层都带 dim, 据此判定谁不亮 */
 export const isDimmed = (frame: string) => frame.includes('\u001B[2m')
+
+/** 指定文本在帧里是否处于 dim 状态: 看它之前最近一次的 dim 开关 */
+export const isDimmedAt = (frame: string, text: string) => {
+  const index = frame.lastIndexOf(text)
+  if (index === -1) throw new Error(`Frame does not contain: ${text}`)
+  const prefix = frame.slice(0, index)
+  return prefix.lastIndexOf('\u001B[2m') > prefix.lastIndexOf('\u001B[22m')
+}

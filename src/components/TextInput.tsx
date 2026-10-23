@@ -1,6 +1,7 @@
 import { Box, useInput } from 'ink'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 
+import { useInputFocusStore } from '../stores/useInputFocusStore.ts'
 import Text from './Text.tsx'
 
 export type TextInputProps = {
@@ -15,6 +16,15 @@ export default function TextInput(props: TextInputProps) {
   const { prompt, onSubmit, placeholder, isActive = true } = props
   const [value, setValue] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const active = isActive && !submitted
+  const focus = useInputFocusStore((state) => state.focus)
+  const blur = useInputFocusStore((state) => state.blur)
+
+  useEffect(() => {
+    if (!active) return
+    focus()
+    return blur
+  }, [active, focus, blur])
 
   useInput(
     (input, key) => {
@@ -29,7 +39,7 @@ export default function TextInput(props: TextInputProps) {
         setValue((previous) => previous + input)
       }
     },
-    { isActive: isActive && !submitted },
+    { isActive: active },
   )
 
   return (

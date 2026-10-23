@@ -16,7 +16,7 @@ export const zhHant = {
   'command.stockList.hint': '選單(esc)   選擇(↑/↓/j/k/gg/G)   詳情(enter)   刪除(d)   排序(s)   離開(q)',
   'command.stockAdd.title': '新增自選股',
   'command.stockAdd.description': '新增自選股',
-  'command.stockAdd.hint': '選單(esc)   離開(q)',
+  'command.stockAdd.hint': '選單(esc)',
   'command.stockRemove.title': '刪除自選股',
   'command.stockRemove.description': '刪除自選股',
   'command.stockRemove.hint': '選單(esc)   移動(↑/↓/←/→/hjkl)   選擇(空格)   刪除(enter)   離開(q)',

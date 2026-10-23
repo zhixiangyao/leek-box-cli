@@ -51,7 +51,9 @@ export default function DialogConfirm() {
       width={width}
       hint={hint}
     >
-      <Text color={isError ? 'red' : undefined}>{content}</Text>
+      <Text bright color={isError ? 'red' : undefined}>
+        {content}
+      </Text>
     </Dialog>
   )
 }

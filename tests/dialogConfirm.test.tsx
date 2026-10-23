@@ -3,7 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { expect, test, vi } from 'vitest'
 
 import { useDialogConfirmStore } from '../src/stores/useDialogConfirmStore.ts'
-import { BOARD_COLUMNS, BOARD_ROWS, renderApp, resetStores, stubBoardRows } from './helpers/app.tsx'
+import { BOARD_COLUMNS, BOARD_ROWS, isDimmedAt, renderApp, resetStores, stubBoardRows } from './helpers/app.tsx'
 import { CaptureOutput, createInput, plain, unmountApp, waitForFrame } from './helpers/ink.tsx'
 
 test('通用确认弹窗确认态: hint 为 取消(n) 确定(y)', async () => {
@@ -27,6 +27,8 @@ test('通用确认弹窗确认态: hint 为 取消(n) 确定(y)', async () => {
       (candidate) => plain(candidate).includes('确认重置吗') && plain(candidate).includes('取消(n)'),
     )
     expect(plain(frame)).toContain('确定(y)')
+    // 确认弹窗是最上层, 正文不能跟着底层一起变暗
+    expect(isDimmedAt(frame, '此操作将重置所有设置与自选股为默认值.')).toBe(false)
   } finally {
     await unmountApp(instance)
     resetStores()

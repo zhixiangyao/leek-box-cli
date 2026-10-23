@@ -282,9 +282,13 @@ export const quoteRow = (
   trendColorMode: TrendColorMode = DEFAULT_TREND_COLOR_MODE,
 ): Row => {
   const suspended = quote.current <= 0
+  // 停牌只替换数值列: 代码与名称要照常显示, 否则这一行无法辨认
+  const cellText = (col: Column) =>
+    suspended && col.kind !== 'code' && col.kind !== 'name' ? (col.suspendedText ?? EMPTY_VALUE) : col.render(quote)
+
   return withSeparators(
     columns.map((col) => ({
-      text: cell(suspended ? (col.suspendedText ?? EMPTY_VALUE) : col.render(quote), col),
+      text: cell(cellText(col), col),
       color: suspended || !col.color ? 'gray' : col.color(quote, trendColorMode),
     })),
   )

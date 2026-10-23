@@ -54,10 +54,13 @@ test('quoteRow 在涨绿跌红模式下翻转下跌颜色', () => {
   expect(percent!.color).toBe('red')
 })
 
-test('quoteRow 对停牌股票显示占位符并统一灰色', () => {
-  const [, percent] = quoteRow([codeColumn, percentColumn], quote({ current: 0 }))
+test('quoteRow 对停牌股票保留代码与名称, 数值列显示占位符并统一灰色', () => {
+  const nameColumn = COLUMNS_BY_KEY.get('name')!
+  const [code, name, percent] = quoteRow([codeColumn, nameColumn, percentColumn], quote({ current: 0 }))
+  expect(code!.text.startsWith('sh600000')).toBe(true)
+  expect(name!.text.startsWith('浦发银行')).toBe(true)
   expect(percent!.text.startsWith('停牌')).toBe(true)
-  expect(percent!.color).toBe('gray')
+  expect([code, name, percent].every((cell) => cell!.color === 'gray')).toBe(true)
 })
 
 test('missingRow 只显示代码, 名称等没有数据的列填占位符', () => {

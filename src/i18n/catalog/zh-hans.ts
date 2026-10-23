@@ -16,7 +16,7 @@ export const zhHans = {
   'command.stockList.hint': '菜单(esc)   选择(↑/↓/j/k/gg/G)   详情(enter)   删除(d)   排序(s)   退出(q)',
   'command.stockAdd.title': '添加自选股',
   'command.stockAdd.description': '添加自选股',
-  'command.stockAdd.hint': '菜单(esc)   退出(q)',
+  'command.stockAdd.hint': '菜单(esc)',
   'command.stockRemove.title': '删除自选股',
   'command.stockRemove.description': '删除自选股',
   'command.stockRemove.hint': '菜单(esc)   移动(↑/↓/←/→/hjkl)   选择(空格)   删除(enter)   退出(q)',
