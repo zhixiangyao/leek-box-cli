@@ -4,6 +4,7 @@ import { setActiveLocale, t } from '../src/i18n/core.ts'
 import { stockListColumns, tableWidth } from '../src/lib/quoteTable.ts'
 import { useDialogMenuStore } from '../src/stores/useDialogMenuStore.ts'
 import { useDialogRemoveConfirmStore } from '../src/stores/useDialogRemoveConfirmStore.ts'
+import { useDialogStockDetailStore } from '../src/stores/useDialogStockDetailStore.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 import { useStockListStore } from '../src/stores/useStockListStore.ts'
 import {
@@ -641,6 +642,55 @@ test('App 的看板 vim 键: gg 的前缀不跨越浮层', async () => {
     await waitForInput()
     input.write('k')
     await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === codes.at(-2)!)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板按 Enter 打开选中股票详情, esc 关闭后选中行保持', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+  const detailStore = useDialogStockDetailStore
+
+  resetStores()
+  stubBoardRows([quoteRow('sh600000', 1), missingRow('sz000001')])
+  // 图表轮询由用例自己钉住, 详情弹窗打开时不联网
+  detailStore.setState({ refreshChart: async () => undefined })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const after = output.frames.length
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sh600000')
+
+    input.write('\r')
+    const detailFrame = await waitForFrame(output, after, (candidate) =>
+      plain(candidate).includes(t('dialogStockDetail.hint')),
+    )
+    expect(detailStore.getState().code).toBe('sh600000')
+    // 标题的名称与代码都来自实时行情行
+    expect(plain(detailFrame)).toContain('浦发银行')
+    expect(plain(detailFrame)).toContain('sh600000')
+
+    input.write('\x1B')
+    await waitForState(() => detailStore.getState().code === undefined)
+    const closedFrame = await waitForLatestFrame(
+      output,
+      (candidate) => !plain(candidate).includes(t('dialogStockDetail.hint')),
+    )
+    expect(selectedCodeIn(closedFrame)).toBe('sh600000')
+
+    // 缺失行也能打开详情: 代码照常显示, 没有名称
+    input.write('j')
+    await waitForFrame(output, after, (candidate) => selectedCodeIn(candidate) === 'sz000001')
+    const beforeMissing = output.frames.length
+    input.write('\r')
+    const missingFrame = await waitForFrame(output, beforeMissing, (candidate) =>
+      plain(candidate).includes(t('dialogStockDetail.hint')),
+    )
+    expect(detailStore.getState().code).toBe('sz000001')
+    expect(plain(missingFrame)).toContain('sz000001')
   } finally {
     await unmountApp(instance)
     resetStores()

@@ -1,5 +1,5 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
 
@@ -328,5 +328,41 @@ test('schemaVersion 非法时报损坏并说明支持的版本, 且不改动文�
       invalidVersionMessage(),
     )
     expect(await readFile(settingsPath(), 'utf8'), JSON.stringify(schemaVersion)).toBe(content)
+  }
+})
+
+test('XDG_CONFIG_HOME 优先于默认目录', () => {
+  expect(settingsPath()).toBe(join(configHome, 'leek-box-cli', 'settings.json'))
+})
+
+test('空字符串的 XDG_CONFIG_HOME 按未设置处理, 回退到 ~/.config', () => {
+  const previous = process.env['XDG_CONFIG_HOME']
+
+  try {
+    process.env['XDG_CONFIG_HOME'] = ''
+    expect(settingsPath()).toBe(join(homedir(), '.config', 'leek-box-cli', 'settings.json'))
+  } finally {
+    if (previous === undefined) delete process.env['XDG_CONFIG_HOME']
+    else process.env['XDG_CONFIG_HOME'] = previous
+  }
+})
+
+test('Windows 下未设置 XDG 时使用 %APPDATA%', () => {
+  const previousConfigHome = process.env['XDG_CONFIG_HOME']
+  const previousAppData = process.env['APPDATA']
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!
+  const appData = join(configHome, 'roaming')
+
+  try {
+    delete process.env['XDG_CONFIG_HOME']
+    process.env['APPDATA'] = appData
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+    expect(settingsPath()).toBe(join(appData, 'leek-box-cli', 'settings.json'))
+  } finally {
+    Object.defineProperty(process, 'platform', platform)
+    if (previousConfigHome === undefined) delete process.env['XDG_CONFIG_HOME']
+    else process.env['XDG_CONFIG_HOME'] = previousConfigHome
+    if (previousAppData === undefined) delete process.env['APPDATA']
+    else process.env['APPDATA'] = previousAppData
   }
 })

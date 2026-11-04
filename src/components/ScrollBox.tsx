@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useRef } from 'react'
 export const DEFAULT_VISIBLE = 1
 
 /** 越界钳制的滚动偏移: 内容整段放得下时不滚, 否则落在 [0, total - visible] */
-const clampOffset = (total: number, scrollOffset: number, visible: number) =>
+export const clampOffset = (total: number, scrollOffset: number, visible: number) =>
   total <= visible ? 0 : Math.min(Math.max(scrollOffset, 0), total - visible)
 
 export type ScrollBoxProps<T> = {

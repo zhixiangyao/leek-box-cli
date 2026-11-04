@@ -226,7 +226,35 @@ test('hydrate 时越界值被钳制回合法区间', async () => {
     },
   })
 
-  await startSettingsPersistence(() => undefined)
+  const persistence = await startSettingsPersistence(() => undefined)
   expect(useSettingsStore.getState().requestTimeoutMs).toBe(60_000)
   expect(useSettingsStore.getState().quotePollIntervalMs).toBe(1000)
+  // 必须 stop: 残留的订阅会接住后续用例的设置变更, 让别的用例多出一次写盘
+  await persistence.stop()
+})
+
+test('保存串行执行, 写入期间的新修改合并进下一次保存', async () => {
+  let releaseFirst: () => void = () => undefined
+  const firstWrite = new Promise<void>((resolve) => {
+    releaseFirst = resolve
+  })
+  fileMocks.patchSettings.mockImplementationOnce(async () => {
+    await firstWrite
+  })
+
+  const persistence = await startSettingsPersistence(() => undefined)
+  useSettingsStore.getState().updateSettings({ themePreset: 'ocean' })
+  await advanceDebounce()
+  expect(fileMocks.patchSettings).toHaveBeenCalledTimes(1)
+
+  // 第一次写入尚未完成: 第二次只排队, 不并发
+  useSettingsStore.getState().updateSettings({ borderStyle: 'arrow' })
+  await advanceDebounce()
+  expect(fileMocks.patchSettings).toHaveBeenCalledTimes(1)
+
+  releaseFirst()
+  await vi.advanceTimersByTimeAsync(0)
+  expect(fileMocks.patchSettings).toHaveBeenCalledTimes(2)
+  expect(fileMocks.patchSettings.mock.calls[1]![0]).toStrictEqual({ borderStyle: 'arrow' })
+  expect(await persistence.stop()).toBe(true)
 })

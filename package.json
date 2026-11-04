@@ -39,6 +39,7 @@
     "------------- TOOLS -------------": "",
     "release": "tsx scripts/release.tsx",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsrs --noEmit -p tsconfig.json",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
@@ -56,6 +57,7 @@
   "devDependencies": {
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
+    "@vitest/coverage-v8": "5.1.0",
     "lint-staged": "17.6.0",
     "oxfmt": "0.76.0",
     "oxlint": "1.91.0",

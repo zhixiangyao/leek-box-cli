@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat, utimes, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -117,4 +117,16 @@ test('获取锁前会创建目标目录', async () => {
   })
   expect(executed).toBe(true)
   await expect(stat(`${nestedPath}.lock`)).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+test('持有期间锁文件被别的调用方替换时, 释放不删除对方的锁', async () => {
+  const lockPath = `${configHome}.lock`
+
+  await withFileLock(configHome, async () => {
+    // 模拟 stale 清理后另一个进程拿到锁: 路径还是同一个, 内容已经不是本次的 token
+    await writeFile(lockPath, '{"token":"other","pid":1,"createdAt":0}', 'utf8')
+  })
+
+  expect(await readFile(lockPath, 'utf8')).toBe('{"token":"other","pid":1,"createdAt":0}')
+  await rm(lockPath)
 })

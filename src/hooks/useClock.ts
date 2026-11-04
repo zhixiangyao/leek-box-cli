@@ -15,7 +15,7 @@ const formatter = new Intl.DateTimeFormat('en-CA', {
 })
 
 /** 拼成 'YYYY-MM-DD HH:MM:SS' */
-function formatClock(now: Date): string {
+export function formatClock(now: Date): string {
   const parts = formatter.formatToParts(now)
   const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? ''
   return `${part('year')}-${part('month')}-${part('day')} ${part('hour')}:${part('minute')}:${part('second')}`

@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-import { fetchHistorical, fetchQuotes } from '../src/api/index.ts'
+import { fetchFiveDay, fetchHistorical, fetchIntraday, fetchQuoteNames, fetchQuotes } from '../src/api/index.ts'
+import { setActiveLocale, t } from '../src/i18n/core.ts'
+import { DEFAULT_LOCALE } from '../src/i18n/locale.ts'
 import { useSettingsStore } from '../src/stores/useSettingsStore.ts'
 
 /** 构造腾讯实时行情响应字段, 名称使用 ASCII 保证 GBK 编码与 UTF-8 一致 */
@@ -29,6 +31,8 @@ const quoteResponseText = (codes: string[]) =>
 
 beforeEach(() => {
   useSettingsStore.getState().resetSettings()
+  // 本文件断言中文错误文案, 固定语言避免跟随运行环境的系统语言
+  setActiveLocale(DEFAULT_LOCALE)
 })
 
 afterEach(() => {
@@ -65,7 +69,7 @@ test('fetchQuotes 对非 2xx 响应抛错', async () => {
     vi.fn(async () => ({ ok: false, status: 503 })),
   )
 
-  await expect(fetchQuotes(['sh600000'])).rejects.toThrow('行情接口请求失败: HTTP 503')
+  await expect(fetchQuotes(['sh600000'])).rejects.toThrow(t('api.error.quote', { status: 503 }))
 })
 
 test('minimum duration 补足成功请求的耗时', async () => {
@@ -142,4 +146,86 @@ test('fetchHistorical 按年请求月 K 聚合到年份并裁剪最后 barCount'
     'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh600000%2Cmonth%2C%2C%2C24%2Chfq',
     expect.objectContaining({ signal: expect.any(AbortSignal) }),
   )
+})
+
+test('fetchQuoteNames 投影为代码与名称并复用 fetchQuotes 的空请求短路', async () => {
+  const fetchMock = vi.fn(async () => ({
+    ok: true,
+    arrayBuffer: async () => new TextEncoder().encode(quoteResponseText(['sh600000', 'sz000001'])),
+  }))
+  vi.stubGlobal('fetch', fetchMock)
+
+  expect(await fetchQuoteNames([])).toStrictEqual([])
+  expect(fetchMock).not.toHaveBeenCalled()
+
+  expect(await fetchQuoteNames(['sh600000', 'sz000001'])).toStrictEqual([
+    ['sh600000', 'SH600000'],
+    ['sz000001', 'SZ000001'],
+  ])
+  // 名称投影只发一次行情请求, 不套第二层 timing wrapper
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+})
+
+test('fetchIntraday 请求分时接口并解析数据点', async () => {
+  const fetchMock = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      data: { sh600000: { data: { data: ['0930 10.00 100 1000', '0931 10.10 200 2000'] } } },
+    }),
+  }))
+  vi.stubGlobal('fetch', fetchMock)
+
+  expect(await fetchIntraday('sh600000')).toStrictEqual([
+    { time: '0930', price: 10, volume: 100 },
+    { time: '0931', price: 10.1, volume: 200 },
+  ])
+  expect(fetchMock).toHaveBeenCalledWith(
+    'https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=sh600000',
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  )
+})
+
+test('fetchFiveDay 请求五日接口并解析会话数据', async () => {
+  const fetchMock = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      data: { sh600000: { data: [{ date: '20260820', prec: '9.90', data: ['0930 10.00 100'] }] } },
+    }),
+  }))
+  vi.stubGlobal('fetch', fetchMock)
+
+  expect(await fetchFiveDay('sh600000')).toStrictEqual([
+    { time: '0930', price: 10, volume: 100, sessionDate: '2026-08-20', prevClose: 9.9 },
+  ])
+  expect(fetchMock).toHaveBeenCalledWith(
+    'https://web.ifzq.gtimg.cn/appstock/app/day/query?code=sh600000',
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  )
+})
+
+test('分时与五日接口对非 2xx 响应给出各自的错误文案', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: false, status: 500 })),
+  )
+
+  await expect(fetchIntraday('sh600000')).rejects.toThrow(t('api.error.intraday', { status: 500 }))
+  await expect(fetchFiveDay('sh600000')).rejects.toThrow(t('api.error.fiveDay', { status: 500 }))
+})
+
+test('请求超时使用发起时读取的配置, 修改配置不影响已启动的请求', async () => {
+  const fetchMock = vi.fn(
+    (_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+      }),
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  // 低于 SETTING_LIMITS 的取值也能生效: wrapper 只读当前状态, 超时由 AbortSignal.timeout 负责
+  useSettingsStore.setState({ requestTimeoutMs: 20 })
+
+  const pending = fetchQuotes(['sh600000'])
+  useSettingsStore.setState({ requestTimeoutMs: 5000 })
+
+  await expect(pending).rejects.toMatchObject({ name: 'TimeoutError' })
 })
