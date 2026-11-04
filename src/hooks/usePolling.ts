@@ -12,6 +12,13 @@ type PollingControl = {
   reschedule?: () => void
 }
 
+type PollingRuntime = {
+  active: boolean
+  inFlight: boolean
+  timer: ReturnType<typeof setTimeout> | undefined
+  controller: AbortController | undefined
+}
+
 /**
  * 实例级自调度轮询: 挂载后立即执行一次, 之后按 intervalMs (相邻任务的
  * 最小启动间隔) 排程; 组件卸载或 restartKey 变化时取消当前请求与定时器.
@@ -39,38 +46,40 @@ export function usePolling(
       return
     }
 
-    let active = true
-    let inFlight = false
-    let timer: ReturnType<typeof setTimeout> | undefined = undefined
-    let controller: AbortController | undefined = undefined
+    const runtime: PollingRuntime = {
+      active: true,
+      inFlight: false,
+      timer: undefined,
+      controller: undefined,
+    }
 
     const clearTimer = () => {
-      if (!timer) return
-      clearTimeout(timer)
-      timer = undefined
+      if (!runtime.timer) return
+      clearTimeout(runtime.timer)
+      runtime.timer = undefined
     }
 
     const schedule = (delayMs = intervalRef.current) => {
-      if (!active || inFlight || timer) return
-      timer = setTimeout(() => {
-        timer = undefined
+      if (!runtime.active || runtime.inFlight || runtime.timer) return
+      runtime.timer = setTimeout(() => {
+        runtime.timer = undefined
         startRun()
       }, delayMs)
     }
 
     const run = async () => {
-      if (!active || inFlight) return
+      if (!runtime.active || runtime.inFlight) return
       const startedAt = Date.now()
-      inFlight = true
-      controller = new AbortController()
-      const currentController = controller
+      runtime.inFlight = true
+      runtime.controller = new AbortController()
+      const currentController = runtime.controller
       try {
         await taskRef.current(currentController.signal)
       } catch (error) {
         if (!currentController.signal.aborted) onErrorRef.current?.(error)
       } finally {
-        if (controller === currentController) controller = undefined
-        inFlight = false
+        if (runtime.controller === currentController) runtime.controller = undefined
+        runtime.inFlight = false
         schedule(Math.max(0, intervalRef.current - (Date.now() - startedAt)))
       }
     }
@@ -79,12 +88,12 @@ export function usePolling(
 
     controlRef.current = {
       refresh: () => {
-        if (inFlight) return
+        if (runtime.inFlight) return
         clearTimer()
         startRun()
       },
       reschedule: () => {
-        if (inFlight) return
+        if (runtime.inFlight) return
         clearTimer()
         schedule()
       },
@@ -93,10 +102,10 @@ export function usePolling(
     startRun()
 
     return () => {
-      active = false
+      runtime.active = false
       controlRef.current = {}
       clearTimer()
-      controller?.abort()
+      runtime.controller?.abort()
     }
   }, [enabled, restartKey])
 
