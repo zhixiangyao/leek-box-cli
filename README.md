@@ -107,8 +107,8 @@
 
 ## 环境要求
 
-- [Node.js](https://nodejs.org/) >= 22.23.4 (或 >= 24.22.1)
-- [pnpm](https://pnpm.io/) >= 12.15.0
+- [Node.js](https://nodejs.org/) >= 26.13.0
+- [pnpm](https://pnpm.io/) >= 12.16.1
 
 行情通过 Node.js 原生 `fetch` 获取, 无 curl 等外部运行工具依赖.
 
@@ -139,7 +139,7 @@ yarn global add leek-box-cli
 leek-box-cli
 ```
 
-> 运行命令的机器需要 Node.js 22.23.4+ (或 24.22.1+).
+> 运行命令的机器需要 Node.js 26.13.0+.
 
 也可以免安装直接运行一次:
 
