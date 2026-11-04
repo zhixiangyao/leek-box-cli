@@ -2,3 +2,4 @@ allowBuilds:
   esbuild: true
   simple-git-hooks: true
   unrs-resolver: true
+minimumReleaseAge: 120

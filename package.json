@@ -58,7 +58,7 @@
     "@types/react": "19.3.0",
     "lint-staged": "17.6.0",
     "oxfmt": "0.76.0",
-    "oxlint": "1.90.0",
+    "oxlint": "1.91.0",
     "simple-git-hooks": "2.14.0",
     "tsrs": "0.21.0-ts7.1.0-beta",
     "tsx": "4.23.15",
