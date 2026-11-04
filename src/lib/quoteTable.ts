@@ -232,13 +232,8 @@ const STOCK_DETAIL_KEYS: readonly (keyof Quote)[] = [
 const listColumnsCache = new Map<Locale, Column[]>()
 const detailColumnsCache = new Map<Locale, Column[]>()
 
-const cachedColumns = (cache: Map<Locale, Column[]>, locale: Locale, keys: readonly (keyof Quote)[]): Column[] => {
-  const cached = cache.get(locale)
-  if (cached !== undefined) return cached
-  const columns = pickColumns(locale, keys)
-  cache.set(locale, columns)
-  return columns
-}
+const cachedColumns = (cache: Map<Locale, Column[]>, locale: Locale, keys: readonly (keyof Quote)[]): Column[] =>
+  cache.getOrInsertComputed(locale, () => pickColumns(locale, keys))
 
 /** 看板列, 表头与单位随 locale 变化 */
 export const stockListColumns = (locale: Locale = DEFAULT_LOCALE): Column[] =>

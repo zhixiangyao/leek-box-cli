@@ -258,7 +258,7 @@ Pushing a `v*` tag triggers GitHub Actions (`.github/workflows/release.yml`): it
 ## Tech Stack
 
 - TypeScript / ESM
-- Node.js 26 (`fetch`, `util.parseArgs`)
+- Node.js 26 (`fetch`, `util.parseArgs`, `timers/promises`, `Map.prototype.getOrInsertComputed`)
 - Ink 8 + React 19
 - Zustand 5
 - Vite

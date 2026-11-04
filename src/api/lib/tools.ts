@@ -1,3 +1,5 @@
+import { setTimeout } from 'node:timers/promises'
+
 import { useSettingsStore } from '../../stores/useSettingsStore.ts'
 import type { HistoricalPoint } from '../types.ts'
 
@@ -21,23 +23,6 @@ export function normalizeCode(input: string): string | undefined {
   return `${prefix}${code}`
 }
 
-const abortableDelay = (milliseconds: number, signal?: AbortSignal) => {
-  if (milliseconds <= 0) return Promise.resolve()
-  if (signal?.aborted) return Promise.reject(signal.reason)
-
-  return new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      signal?.removeEventListener('abort', handleAbort)
-      resolve()
-    }, milliseconds)
-    const handleAbort = () => {
-      clearTimeout(timer)
-      reject(signal?.reason)
-    }
-    signal?.addEventListener('abort', handleAbort, { once: true })
-  })
-}
-
 /** 包裹请求: 组合调用方取消信号与全局超时, 成功请求补足 minimumRequestDurationMs */
 export const withRequestTiming = async <Result>(
   signal: AbortSignal | undefined,
@@ -49,7 +34,16 @@ export const withRequestTiming = async <Result>(
   const startedAt = Date.now()
 
   const result = await request(requestAbortSignal)
-  await abortableDelay(minimumRequestDurationMs - (Date.now() - startedAt), signal)
+  const remainingDuration = minimumRequestDurationMs - (Date.now() - startedAt)
+  if (remainingDuration > 0) {
+    try {
+      await setTimeout(remainingDuration, undefined, { signal })
+    } catch (error) {
+      // timers/promises 统一抛 AbortError, 这里还原调用方的 reason
+      if (signal?.aborted) throw signal.reason
+      throw error
+    }
+  }
   return result
 }
 

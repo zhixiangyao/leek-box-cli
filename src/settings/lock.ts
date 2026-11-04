@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { link, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import process from 'node:process'
+import { setTimeout } from 'node:timers/promises'
 
 import { t } from '../i18n/core.ts'
 import { isNormalObject, isProcessAlive } from '../lib/is.ts'
@@ -18,9 +19,6 @@ const LOCK_STALE_MS = 30_000
  * 另外留一半预算, 清理必定在本次调用报错前完成, 不依赖任何时间戳精度.
  */
 const LOCK_UNREADABLE_GRACE_MS = LOCK_TIMEOUT_MS / 2
-
-/** 等待指定毫秒数 */
-const sleep = (durationMs: number) => new Promise((resolve) => setTimeout(resolve, durationMs))
 
 /** 尝试清理过期的文件锁, waitedMs 是调用方本次已经等待的毫秒数 */
 const tryRemoveStaleLock = async (lockPath: string, waitedMs: number): Promise<boolean> => {
@@ -99,7 +97,7 @@ export async function withFileLock<Result>(filePath: string, operation: () => Pr
       if (waitedMs >= LOCK_TIMEOUT_MS) {
         throw new Error(t('settings.lock.busy'))
       }
-      await sleep(LOCK_RETRY_MS)
+      await setTimeout(LOCK_RETRY_MS)
     }
   }
 

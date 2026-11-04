@@ -100,9 +100,7 @@ const isIntradayPoint = (point: ChartPoint): point is IntradayPoint =>
 const bucketizeFiveDay = (points: FiveDayPoint[], width: number): Bucket[] => {
   const sessions = new Map<string, FiveDayPoint[]>()
   for (const point of points) {
-    const session = sessions.get(point.sessionDate) ?? []
-    session.push(point)
-    sessions.set(point.sessionDate, session)
+    sessions.getOrInsertComputed(point.sessionDate, () => []).push(point)
   }
   const orderedSessions = [...sessions.entries()].sort(([left], [right]) => left.localeCompare(right))
   if (orderedSessions.length === 0) {

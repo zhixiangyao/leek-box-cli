@@ -259,7 +259,7 @@ git push && git push origin vX.Y.Z
 ## 技术栈
 
 - TypeScript / ESM
-- Node.js 26 (`fetch`, `util.parseArgs`)
+- Node.js 26 (`fetch`, `util.parseArgs`, `timers/promises`, `Map.prototype.getOrInsertComputed`)
 - Ink 8 + React 19
 - Zustand 5
 - Vite
