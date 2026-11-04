@@ -7,6 +7,8 @@ export type Message = {
   'cli.options': string
   'cli.version': string
   'cli.help': string
+  'cli.unknownCommand': string
+  'cli.availableCommands': string
 
   /* ---------- 命令注册表 ---------- */
   'command.stockList.title': string

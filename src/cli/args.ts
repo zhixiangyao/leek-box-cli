@@ -1,9 +1,11 @@
-import meow from 'meow'
+import process from 'node:process'
+import { parseArgs } from 'node:util'
 
 import { applyLanguage, t } from '../i18n/core.ts'
 import { DEFAULT_LANGUAGE } from '../i18n/locale.ts'
 import type { Language } from '../i18n/types.ts'
-import { COMMAND_LIST, COMMAND_REGISTRY_ENTRIES } from '../navigation/registry.ts'
+import { APP_NAME } from '../lib/version.ts'
+import { COMMAND_REGISTRY_ENTRIES, isCommand } from '../navigation/registry.ts'
 import { loadExistingSettings } from '../settings/file.ts'
 import { SchemaVersionTooNewError, type SettingsDocument } from '../settings/schema.ts'
 
@@ -24,7 +26,7 @@ export function genHelpMessage(): string {
   ).join('\n')
 
   return `${t('cli.usage')}
-  $ leek-box-cli [command]
+  $ ${APP_NAME} [command]
 
 ${t('cli.commands')}
 ${commandHelp}
@@ -39,26 +41,26 @@ export async function parseCli() {
   const { document: settingsDocument, language } = await tryLoadSettings()
   // 语言要先就位: 此后任何一步抛错都由入口的 catch 报成 "运行失败", 文案按用户配置的语言渲染
   applyLanguage(language)
-  // help 文案必须在 meow() 之前生成
+  // help 文案随解析结果返回: 未知命令时由 run 打印, 与 -h 共用同一份文案
   const helpMessage = genHelpMessage()
-  const cli = meow({
-    importMeta: import.meta,
-    commands: COMMAND_LIST,
-    description: false,
-    autoHelp: false,
-    autoVersion: false,
-    help: helpMessage,
-    helpIndent: 0,
-    flags: {
-      help: { type: 'boolean', shortFlag: 'h' },
-      version: { type: 'boolean', shortFlag: 'v' },
+
+  // strict: false 时未知 flag 不阻断启动; 其后的独立值会落入位置参数, 可能被判成未知命令
+  const { values, positionals } = parseArgs({
+    args: process.argv.slice(2),
+    allowPositionals: true,
+    strict: false,
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      version: { type: 'boolean', short: 'v' },
     },
   })
-  const command = cli.command
-  const inputHasHelpFlag = cli.input.some((argv) => ['--help', '-h'].includes(argv))
-  const inputHasVersionFlag = cli.input.some((argv) => ['--version', '-v'].includes(argv))
-  const showHelp = cli.flags.help === true || inputHasHelpFlag
-  const showVersion = cli.flags.version === true || inputHasVersionFlag
 
-  return { settingsDocument, helpMessage, command, showHelp, showVersion }
+  const [positionalCommand] = positionals
+  const command = isCommand(positionalCommand) ? positionalCommand : undefined
+  const unknownCommand = positionalCommand !== undefined && command === undefined ? positionalCommand : undefined
+
+  const showHelp = values.help === true
+  const showVersion = values.version === true
+
+  return { settingsDocument, helpMessage, command, showHelp, showVersion, unknownCommand }
 }

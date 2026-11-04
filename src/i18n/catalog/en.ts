@@ -9,6 +9,8 @@ export const en = {
   'cli.options': 'Options',
   'cli.version': 'Show version',
   'cli.help': 'Show help',
+  'cli.unknownCommand': 'Unknown command: {command}',
+  'cli.availableCommands': 'Available commands: {commands}',
 
   /* ---------- Command registry ---------- */
   'command.stockList.title': 'Watchlist',

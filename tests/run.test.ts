@@ -6,6 +6,7 @@ import { run, type RunDependencies } from '../src/cli/run.ts'
 import { setActiveLocale, t } from '../src/i18n/core.ts'
 import { DEFAULT_LOCALE } from '../src/i18n/locale.ts'
 import { APP_VERSION } from '../src/lib/version.ts'
+import { COMMAND_LIST } from '../src/navigation/registry.ts'
 import { createDocument, DEFAULT_SETTINGS } from '../src/settings/schema.ts'
 
 // parseCli 与 startApp 都由用例注入, 因此本文件不读 settings.json, 无需隔离 XDG_CONFIG_HOME
@@ -19,6 +20,7 @@ const cliResult = (overrides: Partial<CliResult> = {}): CliResult => ({
   command: undefined,
   showHelp: false,
   showVersion: false,
+  unknownCommand: undefined,
   ...overrides,
 })
 
@@ -59,6 +61,35 @@ test('run 同时收到版本与 help 时只打印版本', async () => {
   expect(log).toHaveBeenCalledTimes(1)
   expect(log).toHaveBeenCalledWith(APP_VERSION)
   expect(startApp).not.toHaveBeenCalled()
+})
+
+test('run 在未知命令时打印错误与 help 并置退出码 2', async () => {
+  const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+  const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+  await run({ parseCli: async () => cliResult({ unknownCommand: 'foo' }), startApp })
+
+  expect(errorLog).toHaveBeenCalledWith(t('cli.unknownCommand', { command: 'foo' }))
+  expect(errorLog).toHaveBeenCalledWith(t('cli.availableCommands', { commands: COMMAND_LIST.join(', ') }))
+  expect(log).toHaveBeenCalledWith('HELP')
+  expect(startApp).not.toHaveBeenCalled()
+  expect(process.exitCode).toBe(2)
+})
+
+test('run 在未知命令同时带 help/version 时仍按未知命令退出', async () => {
+  const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+  const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+  await run({
+    parseCli: async () => cliResult({ unknownCommand: 'foo', showHelp: true, showVersion: true }),
+    startApp,
+  })
+
+  expect(errorLog).toHaveBeenCalledWith(t('cli.unknownCommand', { command: 'foo' }))
+  expect(log).toHaveBeenCalledWith('HELP')
+  expect(log).not.toHaveBeenCalledWith(APP_VERSION)
+  expect(startApp).not.toHaveBeenCalled()
+  expect(process.exitCode).toBe(2)
 })
 
 test('run 的一次性输出吞掉 stdout 的 EPIPE, 其它 stdout 错误照常抛出', async () => {

@@ -9,6 +9,8 @@ export const zhHans = {
   'cli.options': '选项',
   'cli.version': '查看版本',
   'cli.help': '查看帮助',
+  'cli.unknownCommand': '未知命令: {command}',
+  'cli.availableCommands': '可用命令: {commands}',
 
   /* ---------- 命令注册表 ---------- */
   'command.stockList.title': '自选股票看板',

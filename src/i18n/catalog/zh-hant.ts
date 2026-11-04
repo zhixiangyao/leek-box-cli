@@ -9,6 +9,8 @@ export const zhHant = {
   'cli.options': '選項',
   'cli.version': '查看版本',
   'cli.help': '查看說明',
+  'cli.unknownCommand': '未知指令: {command}',
+  'cli.availableCommands': '可用指令: {commands}',
 
   /* ---------- 頁面註冊表 ---------- */
   'command.stockList.title': '自選股票看板',

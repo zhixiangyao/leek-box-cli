@@ -5,9 +5,10 @@ import process from 'node:process'
 
 import { afterAll, beforeAll, expect, test } from 'vitest'
 
-import { genHelpMessage, parseCli } from '../src/cli/meow.ts'
+import { genHelpMessage, parseCli } from '../src/cli/args.ts'
 import { createTranslator, getActiveLocale, t } from '../src/i18n/core.ts'
 import { detectLocale } from '../src/i18n/locale.ts'
+import { APP_NAME } from '../src/lib/version.ts'
 import { COMMAND_REGISTRY_ENTRIES } from '../src/navigation/registry.ts'
 import { settingsPath } from '../src/settings/file.ts'
 import { createDocument, CURRENT_SCHEMA_VERSION, DEFAULT_SETTINGS } from '../src/settings/schema.ts'
@@ -25,7 +26,7 @@ const writeSettings = async (content: string) => {
 const validSettings = () => JSON.stringify(createDocument({ ...DEFAULT_SETTINGS, language: 'en' }, []))
 
 beforeAll(async () => {
-  configHome = await mkdtemp(join(tmpdir(), 'leek-box-cli-meow-'))
+  configHome = await mkdtemp(join(tmpdir(), 'leek-box-cli-args-'))
   previousConfigHome = process.env['XDG_CONFIG_HOME']
   process.env['XDG_CONFIG_HOME'] = configHome
 
@@ -44,6 +45,7 @@ test('genHelpMessage 列出全部注册命令及其描述', () => {
     expect(help).toContain(command)
     expect(help).toContain(t(description))
   }
+  expect(help).toContain(`$ ${APP_NAME} [command]`)
   expect(help).toContain('--help')
   expect(help).toContain('--version')
 })
@@ -76,6 +78,15 @@ test('parseCli 认得落在命令名之后的 help/version 标志', async () => 
   expect(await parseWithArgv('settings', '-h')).toMatchObject({ command: 'settings', showHelp: true })
   expect(await parseWithArgv('settings', '-v')).toMatchObject({ command: 'settings', showVersion: true })
   expect(await parseWithArgv('stock-add', '--version')).toMatchObject({ command: 'stock-add', showVersion: true })
+})
+
+test('parseCli 把未知命令交给入口, 不启动应用', async () => {
+  expect(await parseWithArgv('unknown-command')).toMatchObject({
+    command: undefined,
+    unknownCommand: 'unknown-command',
+    showHelp: false,
+    showVersion: false,
+  })
 })
 
 test('parseCli 按设置文件中的 language 生成帮助文案, 供入口直接打印', async () => {

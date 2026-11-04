@@ -1,6 +1,6 @@
 # leek-box-cli(韭菜盒子) 项目规范
 
-交互式终端股票自选股看板. 技术栈为 `ink@8.0.0`, `react@19.3.0`, `zustand@5`, `meow@14`, TypeScript ESM 和 Vite. 开发使用 `tsx`, 行情请求使用 Node.js 原生 `fetch`.
+交互式终端股票自选股看板. 技术栈为 `ink@8.0.0`, `react@19.3.0`, `zustand@5`, Node.js 26, TypeScript ESM 和 Vite. 开发使用 `tsx`, 行情请求使用原生 `fetch`.
 
 终端 UI 的 Ink 通用 API (组件, hooks, render) 见 `node_modules/ink/readme.md` (ink 8.x 官方手册).
 
@@ -23,7 +23,7 @@ src/i18n/                    叶子模块. types.ts 是类型与文案键的唯�
                              core.ts 持 activeLocale 与 t(), catalog/ 是三份文案表
 src/navigation/              命令导航域, 只依赖 i18n, 不 import commands.
                              registry.ts 是唯一注册表 (派生 Command, COMMAND_LIST, CLI help, 菜单), menu.ts 是派生菜单项
-src/cli/                     入口链路的模块. meow.ts parseCli() 与 -h, run.ts 启动流程与顶层错误
+src/cli/                     入口链路的模块. args.ts parseCli() 与 -h, run.ts 启动流程与顶层错误
 src/commands/<Feature>/index.tsx      命令渲染
 src/commands/<Feature>/hooks/         订阅, 生命周期, Ink 输入, 测量与轮询
 src/commands/<Feature>/components/    该命令专用展示组件, 不跨命令复用 (目前只有 StockList)
@@ -40,7 +40,7 @@ src/settings/file.ts         路径, 原子写入, stocks 增删改; loadExistin
 src/settings/lock.ts         跨进程文件锁 (withFileLock)
 src/settings/persistence.ts  初始化, hydration, debounce patch 保存, 退出 flush
 src/lib/                     纯工具: format.ts (格式化与涨跌色), error.ts, is.ts, keys.ts, yesNo.ts,
-                             quoteTable.ts (行情表列与行渲染), version.ts (应用版本, CLI -v 与 appVersion 共用)
+                             quoteTable.ts (行情表列与行渲染), version.ts (应用名与版本号)
 tests/                       一个源文件一个测试文件; tests/helpers/ 放共享设施, 不参与用例收集
 ```
 
@@ -50,7 +50,7 @@ tests/                       一个源文件一个测试文件; tests/helpers/ �
 commands/components -> hooks/stores -> settings/file -> settings/schema -> lib
 components -> navigation (DialogMenu 读 MENU_ITEMS; navigation 不反向 import commands)
 main -> cli/run + navigation/registry + settings/persistence -> stores -> settings/file
-cli/run -> cli/meow
+cli/run -> cli/args + navigation/registry (未知命令的可用命令列表)
 api/lib/tools -> stores/useSettingsStore (withRequestTiming 读取最新请求配置; api 唯一的 stores 依赖)
 navigation -> i18n (只依赖 i18n 类型, 不 import commands)
 lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTranslation, main -> i18n
@@ -64,22 +64,26 @@ lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTransla
 
 `src/cli/run.ts` 负责启动流程与顶层错误处理:
 
-- `parseCli()` (`src/cli/meow.ts`) 返回 command, showHelp, showVersion, helpMessage 和 settingsDocument.
-- showVersion 时打印 `APP_VERSION`, showHelp 时打印 helpMessage, 两者都跳过应用启动 (版本优先).
+- `parseCli()` (`src/cli/args.ts`) 返回 command, unknownCommand, showHelp, showVersion, helpMessage 和 settingsDocument.
+- showVersion 时打印 `APP_VERSION`, showHelp 时打印 helpMessage, 两者都跳过应用启动 (版本先于 help, 未知命令先于两者).
 - parseCli 内部顺序: `tryLoadSettings()` (对 `loadExistingSettings()` 的包装, 只读不创建) -> `applyLanguage` ->
-  `genHelpMessage()`, 因此 help 与界面同语言. 这个包装必须留在 meow.ts 且自身不抛, `applyLanguage` 必须紧跟其后;
+  `genHelpMessage()`, 因此 help 与界面同语言. 这个包装必须留在 args.ts 且自身不抛, `applyLanguage` 必须紧跟其后;
   读取失败的报错留给后面的 `initializeSettings` 统一给出用户提示.
 - 读取失败 (缺失或损坏) 时该包装交出 undefined 文档, 语言回退系统语言.
 - 版本过新时文档照样被拒绝 (读不懂的字段不能让它写掉), 但文件里的 `language` 只决定那句 "请升级" 用哪种文字说,
   因此它挂在 `SchemaVersionTooNewError.language` 上 (见 settings.json 一节).
-- help 文案必须在 `meow()` 之前生成: 未知命令时 meow 会自己打印它.
-- meow 的 `autoHelp` 与 `autoVersion` 都关掉, 版本由 run.ts 打印. 两个标志都要同时查 `cli.flags` 与 `cli.input`:
-  命令名之后的标志 meow 留在 input 里而不设成 flag (如 `settings -h`, `settings -v`).
+- `genHelpMessage()` 的文案随解析结果返回; 未知命令时 parseCli 交出 `unknownCommand`, 由 run 打印错误,
+  可用命令与 help 并置 `process.exitCode = 2`. 未知命令优先于 `-h`/`-v`.
+- `parseArgs()` 用 `strict: false`: 未知 flag 本身不阻断启动, 但其后的独立值会落入位置参数,
+  因此 `--config foo` 里的 `foo` 会被判成未知命令. 短选项合并 (`-hv`) 与命令名之后的 `-h`/`-v`
+  (如 `settings -h`) 都由 parseArgs 识别.
 - parseCli 与 startApp 的异常都在这里变成 `app.runFailed` 文案与 `process.exitCode = 1`, 不抛到模块顶层.
 - 打印 help/version 前给 `process.stdout` 装 EPIPE 监听: 下游 `-h | head` 关闭管道时 Node 会在 stdout 上
   异步抛出未处理的 'error' 事件, 接不到 try/catch.
 
 `src/main.tsx` 只保留入口接线, 并把 Ink 启动作为 `startApp` 注入给 `run()` (注入使启动流程可测):
+
+调用 `run()` 之前把 `process.title` 设为 `APP_NAME`, 只影响进程列表显示.
 
 1. 把 `settingsDocument` 传给 `startSettingsPersistence()`, 复用 parseCli 已读到的文档, 启动全程只读一次 settings.json.
    复用判断写在 persistence 里 (`preloadedDocument ?? (await initializeSettings())`), `initializeSettings()` 保持无参.
@@ -105,7 +109,7 @@ await settingsPersistence.stop()
 
 ## 命令注册和路由
 
-`src/navigation/registry.ts` 是命令元数据的唯一来源, 每项含 `title` 和 `description`. 两项都由 meow 的 CLI help 用 `t()` 解析, `title` 另外被 DialogMenu 当作菜单 label (两者都从 `COMMAND_REGISTRY_ENTRIES` 派生).
+`src/navigation/registry.ts` 是命令元数据的唯一来源, 每项含 `title` 和 `description`. 两项都由 CLI help 用 `t()` 解析, `title` 另外被 DialogMenu 当作菜单 label (两者都从 `COMMAND_REGISTRY_ENTRIES` 派生).
 
 注册表**不持有命令组件**: 组件映射是 `src/app.tsx` 里的 `COMMAND_COMPONENTS`, 类型为 `Record<Command, ComponentType>`, 由它强制穷尽 (漏配组件或多写键都编译不过). 命令组件不接 props, navigation 也不向它传值, 因此没有 `CommandComponentProps` 这类"已翻译字符串"入参类型: 注册表对外交出的只有 `MessageKey`, 由消费方自己 `t()`, navigation 因此不 import commands.
 
@@ -113,7 +117,7 @@ await settingsPersistence.stop()
 
 当前命令: `stock-list`, `stock-add`, `stock-remove`, `settings`.
 
-无 command 或非法 command 进入 `stock-list`. 该默认值只写在注册表的 `DEFAULT_COMMAND` (`satisfies Command`), `toCommand()` 的兜底与 `useCommandStore` 的初始 command 都取它; `COMMAND_LIST` 是 `readonly Command[]`, 直接传给 `meow()` 的 `commands`, 不做防御性拷贝.
+无 command 进入 `stock-list`. 该默认值只写在注册表的 `DEFAULT_COMMAND` (`satisfies Command`), `toCommand()` 的兜底与 `useCommandStore` 的初始 command 都取它; 非法 command 由入口 (run) 报成未知命令并以退出码 2 结束. `COMMAND_LIST` 是 `readonly Command[]`, 也是 CLI 已知命令校验 (`isCommand()`) 的集合, 不做防御性拷贝.
 
 命令自持文案: 标题与 hint 都由命令自己解析, App 只按 `useCommandStore.command` 选出组件并渲染, 不往命令里传已翻译的字符串:
 
@@ -286,7 +290,7 @@ d                 恢复默认值
 - **复数键的计数占位符必须命名为 `{count}`**, 即与形态选择的依据同名: 另起别名 (如 `{added}` / `{removed}`) 会让漏传 `count` 编译期无感, 运行时静默落到 `other`. `tests/catalog.test.ts` 有用例机械校验每个复数键的两种形态都含 `{count}`.
 - 需要单复数时在 `types.ts` 把该键声明为 `MessageValue`, 只有英文写 `{ one, other }`; 中文和繁体保持普通字符串. 目前只有 6 个计数键用 `MessageValue`.
 
-`useSettingsStore.language` 是唯一的 settings 状态, active locale 是由 `resolveLanguage()` 派生的只读渲染缓存, 从不持久化, 也不是 settings 输入. **生产只在两处写入**: `src/settings/persistence.ts` 的 hydrate 之后与 language 变化的订阅里, 以及 `src/cli/meow.ts` 的 `parseCli()` (读取流程见 CLI 启动一节). `setActiveLocale()` 只给测试固定语言用, 不是第二个生产写入口.
+`useSettingsStore.language` 是唯一的 settings 状态, active locale 是由 `resolveLanguage()` 派生的只读渲染缓存, 从不持久化, 也不是 settings 输入. **生产只在两处写入**: `src/settings/persistence.ts` 的 hydrate 之后与 language 变化的订阅里, 以及 `src/cli/args.ts` 的 `parseCli()` (读取流程见 CLI 启动一节). `setActiveLocale()` 只给测试固定语言用, 不是第二个生产写入口.
 
 数值单位是数据不是文案, 定义在 `src/lib/format.ts` 的 `VOLUME_UNITS` / `TURNOVER_UNITS` / `MARKET_CAP_UNITS` 里, 用 `{ min, scale, decimals, suffix }` 描述档位 (亿/万/手 与 B/M/K/lots 之间是换算而非单纯改后缀). `formatVolume` / `formatTurnover` / `formatMarketCap` 末尾带 `locale: Locale = DEFAULT_LOCALE` 参数. 每档的 `min` 必须与 `scale` 对应 (`min * scale` 落在 1 附近), 否则该档在自己的下界就渲染成两位数, 等于跳过一个数量级.
 

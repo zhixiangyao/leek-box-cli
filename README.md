@@ -259,9 +259,9 @@ git push && git push origin vX.Y.Z
 ## 技术栈
 
 - TypeScript / ESM
+- Node.js 26 (`fetch`, `util.parseArgs`)
 - Ink 8 + React 19
 - Zustand 5
-- meow
 - Vite
 - oxlint / oxfmt
 - Vitest

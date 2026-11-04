@@ -3,8 +3,9 @@ import process from 'node:process'
 import { t } from '../i18n/core.ts'
 import { errorMessage } from '../lib/error.ts'
 import { APP_VERSION } from '../lib/version.ts'
+import { COMMAND_LIST } from '../navigation/registry.ts'
 import type { SettingsDocument } from '../settings/schema.ts'
-import { parseCli } from './meow.ts'
+import { parseCli } from './args.ts'
 
 export type StartAppParams = {
   settingsDocument?: SettingsDocument
@@ -31,7 +32,15 @@ const printOnceIgnoringBrokenPipe = (text: string): void => {
 /** 入口顶层: parseCli 与 startApp 的异常统一报成 "运行失败" 并置退出码 */
 export const run = async ({ parseCli, startApp }: RunDependencies): Promise<void> => {
   try {
-    const { settingsDocument, helpMessage, command, showHelp, showVersion } = await parseCli()
+    const { settingsDocument, helpMessage, command, showHelp, showVersion, unknownCommand } = await parseCli()
+    // 未知命令优先于 -h/-v: 参数里出现未知命令时不会被 help/version 掩盖
+    if (unknownCommand !== undefined) {
+      console.error(t('cli.unknownCommand', { command: unknownCommand }))
+      console.error(t('cli.availableCommands', { commands: COMMAND_LIST.join(', ') }))
+      printOnceIgnoringBrokenPipe(helpMessage)
+      process.exitCode = 2
+      return
+    }
     // version 先于 help
     if (showVersion) {
       printOnceIgnoringBrokenPipe(APP_VERSION)
