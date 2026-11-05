@@ -11,6 +11,7 @@ import { APP_NAME } from './lib/version.ts'
 import { toCommand } from './navigation/registry.ts'
 import { startSettingsPersistence } from './settings/persistence.ts'
 import { useCommandStore } from './stores/useCommandStore.ts'
+import './lib/polyfill.ts'
 
 async function startApp(params: StartAppParams) {
   const { settingsDocument, command } = params
