@@ -40,7 +40,8 @@ src/settings/file.ts         路径, 原子写入, stocks 增删改; loadExistin
 src/settings/lock.ts         跨进程文件锁 (withFileLock)
 src/settings/persistence.ts  初始化, hydration, debounce patch 保存, 退出 flush
 src/lib/                     纯工具: format.ts (格式化与涨跌色), error.ts, is.ts, keys.ts, yesNo.ts,
-                             quoteTable.ts (行情表列与行渲染), version.ts (应用名与版本号)
+                             quoteTable.ts (行情表列与行渲染), version.ts (应用名与版本号),
+                             polyfill.ts (getOrInsertComputed 兜底, 入口与 vitest setup 最先求值)
 tests/                       一个源文件一个测试文件; tests/helpers/ 放共享设施, 不参与用例收集
 ```
 
@@ -506,6 +507,8 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在渲染用例之间由 `resetStores()` 用 `getInitialState()` 恢复; 指数 store 是例外, 它改为钉成空角标 (`stubMarketIndices()`), 因为看板一挂载就会发起第二条请求, 不钉住的话每个 App 级用例都会真的联网. 需要指数数据的用例在 `resetStores()` 之后自己 `stubMarketIndices([...])` 覆盖.
 
 断言选中行反显与浮层 dim 的用例需要 Ink 真的输出 SGR 序列, 因此 `FORCE_COLOR` 由 `vitest.config.ts` 的 `test.env` 提供: chalk 在模块求值时就定下颜色档位, 写在测试文件顶部或 helper 里都太迟. 需要彩色断言的新文件不必自己设这个变量.
+
+`vitest.config.ts` 的 `setupFiles` 先加载 `src/lib/polyfill.ts`, 与生产入口保持一致: 测试直接 import 源文件, 不经过 `src/main.tsx`, 缺少 `getOrInsertComputed` 的运行时会在 `WindowSizeGuard` 的模块顶层求值时就抛错.
 
 涉及渲染帧或文案断言的测试必须固定语言: 模块级 `activeLocale` 初值是 `zh-hans`, 但 `language` 默认值 `auto` 会跟随运行环境的系统语言, 因此 `resetStores()` (同时把 store 的 `language` 置为 `zh-hans`), `tests/persistence.test.ts`, `tests/api.test.ts` 与 `tests/schema.test.ts` / `tests/file.test.ts` 的 `beforeEach` 都显式 `setActiveLocale(DEFAULT_LOCALE)`. 新增此类测试必须做同样的固定. 需要中文或英文文案时用 `t(key)` 而不是字面量.
 

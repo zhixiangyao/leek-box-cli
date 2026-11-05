@@ -2,6 +2,9 @@ import process from 'node:process'
 
 import { render } from 'ink'
 
+// 必须早于会调用 getOrInsertComputed 的模块求值:
+// WindowSizeGuard 在模块顶层计算 MIN_TERMINAL_COLUMNS, 会走到 quoteTable 的 getOrInsertComputed
+import './lib/polyfill.ts'
 import App from './app.tsx'
 import { parseCli } from './cli/args.ts'
 import { run, type StartAppParams } from './cli/run.ts'
@@ -11,7 +14,6 @@ import { APP_NAME } from './lib/version.ts'
 import { toCommand } from './navigation/registry.ts'
 import { startSettingsPersistence } from './settings/persistence.ts'
 import { useCommandStore } from './stores/useCommandStore.ts'
-import './lib/polyfill.ts'
 
 async function startApp(params: StartAppParams) {
   const { settingsDocument, command } = params
