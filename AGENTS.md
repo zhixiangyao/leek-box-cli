@@ -489,6 +489,8 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 `src/api/lib/parsers.ts` 是纯解析层: `parseQuoteText()` (实时行情文本), `parseIntradayResponse()` (当日分时), `parseFiveDayResponse()` (五日分钟数据), `parseHistoricalResponse()` (日, 周, 月 K).
 
+腾讯在名称字段里用空格把短名称补齐到固定显示宽度 (如 `万  科Ａ`, `深 赛 格`), `parseQuoteText()` 去掉全部空白字符后再写入 `Quote.name`, 名称列截断因此只按真实字符数计算.
+
 年 K 使用后复权月 K 在本地按年份聚合. Chart 数据和行情语义色不受 UI theme preset 覆盖.
 
 ## 测试和验证

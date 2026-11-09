@@ -49,6 +49,19 @@ test('parseQuoteText 映射腾讯字段并跳过格式错误的记录', () => {
   })
 })
 
+test('parseQuoteText 去掉腾讯名称字段里的填充空格', () => {
+  const fields = (code: string, name: string) => {
+    const record = Array<string>(50).fill('')
+    record[1] = name
+    record[3] = '3.26'
+    return `v_${code}="${record.join('~')}";`
+  }
+
+  // 腾讯把短名称补齐到固定显示宽度: "万  科Ａ" 与 "深 赛 格"
+  const quotes = parseQuoteText(fields('sz000002', '万  科Ａ') + fields('sz000058', '深 赛 格'))
+  expect(quotes.map((quote) => quote.name)).toStrictEqual(['万科Ａ', '深赛格'])
+})
+
 test('parseFiveDayResponse 按日期升序展开并附带会话元数据', () => {
   const points = parseFiveDayResponse(
     {
@@ -119,7 +132,7 @@ test('parseHistoricalResponse 在复权数据为空时回退到原始粒度数�
 
 test('parseQuoteText 将行情中的非法数值归一为 0', () => {
   const fields = Array<string>(50).fill('')
-  fields[1] = 'Test Stock'
+  fields[1] = 'TestStock'
   fields[3] = 'not-a-number'
   fields[4] = 'NaN'
   fields[5] = '10.5'
@@ -130,7 +143,7 @@ test('parseQuoteText 将行情中的非法数值归一为 0', () => {
 
   expect(quote).toMatchObject({
     code: 'sh600000',
-    name: 'Test Stock',
+    name: 'TestStock',
     current: 0,
     prevClose: 0,
     open: 10.5,

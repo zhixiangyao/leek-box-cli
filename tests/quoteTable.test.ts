@@ -81,6 +81,8 @@ test('truncateName 保留前 4 个字符, 超出部分用 ... 代替', () => {
   // 超过 4 个字的名称整段替换为省略号, 不按显示宽度折算
   expect(truncateName('创业板ETF易方达')).toBe('创业板E...')
   expect(truncateName('ABCDE')).toBe('ABCD...')
+  // 解析层已去掉腾讯的填充空格, 短名称不会被误判为超长
+  expect(truncateName('万科Ａ')).toBe('万科Ａ')
 })
 
 test('名称列把超长名称省略到列宽内, 不产生换行', () => {
@@ -95,7 +97,7 @@ test('名称列把超长名称省略到列宽内, 不产生换行', () => {
 
 test('名称列对所有名称的渲染宽度不超过列宽', () => {
   const nameColumn = COLUMNS_BY_KEY.get('name')!
-  for (const name of ['浦发银行', '贵州茅台酒', '创业板ETF易方达', 'ABCDEFG', '沪深300', '同花顺']) {
+  for (const name of ['浦发银行', '贵州茅台酒', '创业板ETF易方达', 'ABCDEFG', '沪深300', '同花顺', '万科Ａ']) {
     const [cell] = quoteRow([nameColumn], quote({ name }))
     expect(stringWidth(cell!.text), name).toBeLessThanOrEqual(nameColumn.width)
   }

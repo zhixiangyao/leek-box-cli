@@ -46,7 +46,8 @@ export function parseQuoteText(text: string): Quote[] {
     const fields = match[2]!.split('~')
     if (fields.length < 50) continue
 
-    const name = fields[1]!.trim()
+    // 腾讯用空格把短名称补齐到固定显示宽度 (如 "万  科Ａ"), 这些空格是填充而不是名称的一部分
+    const name = fields[1]!.replace(/\s/g, '')
     if (!name) continue
 
     quotes.push({
