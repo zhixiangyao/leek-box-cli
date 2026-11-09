@@ -297,9 +297,9 @@ d                 恢复默认值
 
 `formatWithUnits` 选中档位后还会向上检查一次: 渲染值达到上一档起点时改用上一档 (档位边界上四舍五入会进位, 999950 手用 K 档会渲染成 `1000.0K lots`, 改用 M 档输出 `1.0M lots`); 起点按本档小数位取整后再比较, 避免 scale 的浮点误差把边界推高一格. 这是格式化层的规则, 不靠加宽列宽兜底. 最高档 (`units[0]`) 上方没有档位可进, 跳过该检查, 因此 `100000.0万手` 这类超大值会自然变宽, 由列宽守卫用例的取值上限约束.
 
-行情表列宽按 locale 分开 (`ColumnSpec.widths`): 既要容纳英文表头, 也要容纳本地化单位格式化后的数值 (`611.0K lots` 比 `61.1万手` 宽). `stockListColumns(locale)` 与 `stockDetailColumns(locale)` 内部用 `createTranslator(locale)` 而不是全局 `t`, 否则传参 locale 不生效; 解析结果按 locale 缓存在模块级 Map 里, 因此不会每次渲染重建列, 返回的数组引用稳定. **缓存的列定义是共享的, 调用方不得就地修改** (`scaleColumns` 需要改宽度时会复制).
+行情表列宽按 locale 分开 (`ColumnSpec.widths`): 既要容纳英文表头, 也要容纳本地化单位格式化后的数值 (`611.0K lots` 比 `61.1万手` 宽). 名称列超过 4 个字符时由 `truncateName` 保留前 4 个字符并追加 `...`, 列宽 11 按最坏情况 (4 个 CJK 字符 + `...`) 定, 长名称因此不撑破列宽换行. `stockListColumns(locale)` 与 `stockDetailColumns(locale)` 内部用 `createTranslator(locale)` 而不是全局 `t`, 否则传参 locale 不生效; 解析结果按 locale 缓存在模块级 Map 里, 因此不会每次渲染重建列, 返回的数组引用稳定. **缓存的列定义是共享的, 调用方不得就地修改** (`scaleColumns` 需要改宽度时会复制).
 
-`WindowSizeGuard` 的 `MIN_TERMINAL_COLUMNS` 取**全部 locale** 看板列宽的最大值 + `TABLE_CHROME`, 不按当前 locale 推导: 守卫包住了全部命令, 下限若随语言变化, 在恰好满足中文下限 (116 列) 的终端上切到英文 (119 列) 就会被拦住, 语言再也改不回来. 新增或加宽某个 locale 的列会自然抬高全局下限, `tests/windowSizeGuard.test.tsx` 有用例校验覆盖关系.
+`WindowSizeGuard` 的 `MIN_TERMINAL_COLUMNS` 取**全部 locale** 看板列宽的最大值 + `TABLE_CHROME`, 不按当前 locale 推导: 守卫包住了全部命令, 下限若随语言变化, 在恰好满足中文下限 (118 列) 的终端上切到英文 (121 列) 就会被拦住, 语言再也改不回来. 新增或加宽某个 locale 的列会自然抬高全局下限, `tests/windowSizeGuard.test.tsx` 有用例校验覆盖关系.
 
 新增文案时: 先在 `types.ts` 的 `Message` 里加键, 再三份 catalog 同步补齐 (类型强制), 并保证各语言的占位符集合与之一致. 组件与常量表存 `MessageKey`, 在渲染处用 `t()` 解析. catalog 禁止全角标点, 顿号, U+3000 和 emoji, 由 `tests/catalog.test.ts` 的标点守卫用例机械校验.
 
@@ -512,7 +512,7 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 涉及渲染帧或文案断言的测试必须固定语言: 模块级 `activeLocale` 初值是 `zh-hans`, 但 `language` 默认值 `auto` 会跟随运行环境的系统语言, 因此 `resetStores()` (同时把 store 的 `language` 置为 `zh-hans`), `tests/persistence.test.ts`, `tests/api.test.ts` 与 `tests/schema.test.ts` / `tests/file.test.ts` 的 `beforeEach` 都显式 `setActiveLocale(DEFAULT_LOCALE)`. 新增此类测试必须做同样的固定. 需要中文或英文文案时用 `t(key)` 而不是字面量.
 
-`tests/quoteTable.test.ts` 持有三语言列宽的守卫用例: 表头宽度, 停牌/缺失占位文案宽度, 以及单位列在档位边界 (含四舍五入) 的渲染文本宽度都不超过列宽, 另有 `LIST_WIDTH_SUM` 锁定各 locale 的列宽之和. 改动 `ColumnSpec.widths` 或 `format.ts` 的单位档位时必须同步更新这些常量. `cell()` 只补齐不截断, 因此超宽文本会撑宽整行并让后续列错位. `tests/windowSizeGuard.test.tsx` 另有一条用例校验 `MIN_TERMINAL_COLUMNS` 覆盖全部 locale 的看板占宽.
+`tests/quoteTable.test.ts` 持有三语言列宽的守卫用例: 表头宽度, 停牌/缺失占位文案宽度, 以及单位列在档位边界 (含四舍五入) 的渲染文本宽度都不超过列宽, 另有 `LIST_WIDTH_SUM` 锁定各 locale 的列宽之和, 以及名称列省略后不超出列宽的用例. 改动 `ColumnSpec.widths` 或 `format.ts` 的单位档位时必须同步更新这些常量. `cell()` 只补齐不截断, 因此超宽文本会撑宽整行并让后续列错位. `tests/windowSizeGuard.test.tsx` 另有一条用例校验 `MIN_TERMINAL_COLUMNS` 覆盖全部 locale 的看板占宽.
 
 `tests/useSettingsStore.test.ts` 与 `tests/useStockListStore.test.ts` 持有字段覆盖守卫: 逐个字段翻转让 `settingsEqual` / `settingsPatch` / `quotesEqual` 必须识别, 新增 `Settings` 或 `Quote` 字段而漏改这三个函数时用例失败 (`Quote.code` 由行情 map 的键决定, 不参与逐字段比较). `Settings` 里的数值项还必须同步 `SETTING_LIMITS`, 否则边界覆盖用例失败; 越界值由 `hydrateSettings` clamp.
 

@@ -47,6 +47,15 @@ export type Column = {
 
 export type Row = { text: string; color?: TrendColor }[]
 
+/** 名称列保留的字符数: 超出的部分用 '...' 代替, 避免长名称撑破列宽换行 */
+export const NAME_MAX_CHARS = 4
+
+/** 名称超过 maxChars 个字符时保留前 maxChars 个并追加 '...' */
+export const truncateName = (name: string, maxChars: number = NAME_MAX_CHARS): string => {
+  const chars = Array.from(name)
+  return chars.length <= maxChars ? name : `${chars.slice(0, maxChars).join('')}...`
+}
+
 const cell = (text: string, column: Column) => text + ' '.repeat(Math.max(0, column.width - stringWidth(text)))
 
 const withSeparators = (segments: Row): Row =>
@@ -68,8 +77,8 @@ const COLUMN_SPECS: readonly ColumnSpec[] = [
     key: 'name',
     kind: 'name',
     title: 'table.column.name',
-    widths: { 'zh-hans': 9, 'zh-hant': 9, en: 9 },
-    render: (q: Quote) => q.name,
+    widths: { 'zh-hans': 11, 'zh-hant': 11, en: 11 },
+    render: (q: Quote) => truncateName(q.name),
   },
   {
     key: 'current',

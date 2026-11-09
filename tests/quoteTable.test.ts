@@ -12,6 +12,7 @@ import {
   stockDetailColumns,
   stockListColumns,
   tableWidth,
+  truncateName,
 } from '../src/lib/quoteTable.ts'
 import { quote } from './helpers/fixtures.ts'
 
@@ -73,6 +74,33 @@ test('missingRow 只显示代码, 名称等没有数据的列填占位符', () =
   expect([code, name, percent].every((cell) => cell!.color === 'gray')).toBe(true)
 })
 
+test('truncateName 保留前 4 个字符, 超出部分用 ... 代替', () => {
+  expect(truncateName('')).toBe('')
+  expect(truncateName('浦发银行')).toBe('浦发银行')
+  expect(truncateName('贵州茅台酒')).toBe('贵州茅台...')
+  // 超过 4 个字的名称整段替换为省略号, 不按显示宽度折算
+  expect(truncateName('创业板ETF易方达')).toBe('创业板E...')
+  expect(truncateName('ABCDE')).toBe('ABCD...')
+})
+
+test('名称列把超长名称省略到列宽内, 不产生换行', () => {
+  const nameColumn = COLUMNS_BY_KEY.get('name')!
+  const longName = '创业板ETF易方达'
+  const [name] = quoteRow([nameColumn], quote({ name: longName }))
+
+  expect(name!.text.startsWith('创业板E...')).toBe(true)
+  // cell() 补齐到列宽, 省略后的文本不会撑破列宽
+  expect(stringWidth(name!.text)).toBe(nameColumn.width)
+})
+
+test('名称列对所有名称的渲染宽度不超过列宽', () => {
+  const nameColumn = COLUMNS_BY_KEY.get('name')!
+  for (const name of ['浦发银行', '贵州茅台酒', '创业板ETF易方达', 'ABCDEFG', '沪深300', '同花顺']) {
+    const [cell] = quoteRow([nameColumn], quote({ name }))
+    expect(stringWidth(cell!.text), name).toBeLessThanOrEqual(nameColumn.width)
+  }
+})
+
 test('列表列以名称/代码开头且不含仅详情使用的列', () => {
   const keys = STOCK_LIST_COLUMNS.map((column) => column.key)
   expect(keys.slice(0, 2)).toStrictEqual(['name', 'code'])
@@ -100,7 +128,7 @@ test('tableWidth = 各列宽之和 + 列间分隔', () => {
 
 test('scaleColumns 在 target === 列宽之和时保持不变', () => {
   const baseSum = STOCK_LIST_COLUMNS.reduce((sum, column) => sum + column.width, 0)
-  expect(baseSum).toBe(101)
+  expect(baseSum).toBe(103)
   const scaled = scaleColumns(STOCK_LIST_COLUMNS, baseSum)
   expect(scaled.map((column) => column.width)).toStrictEqual(STOCK_LIST_COLUMNS.map((column) => column.width))
 })
@@ -112,7 +140,7 @@ test('scaleColumns 等比例放大, 残差按小数部分从大到小分摊使�
   STOCK_LIST_COLUMNS.forEach((column, index) => {
     expect(scaled[index]!.width).toBeGreaterThanOrEqual(column.width)
   })
-  expect(scaled.map((column) => column.width)).toStrictEqual([17, 16, 15, 16, 15, 13, 13, 13, 20, 16, 13, 18])
+  expect(scaled.map((column) => column.width)).toStrictEqual([20, 16, 14, 16, 14, 13, 13, 13, 20, 16, 12, 18])
 })
 
 test('scaleColumns 残差按小数部分分摊, 小数相同时靠前的列先取 (2 列示例)', () => {
@@ -128,7 +156,7 @@ test('scaleColumns 残差按小数部分分摊, 小数相同时靠前的列先�
  */
 test('scaleColumns 不把任何一列压到内容宽度以下 (124 列回归)', () => {
   const scaled = scaleColumns(STOCK_LIST_COLUMNS, 109)
-  expect(scaled.map((column) => column.width)).toStrictEqual([10, 10, 9, 10, 9, 7, 7, 7, 12, 10, 7, 11])
+  expect(scaled.map((column) => column.width)).toStrictEqual([12, 10, 8, 10, 8, 7, 7, 7, 12, 10, 7, 11])
 })
 
 test('scaleColumns 在 target >= 列宽之和时每列只增不减, 总和精确等于 target', () => {
@@ -151,7 +179,7 @@ test('scaleColumns 在 target >= 列宽之和时每列只增不减, 总和精确
 
 /* ---------- 多语言列 ---------- */
 
-const LIST_WIDTH_SUM: Record<Locale, number> = { 'zh-hans': 101, 'zh-hant': 101, en: 104 }
+const LIST_WIDTH_SUM: Record<Locale, number> = { 'zh-hans': 103, 'zh-hant': 103, en: 106 }
 
 test('各 locale 的列表列宽之和稳定, 且 tableWidth 等于列宽之和加分隔', () => {
   for (const locale of LOCALES) {
