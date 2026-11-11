@@ -4,6 +4,22 @@
 
 终端 UI 的 Ink 通用 API (组件, hooks, render) 见 `node_modules/ink/readme.md` (ink 8.x 官方手册).
 
+本文只保留每次都要遵守的硬约束和大纲. 具体实现约定在 `docs/`, 动到对应区域前先读对应文档. 文档与源码冲突时以源码为唯一事实来源.
+
+## 文档索引
+
+| 改什么                                                          | 先读                   |
+| --------------------------------------------------------------- | ---------------------- |
+| 目录职责, 依赖方向, 命令注册与路由, Command/hook/store 分层     | `docs/architecture.md` |
+| CLI 参数解析, 启动流程, 退出                                    | `docs/cli.md`          |
+| 浮层和输入, Card/Dialog/Text, CheckboxGrid, TextInput, 主题应用 | `docs/ui.md`           |
+| Settings 状态, 主题常量, settings.json 格式, 文件锁和持久化     | `docs/settings.md`     |
+| 语言, 文案键, 插值和复数, 单位与列宽                            | `docs/i18n.md`         |
+| 轮询, 请求 timeout 和 minimum duration, 行情解析                | `docs/data.md`         |
+| 看板数据模型, 选择滚动, 排序, 指数角标                          | `docs/stock-list.md`   |
+| 测试约定, 覆盖率, 验证命令, PTY 冒烟                            | `docs/testing.md`      |
+| 代码和界面规范                                                  | `docs/conventions.md`  |
+
 ## 核心原则
 
 - 以当前源码为唯一事实来源, 不保留未上线版本的兼容层, migration, deprecated alias 或旧文件格式 fallback.
@@ -14,511 +30,65 @@
 - 中文文案, 注释和文档使用 ASCII 标点, 禁止中文全角标点和 U+3000 空格.
 - 所有本地 import 显式写 `.ts` 或 `.tsx` 后缀.
 
-## 目录和职责
+## 目录大纲
 
 ```text
 src/main.tsx                 入口接线: run(), Ink render, persistence start/stop
-src/app.tsx                  无浮层时的 esc/q 输入, command 装配 (COMMAND_COMPONENTS), 浮层绘制顺序
-src/i18n/                    叶子模块. types.ts 是类型与文案键的唯一来源, locale.ts 定语言常量与检测,
-                             core.ts 持 activeLocale 与 t(), catalog/ 是三份文案表
-src/navigation/              命令导航域, 只依赖 i18n, 不 import commands.
-                             registry.ts 是唯一注册表 (派生 Command, COMMAND_LIST, CLI help, 菜单), menu.ts 是派生菜单项
-src/cli/                     入口链路的模块. args.ts parseCli() 与 -h, run.ts 启动流程与顶层错误
-src/commands/<Feature>/index.tsx      命令渲染
-src/commands/<Feature>/hooks/         订阅, 生命周期, Ink 输入, 测量与轮询
-src/commands/<Feature>/components/    该命令专用展示组件, 不跨命令复用 (目前只有 StockList)
-src/commands/<Feature>/lib.ts         纯函数与常量, 不经 hook 即可单测
-src/components/              公共组件与复合弹窗, 见 Card, Dialog 和 Text 一节
+src/app.tsx                  全局 esc/q 输入, COMMAND_COMPONENTS, 浮层绘制顺序
+src/i18n/                    叶子模块: types.ts 键的唯一来源, locale.ts, core.ts, catalog/
+src/navigation/              命令导航域, 只依赖 i18n; registry.ts 是命令元数据唯一来源
+src/cli/                     args.ts parseCli(), run.ts 启动流程与顶层错误
+src/commands/<Feature>/      index.tsx 渲染, hooks/ 输入与订阅, components/ 专用展示, lib.ts 纯函数
+src/components/              公共组件与复合弹窗 (Card, Dialog, TextInput, CheckboxGrid 等)
 src/hooks/                   usePolling, useOverlayOpen, useClock, useTheme, useTranslation
-src/stores/                  Zustand 状态机与业务动作; 复杂 store 导出 createXxxStore(dependencies)
-src/api/index.ts             HTTP 请求, timeout, minimum duration, AbortSignal 合并, GBK 解码
-src/api/lib/parsers.ts       腾讯行情响应的纯解析器
-src/api/lib/tools.ts         代码归一化 (normalizeCode), 统一 timing wrapper, 年 K 聚合
-src/settings/schema.ts       schema, 校验与文档转换; 外观常量与 Settings 类型也在此 (store 从 schema 导入常量),
-                             校验错误文案也是 MessageKey
-src/settings/file.ts         路径, 原子写入, stocks 增删改; loadExistingSettings() 只读不创建
-src/settings/lock.ts         跨进程文件锁 (withFileLock)
-src/settings/persistence.ts  初始化, hydration, debounce patch 保存, 退出 flush
-src/lib/                     纯工具: format.ts (格式化与涨跌色), error.ts, is.ts, keys.ts, yesNo.ts,
-                             quoteTable.ts (行情表列与行渲染), version.ts (应用名与版本号),
-                             polyfill.ts (getOrInsertComputed 兜底, 入口与 vitest setup 最先求值)
-tests/                       一个源文件一个测试文件; tests/helpers/ 放共享设施, 不参与用例收集
+src/stores/                  Zustand 状态机与业务动作; 复杂 store 用 createXxxStore(dependencies)
+src/api/                     HTTP 请求, 腾讯响应解析器, 代码归一化与 timing wrapper
+src/settings/                schema, file, lock, persistence
+src/lib/                     纯工具: format, error, is, keys, yesNo, quoteTable, version, polyfill
+tests/                       一个源文件一个测试文件; tests/helpers/ 是共享设施
 ```
 
-依赖方向保持为:
+完整依赖方向 (`commands/components -> hooks/stores -> settings/file -> settings/schema -> lib` 等) 见 `docs/architecture.md`.
 
-```text
-commands/components -> hooks/stores -> settings/file -> settings/schema -> lib
-components -> navigation (DialogMenu 读 MENU_ITEMS; navigation 不反向 import commands)
-main -> cli/run + navigation/registry + settings/persistence -> stores -> settings/file
-cli/run -> cli/args + navigation/registry (未知命令的可用命令列表)
-api/lib/tools -> stores/useSettingsStore (withRequestTiming 读取最新请求配置; api 唯一的 stores 依赖)
-navigation -> i18n (只依赖 i18n 类型, 不 import commands)
-lib, settings/{schema,file,lock,persistence}, api, cli, stores, hooks/useTranslation, main -> i18n
-```
+## 硬约束
 
-`src/i18n/**` 是叶子层, 只依赖 `node:process`, 不导入项目内任何模块. i18n 不得导入 `src/lib`, `src/settings` 或 `src/stores`; 反过来 `src/lib` 与 `src/settings` 也不得为了拿文案类型而反过来定义领域类型 (见 `BorderStyle` 的做法).
+架构:
 
-中性组件不得导入具体 command. React 生命周期, `useInput`, Ink ref 和布局测量不得进入 store, `src/lib` 或 `src/settings`.
+- `src/i18n/**` 是叶子层, 只依赖 `node:process`; i18n 不得 import lib/settings/stores, lib/settings 也不得为拿文案类型反向定义领域类型.
+- navigation 与 components 不 import commands; 中性组件不 import 具体 command.
+- React 生命周期, `useInput`, Ink ref 和布局测量不得进入 store, `src/lib` 或 `src/settings`.
+- 不新增第二份路由, overlay 状态, poll interval 或 settings 状态. 命令元数据只来自 registry, 组件映射只在 app.tsx, 浮层聚合只在 `useOverlayOpen()`, 间隔只来自 `useSettingsStore`.
+- command 不复制 Card, StatusBar, registry 或 persistence 逻辑.
 
-## CLI 启动和退出
+状态和持久化:
 
-`src/cli/run.ts` 负责启动流程与顶层错误处理:
+- settings 与 stocks 的每次写入都走 `withFileLock` 加原子 replace, 锁内重读最新文档后合并.
+- 不在多个 store 中保存同一配置字段; 非组件代码读写其他 store 用 `useXxxStore.getState()`, 不通过 selector 订阅.
+- 不直接修改 Zustand store 内部字段绕过 action (测试 setup 和明确初始化除外).
+- 不新增兼容 alias, migration 或 deprecated API, 除非任务明确要求.
 
-- `parseCli()` (`src/cli/args.ts`) 返回 command, unknownCommand, showHelp, showVersion, helpMessage 和 settingsDocument.
-- showVersion 时打印 `APP_VERSION`, showHelp 时打印 helpMessage, 两者都跳过应用启动 (版本先于 help, 未知命令先于两者).
-- parseCli 内部顺序: `tryLoadSettings()` (对 `loadExistingSettings()` 的包装, 只读不创建) -> `applyLanguage` ->
-  `genHelpMessage()`, 因此 help 与界面同语言. 这个包装必须留在 args.ts 且自身不抛, `applyLanguage` 必须紧跟其后;
-  读取失败的报错留给后面的 `initializeSettings` 统一给出用户提示.
-- 读取失败 (缺失或损坏) 时该包装交出 undefined 文档, 语言回退系统语言.
-- 版本过新时文档照样被拒绝 (读不懂的字段不能让它写掉), 但文件里的 `language` 只决定那句 "请升级" 用哪种文字说,
-  因此它挂在 `SchemaVersionTooNewError.language` 上 (见 settings.json 一节).
-- `genHelpMessage()` 的文案随解析结果返回; 未知命令时 parseCli 交出 `unknownCommand`, 由 run 打印错误,
-  可用命令与 help 并置 `process.exitCode = 2`. 未知命令优先于 `-h`/`-v`.
-- `parseArgs()` 用 `strict: false`: 未知 flag 本身不阻断启动, 但其后的独立值会落入位置参数,
-  因此 `--config foo` 里的 `foo` 会被判成未知命令. 短选项合并 (`-hv`) 与命令名之后的 `-h`/`-v`
-  (如 `settings -h`) 都由 parseArgs 识别.
-- parseCli 与 startApp 的异常都在这里变成 `app.runFailed` 文案与 `process.exitCode = 1`, 不抛到模块顶层.
-- 打印 help/version 前给 `process.stdout` 装 EPIPE 监听: 下游 `-h | head` 关闭管道时 Node 会在 stdout 上
-  异步抛出未处理的 'error' 事件, 接不到 try/catch.
+UI 和输入:
 
-`src/main.tsx` 只保留入口接线, 并把 Ink 启动作为 `startApp` 注入给 `run()` (注入使启动流程可测):
+- 浮层打开时底层 command 与本组件输入一律失活 (`isActive: !overlayOpen.open`), 共享组件的 `isActive` 由 command 传入.
+- 浮层按键以自身 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
+- 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection`.
+- 所有退出走 Ink `useApp().exit()`, 不调用 `process.exit()`; 所有持久化在退出前 flush.
 
-调用 `run()` 之前把 `process.title` 设为 `APP_NAME`, 只影响进程列表显示.
+文案和命名:
 
-1. 把 `settingsDocument` 传给 `startSettingsPersistence()`, 复用 parseCli 已读到的文档, 启动全程只读一次 settings.json.
-   复用判断写在 persistence 里 (`preloadedDocument ?? (await initializeSettings())`), `initializeSettings()` 保持无参.
-   文件缺失或损坏时该值是 undefined, 由 initializeSettings 走正常的读取/创建流程并给出报错.
-2. 在 `render()` 前写入 router 初始 command.
-3. 使用 alternate terminal buffer 启动 Ink.
-4. 等待 `instance.waitUntilExit()`.
-5. 在 finally 中调用 `settingsPersistence.stop()`.
+- 显示文案只放 catalog, 组件与常量表存 `MessageKey` 并在渲染处解析; 新增键先改 `types.ts`, 再三份 catalog 同步补齐.
+- 复数键的计数占位符必须叫 `{count}`; 数值单位是数据不是文案, 定义在 `src/lib/format.ts`.
+- 中文文案, 注释和文档只用 ASCII 标点, 禁止全角标点, 顿号, U+3000 和 emoji.
+- store 类型带 feature 前缀 (`StockListRow`), 共用类型 `StockEntry` 除外; HTTP 用 `fetchX`, 文件用 `loadX`; 同一种数据在各层同名.
+- 本地 import 显式写 `.ts` 或 `.tsx` 后缀.
 
-标准启动:
+测试:
 
-```ts
-const settingsPersistence = await startSettingsPersistence(onError, settingsDocument)
-useCommandStore.setState({ command: toCommand(cli.command) })
-const instance = render(<App />, { alternateScreen: true, concurrent: true })
-await instance.waitUntilExit()
-await settingsPersistence.stop()
-```
+- 一个源文件一个测试文件, 放 `tests/`; 跨文件守卫放 `tests/architecture.test.ts`.
+- 测试必须隔离 `XDG_CONFIG_HOME`, 涉及渲染帧或文案时固定语言 (`setActiveLocale(DEFAULT_LOCALE)`).
+- 改动 `ColumnSpec.widths`, `format.ts` 单位档位或 `Settings` 字段时必须同步对应的守卫用例.
 
-初始化 settings 必须发生在 render 之前. 首屏, 首次轮询和首次 API 请求必须读取已经 hydrate 的配置.
-
-退出使用 Ink `useApp().exit()`, 不调用 `process.exit()`. 异步持久化失败通过 `process.exitCode` 表示, 并保证 alternate terminal buffer 正常清理.
-
-## 命令注册和路由
-
-`src/navigation/registry.ts` 是命令元数据的唯一来源, 每项含 `title` 和 `description`. 两项都由 CLI help 用 `t()` 解析, `title` 另外被 DialogMenu 当作菜单 label (两者都从 `COMMAND_REGISTRY_ENTRIES` 派生).
-
-注册表**不持有命令组件**: 组件映射是 `src/app.tsx` 里的 `COMMAND_COMPONENTS`, 类型为 `Record<Command, ComponentType>`, 由它强制穷尽 (漏配组件或多写键都编译不过). 命令组件不接 props, navigation 也不向它传值, 因此没有 `CommandComponentProps` 这类"已翻译字符串"入参类型: 注册表对外交出的只有 `MessageKey`, 由消费方自己 `t()`, navigation 因此不 import commands.
-
-`Command`, `COMMAND_LIST`, `isCommand()` 和 `toCommand()` 均从注册表派生. 新增命令要动三处: 注册表 (Command 联合类型 + `title` / `description` 两个 MessageKey), app.tsx 的 `COMMAND_COMPONENTS`, 以及命令自己 `index.tsx` 里的 title / hint 键; 其余全部派生, CLI help, 菜单, 路由都不维护第二份映射. 新命令的文案键要在三份 catalog 补齐.
-
-当前命令: `stock-list`, `stock-add`, `stock-remove`, `settings`.
-
-无 command 进入 `stock-list`. 该默认值只写在注册表的 `DEFAULT_COMMAND` (`satisfies Command`), `toCommand()` 的兜底与 `useCommandStore` 的初始 command 都取它; 非法 command 由入口 (run) 报成未知命令并以退出码 2 结束. `COMMAND_LIST` 是 `readonly Command[]`, 也是 CLI 已知命令校验 (`isCommand()`) 的集合, 不做防御性拷贝.
-
-命令自持文案: 标题与 hint 都由命令自己解析, App 只按 `useCommandStore.command` 选出组件并渲染, 不往命令里传已翻译的字符串:
-
-```tsx
-<Card
-  borderTopLeft={<Text color={theme.primary}>{t('command.stockList.title')}</Text>}
-  footer={<StatusBar showClock hint={t('command.stockList.hint')} bright={!overlayOpen.open} />}
->
-```
-
-注册表里的 `title` 不是给命令组件读的; 同一句文案在两边各写一次 `MessageKey` 是刻意的: 键名写错由 `MessageKey` 类型拦住, 张冠李戴 (例如 StockAdd 用了 stockList 的键) 由各命令自己的测试文件 (`tests/stockList.test.tsx`, `tests/stockAdd.test.tsx`, `tests/stockRemove.test.tsx`, `tests/settingsCommand.test.tsx`) 逐命令断言标题与 hint 整串兜住.
-
-## Command, hook 和 store 分层
-
-Command 的 `index.tsx` 负责渲染. 命令状态, 输入和副作用放入 `hooks/useFeature.ts`.
-
-按终端尺寸派生的纯渲染参数 (如网格列数) 例外: 这类值就地写在 `index.tsx` 里. StockRemove 直接用 `useWindowSize()` 取终端列数, 算出 `columnCount` 与 `columnGap` 交给 CheckboxGrid; `useStockList` 的 `useWindowSize()` 则留在 hook 里, 因为它要和选中行, 滚动位置一起算列宽. 判据是这个值要不要和业务状态一起参与计算.
-
-标准模式:
-
-```text
-index.tsx
-  调用 useFeature()
-  终端尺寸派生的渲染参数 (useWindowSize)
-  按 step 或 view model 渲染
-
-hooks/useFeature.ts
-  窄 selector
-  useEffect
-  useInput
-  usePolling
-  视图模型计算
-
-useFeatureStore.ts
-  业务状态机
-  异步业务动作
-  可注入依赖
-```
-
-命令可以把展示部分抽成 `src/commands/<Feature>/components/` 下的组件: 它只接 props 和窄 selector 订阅, 不持有业务状态, 也不接 `useInput` (目前只有 StockList 的 StockTable).
-
-Add, Remove, StockList 和 StockDetail 的复杂 store 使用 `createXxxStore(dependencies)`. 网络, 文件和时间通过 dependencies 注入, 不使用 DI 容器. `useSettingsStore` 是纯内存投影, 不注入依赖. 注入字段直接写 `typeof` 指向真实函数 (`fetchQuotes: typeof fetchQuotes`), 不手抄函数签名; 只有没有对应真实函数的字段 (`now`) 才手写签名, 并在注释里说明原因.
-
-看板的选中行, 滚动位置和排序模式是视图状态, 放在 `useStockList` 的 `useState` 里而不是 store: 它们是"显示顺序里的下标", 而显示顺序由排序决定, store 只持按自选股文件顺序排列的行情行. 刷新后的视口锚定同样在 hook 里做 (`refreshQuotes` 只管数据), 它需要"上一次的显示顺序"; 锚定跨越一次网络往返, 期间用户仍可移动选中行, 因此它读 `viewRef` 里最新的选中行, 滚动位置和排序模式, 不读发起刷新那一帧的闭包 (否则行情返回时会把选中行拉回按下方向键之前的位置). `useStockListStore` 因此只有 `step`, `refreshQuotes` 和 `reset`.
-
-删除流程: StockRemove 常驻渲染 CheckboxGrid (空格勾选, 回车提交, 列数随终端宽度变化), 提交的条目交给 DialogRemoveConfirm 确认删除; 看板按 `d` 打开的是同一个弹窗 (只放一条 entry). Step 机为 idle/confirm/removing/done/error: 全部删除成功后直接关闭并重置勾选, 光标停在删除前的位置 (同一个下标, 超出新的条目数时落到末格; 看板那边是刷新一次), 部分条目已不在自选股时进入 done 提示已删除数量, 删除失败进入 error (删除页据此保留网格勾选, 看板只等下一次轮询), 取消时仅关闭弹窗并保留勾选 (光标也不动). esc 关闭后可直接重试.
-
-收尾动作由打开者登记, 两个 store 不互相 import: `open(entries, onRemoved)` 把回调存进 store, `confirmDelete()` 自己收尾并**只在确实删掉条目后**调用它 (每次打开都覆盖该回调, 回 idle/done/error 时清空); 删除页登记网格 store 的 `removeByCodes` (删掉的那几条离开网格并重挂载), 看板登记的是"立刻刷新一次". 弹窗的 hook 因此不认识任何 command 的 store, 只留 `StockRemoveEntry` 这个类型导入.
-"没删掉任何条目" (失败, 或所选已不在自选股: `stocksRemove()` 返回 0) 都在调用点之前收尾并 return, 网格条目与勾选因此都保留.
-
-网格条目是 `{code, name}` (`StockRemoveEntry`) 而不是 `StockEntry`: 名称来自实时行情, 因此 store 的 `loadEntries` 先按文件里的代码铺出网格 (勾选不必等行情), 行情到了再补上名称. 拉名称失败**暴露错误并清空网格**, 不静默降级成只有代码的网格. 行情到达后名称仍为空, 只发生在行情没返回该代码时 (停牌, 退市或响应不全), 此时单元格只显示代码, 确认弹窗也只列代码.
-`loadEntries` 带加载代数: 离开删除页再进来会重开一轮, 上一轮的结果一律不落地, 也不在失败时清空新一轮的网格 (见 `useStockAddStore` 的 `generation`).
-
-Settings 的规则:
-
-- `src/commands/Settings/index.tsx` 只负责分组渲染.
-- `src/commands/Settings/hooks/useSettings.ts` 负责选中项, 键盘输入, option 循环, duration 格式化和行视图模型.
-- UI 只更新 `useSettingsStore`, 不在 command 中直接写文件. 写盘分两条路径: 增量设置变更由 `settingsPersistence` 订阅合并为 patch 保存; 整档操作 (自选股增删改) 由 store 动作调用 `settings/file.ts` 的锁内函数. 全量重置是组合命令 `settings/resetAll.ts` 的 `resetAll()`: 先重置文件, 文件失败则抛出且内存不变; 成功后再恢复设置内存默认值并重新载入自选股.
-
-React 组件和组件 hook 优先使用窄 selector. 非组件代码 (store 动作, 工具函数) 读写其他 store 时用 `useXxxStore.getState()`, 不通过 selector 订阅. 不在多个 store 中保存同一配置字段.
-
-## 全局输入和 overlay
-
-共享 overlay 包含菜单, 股票详情, 删除确认和通用确认弹窗 (DialogConfirm).
-
-- App 的 `useInput` 常驻注册, 在回调里用 `overlayOpen.open` 早返回, 因此只在无浮层时处理 esc(打开菜单) 和 q(退出). 不使用 `isActive`: 尺寸不足时 WindowSizeGuard 会卸载整棵子树, 浮层 (持有此时唯一活跃的 useInput) 随之消失, 一个活跃的 useInput 都不剩时 ink 会 `setRawMode(false)` 并 unref stdin, 事件循环空转触发 beforeExit, 应用会在拖动终端尺寸时退出. App 是唯一在整个进程生命周期内都挂载的组件.
-- 浮层打开后 esc 由各浮层自己处理: 详情和菜单 esc 直接关闭; DialogRemoveConfirm 在 done/error 阶段 esc 关闭, 删除进行中忽略; DialogConfirm 仅在错误态 esc 关闭.
-- 浮层按键以各自 hint 为准: hint 展示什么按键, 监听就只处理什么按键.
-- 方向键都有 vim 等价键 `h`/`j`/`k`/`l`, 判定统一走 `src/lib/keys.ts` 的 `keyDirection(input, key)`. hint 与监听并列展示 (`选择(↑/↓/j/k/gg/G)`, 网格 `移动(↑/↓/←/→/hjkl)`); 该界面不响应的方向不要写进 hint.
-- 底层 command 的 `useInput` 使用 `{ isActive: !overlayOpen.open }`.
-- 共享输入组件的 `isActive` 由 command 传入 `!overlayOpen.open`, 组件不自己读浮层状态: `CheckboxGrid` 必填, `TextInput` 可选并默认为 true.
-- DialogMenu 自己处理上下键, Enter 和数字快捷键. 菜单的开关就是 `useDialogMenuStore` 的 `highlightedType` (`MenuItem['type'] | undefined`), 没有第二个布尔: `open(highlightedType)` 打开并定位高亮, `close()` 置回 `undefined`, `useOverlayOpen` 据此判定 `dialogMenuOpen`; 高亮由 App 的 esc 传入当前 command (`open(command)`). `useDialogMenu` 在 `undefined` 时早返回 (防御分支, DialogMenu 只在非 `undefined` 时挂载); `MENU_ITEMS` 覆盖 `MenuItem['type']` 的全部取值 (注册表 + reset/exit), `findIndex` 必命中. 被 DialogConfirm 遮住时菜单保持挂载且高亮不变.
-- DialogStockDetail 仅在详情打开时处理周期数字键. 菜单与详情互斥 (浮层打开时底层输入一律失活), 无需判断菜单状态.
-- DialogRemoveConfirm 只在 confirm 阶段接受 n/y, done/error 阶段只接受 esc.
-- DialogConfirm 目前用于菜单的"重置"入口: 确认后经 `settings/resetAll.ts` 的 `resetAll()` 重置设置文件为默认文档 (含默认自选股) 并同步设置与自选股内存; 确认失败时弹窗保留并进入错误态 (`config.isError`), 确认方经 `config.update` 把内容替换为失败信息. 错误态 hint 为 `关闭(esc)   重试(y)` (esc 关闭, n 忽略, y 重试), 确认态 hint 为 `取消(n)   确定(y)` 且不处理 esc. 确认弹窗关闭后菜单保持打开 (高亮位置保留).
-
-详情周期快捷键:
-
-```text
-1 分时
-2 五日
-3 日 K
-4 周 K
-5 月 K
-6 年 K
-```
-
-`useOverlayOpen()` 是唯一的浮层状态聚合点, 返回 `overlayOpen`. App 读取全部字段决定浮层渲染, 其余组件只取 `overlayOpen.open`. 只需要 dim 布尔值的高频渲染组件 (Text) 用 `useOverlayOpenValue()`: 它在模块级合并四个 store 的订阅, 所有使用者共享一份监听, 避免每个 Text 各订阅四次. 不新增重复的 overlay Context.
-
-## Settings 和主题
-
-`useSettingsStore` 保存以下值:
-
-```ts
-type Settings = {
-  themePreset: ThemePreset
-  trendColorMode: TrendColorMode
-  borderStyle: BorderStyle
-  language: Language
-  requestTimeoutMs: number
-  minimumRequestDurationMs: number
-  quotePollIntervalMs: number
-  minuteChartPollIntervalMs: number
-  klinePollIntervalMs: number
-}
-```
-
-默认值:
-
-```text
-themePreset                 classic
-trendColorMode              red-up
-borderStyle                 round
-language                    auto
-requestTimeoutMs            8000
-minimumRequestDurationMs    0
-quotePollIntervalMs         5000
-minuteChartPollIntervalMs   30000
-klinePollIntervalMs         300000
-```
-
-主题 preset: `classic`, `ocean`, `forest`, `sunset`, `gray`.
-
-Border style: `single`, `double`, `round`, `bold`, `singleDouble`, `doubleSingle`, `classic`, `arrow`.
-
-主题只定义色值, 显示名称在 catalog 的 `settings.themePreset.*`; `borderStyle` 的显示名称同样在 catalog 的 `settings.borderStyle.*` (`round` -> `圆角` / `Round`), 设置行不直接显示样式 id.
-
-`BorderStyle` 定义在 `settings/schema.ts` 而不是从 i18n 键反推, 方向是 schema -> 文案: `useSettings.ts` 的 `BORDER_STYLE_KEYS: Record<BorderStyle, MessageKey>` 负责一一对应, 新增边框样式时该 Record 会编译报错, 从而强制补上三份 catalog 的 `settings.borderStyle.*`. `settings/schema.ts` 只从 i18n 取 `DEFAULT_LANGUAGE` / `LANGUAGES` / `Language`, 不 import i18n 的类型别名.
-
-`src/hooks/useTheme.ts` 是读取主题 palette 的唯一 hook. 不把 React hook 定义放在 store 文件中.
-
-主题应用规则:
-
-- Card 使用全局 `borderStyle` 和 `primary` border; 内容区默认透明, 传入 `mask` 时用 SpaceMask 铺满 content 区块.
-- Text 在未显式传 color 时使用主题 foreground.
-- StatusBar bright 状态使用主题 accent.
-- Menu 选中项使用主题 highlight.
-- 命令标题使用主题 primary.
-- 涨跌色, error, warning 和 success 属于语义色, 显式 color 优先于主题默认色.
-
-Settings 键盘:
-
-```text
-Up/Down/k/j       选择配置项
-Left/Right/h/l    减少或增加
-Enter             增加或切换 option
-d                 恢复默认值
-```
-
-`SETTING_ITEMS` 用 `group` 字段区分外观组和请求组. `SettingItem.type` 必须是每个成员各一个字面量, 否则 TS 无法按它收窄 `setting` 字段.
-
-所有数值更新必须经过 `normalizeSettings()`. 始终保证 `minimumRequestDurationMs <= requestTimeoutMs`.
-
-## 国际化
-
-语言集合是 `auto | zh-hans | zh-hant | en`, 默认 `auto`, 解析兜底为 zh-hans. `auto` 按 `LC_ALL` > `LC_MESSAGES` > `LANG` 读取系统语言, 再回退到 Node `Intl`, 最后回退 zh-hans. 环境变量明确指定了不支持的语言 (如 `ja_JP`) 时按默认中文处理, 不再回退到 Intl.
-
-- `src/i18n/types.ts` — 全部 i18n 类型的唯一来源, 也是**键的规范来源**. `Message` 逐键声明每个文案键 (值为 `string` 或 `MessageValue`); `MessageKey = keyof Message`; 另有 `MessageValue` / `MessageParams` / `Translate` / `Locale` / `Language`.
-- `src/i18n/locale.ts` — `LOCALES` / `LANGUAGES` / `DEFAULT_LOCALE` / `DEFAULT_LANGUAGE` / `LOCALE_NATIVE_NAMES` 与 `detectLocale()` / `resolveLanguage()`; 类型从 `types.ts` 导入, 检测每次实时计算.
-- `src/i18n/core.ts` — `t(key, params)` / `createTranslator(locale)` / `applyLanguage(language)`. 模块级 `activeLocale` 初值是常量 `zh-hans` 而不是检测结果 (默认中文, 且测试不受运行环境语言影响).
-- `src/i18n/catalog/{zh-hans,zh-hant,en}.ts` — 三份文案表, 都是 `as const satisfies Message`. `Message` 没有索引签名, 因此缺键和多余键都会被 `satisfies` 编译拦截. `catalog/index.ts` 只把三份合成 `CATALOGS`.
-- `src/hooks/useTranslation.ts` — 组件唯一入口, 返回 `{ locale, t }`, 写法与 `useTheme` 同构, 只依赖 `language` 变化重算.
-
-文案键是扁平点号命名 (`settings.row.language.label`), 按区域分组: `app` / `cli` / `command` / `menu` / `dialog*` / `stock*` / `chart.period` / `table` / `settings` / `api` / `common`.
-
-插值与复数:
-
-- `{name}` 占位符用 `MessageParams` 替换, 缺参时保留 `{name}` 原文.
-- 值为 `{ one, other }` 对象时按 `params.count` 选形态 (`count === 1` 取 `one`, 否则 `other`); 未传 `count` 时确定性地取 `other`.
-- **复数键的计数占位符必须命名为 `{count}`**, 即与形态选择的依据同名: 另起别名 (如 `{added}` / `{removed}`) 会让漏传 `count` 编译期无感, 运行时静默落到 `other`. `tests/catalog.test.ts` 有用例机械校验每个复数键的两种形态都含 `{count}`.
-- 需要单复数时在 `types.ts` 把该键声明为 `MessageValue`, 只有英文写 `{ one, other }`; 中文和繁体保持普通字符串. 目前只有 6 个计数键用 `MessageValue`.
-
-`useSettingsStore.language` 是唯一的 settings 状态, active locale 是由 `resolveLanguage()` 派生的只读渲染缓存, 从不持久化, 也不是 settings 输入. **生产只在两处写入**: `src/settings/persistence.ts` 的 hydrate 之后与 language 变化的订阅里, 以及 `src/cli/args.ts` 的 `parseCli()` (读取流程见 CLI 启动一节). `setActiveLocale()` 只给测试固定语言用, 不是第二个生产写入口.
-
-数值单位是数据不是文案, 定义在 `src/lib/format.ts` 的 `VOLUME_UNITS` / `TURNOVER_UNITS` / `MARKET_CAP_UNITS` 里, 用 `{ min, scale, decimals, suffix }` 描述档位 (亿/万/手 与 B/M/K/lots 之间是换算而非单纯改后缀). `formatVolume` / `formatTurnover` / `formatMarketCap` 末尾带 `locale: Locale = DEFAULT_LOCALE` 参数. 每档的 `min` 必须与 `scale` 对应 (`min * scale` 落在 1 附近), 否则该档在自己的下界就渲染成两位数, 等于跳过一个数量级.
-
-`formatWithUnits` 选中档位后还会向上检查一次: 渲染值达到上一档起点时改用上一档 (档位边界上四舍五入会进位, 999950 手用 K 档会渲染成 `1000.0K lots`, 改用 M 档输出 `1.0M lots`); 起点按本档小数位取整后再比较, 避免 scale 的浮点误差把边界推高一格. 这是格式化层的规则, 不靠加宽列宽兜底. 最高档 (`units[0]`) 上方没有档位可进, 跳过该检查, 因此 `100000.0万手` 这类超大值会自然变宽, 由列宽守卫用例的取值上限约束.
-
-行情表列宽按 locale 分开 (`ColumnSpec.widths`): 既要容纳英文表头, 也要容纳本地化单位格式化后的数值 (`611.0K lots` 比 `61.1万手` 宽). 名称列超过 4 个字符时由 `truncateName` 保留前 4 个字符并追加 `...`, 列宽 11 按最坏情况 (4 个 CJK 字符 + `...`) 定, 长名称因此不撑破列宽换行. `stockListColumns(locale)` 与 `stockDetailColumns(locale)` 内部用 `createTranslator(locale)` 而不是全局 `t`, 否则传参 locale 不生效; 解析结果按 locale 缓存在模块级 Map 里, 因此不会每次渲染重建列, 返回的数组引用稳定. **缓存的列定义是共享的, 调用方不得就地修改** (`scaleColumns` 需要改宽度时会复制).
-
-`WindowSizeGuard` 的 `MIN_TERMINAL_COLUMNS` 取**全部 locale** 看板列宽的最大值 + `TABLE_CHROME`, 不按当前 locale 推导: 守卫包住了全部命令, 下限若随语言变化, 在恰好满足中文下限 (118 列) 的终端上切到英文 (121 列) 就会被拦住, 语言再也改不回来. 新增或加宽某个 locale 的列会自然抬高全局下限, `tests/windowSizeGuard.test.tsx` 有用例校验覆盖关系.
-
-新增文案时: 先在 `types.ts` 的 `Message` 里加键, 再三份 catalog 同步补齐 (类型强制), 并保证各语言的占位符集合与之一致. 组件与常量表存 `MessageKey`, 在渲染处用 `t()` 解析. catalog 禁止全角标点, 顿号, U+3000 和 emoji, 由 `tests/catalog.test.ts` 的标点守卫用例机械校验.
-
-## settings.json 持久化
-
-唯一配置文件 `settings.json`, 路径按平台:
-
-```text
-$XDG_CONFIG_HOME/leek-box-cli/settings.json   # 设置了 XDG_CONFIG_HOME
-~/.config/leek-box-cli/settings.json          # 未设置时, Linux 与 macOS
-%APPDATA%\leek-box-cli\settings.json          # Windows (Roaming)
-```
-
-`configDirectory()` 优先级: 非空 `XDG_CONFIG_HOME` > Windows 的 `%APPDATA%` > `~/.config`. 空字符串的 `XDG_CONFIG_HOME` 按未设置处理.
-
-格式 (没有 legacy migration):
-
-```json
-{
-  "schemaVersion": 2,
-  "appVersion": "<app version>",
-  "language": "auto",
-  "theme": { "preset": "classic", "trendColorMode": "red-up", "borderStyle": "round" },
-  "request": {
-    "timeoutMs": 8000,
-    "minimumDurationMs": 0,
-    "quotePollIntervalMs": 5000,
-    "minuteChartPollIntervalMs": 30000,
-    "klinePollIntervalMs": 300000
-  },
-  "stocks": [{ "code": "sh600000", "addedAt": "2026-08-20T00:00:00.000Z" }]
-}
-```
-
-- `schemaVersion` 是**文档格式版本** (`CURRENT_SCHEMA_VERSION`, 当前为 2), 只在文档结构发生破坏性变更时加一: 新增可选字段不加 (旧程序按默认值接受, 新程序读旧文件也不需要迁移). v1 文件按当前规则解析, 下次写盘即去掉已移除的 `name` 字段.
-- `appVersion` 是写入这份文档的**应用版本** (`src/lib/version.ts` 取自 package.json), 只用于排查, 不参与兼容判断; 读取时缺失或非法都回落到当前应用版本, 不报错. 只判空串, 不 trim. 示例里的占位值实际写入的是当时运行的程序版本.
-- 写盘一律盖版本: `writeSettingsFile()` 先把文档校验一遍再盖 `schemaVersion` 与 `appVersion` —— 校验拦下读不懂的文档 (版本过新的文档不该被降级重写), 盖章让这两个字段描述**写入它的程序**; 读改写路径 (`stocksAdd()` 等) 不沿用旧值.
-- 文件不存在时使用默认 settings 和预置默认自选股 (DEFAULT_STOCK_CODES: sz002156, sh600584, sh688825) 创建, addedAt 为创建时间.
-- 文件存在时严格校验 language, theme, request 和 stocks; `theme.trendColorMode` 缺失时按默认 red-up 接受, `language` 缺失时按默认 auto 接受 (schema 的可选字段默认值规则, 不是 legacy 格式迁移).
-- 读取时先去除 UTF-8 BOM (`stripBom`); 版本字段缺失时按当前版本接受, 下次写盘自动补上.
-- `schemaVersion` 高于 `CURRENT_SCHEMA_VERSION` 时**拒绝读取**: 这份文件由更新的程序写入, 当前程序读不懂它 (`parseSettingsDocument` 按白名单重建, 尽力解析会把读不懂的字段静默写掉). 错误文案提示升级并带上文件路径, 用户升级前无法启动.
-- 这类错误用 `SchemaVersionTooNewError` 抛出, `loadExistingSettings()` 对它原样放行 (文件没坏, 不报成 "设置文件损坏"), 因此不套 corruptFile 包装. 文案里的路径由 `parseSettingsDocument(value, path)` 的 path 参数给出 (path 只用于报错文案, 与 `parseInteger(value, name, limits)` 的 name 同类). `schemaVersion` 非法 (非正整数) 同样报错.
-- 该错误另外带上文件里的 `language` (缺失或非法时为 undefined), `parseCli` 只在这条错误上额外看这个字段: "请升级" 是用户唯一必须读懂的一句话.
-- 版本字段只做判断, 不做迁移: 低版本文件按当前规则解析, 字段缺失走默认值, 没有 migration 层. 损坏文件直接报错, 不静默丢弃字段, 不 fallback 到旧格式.
-- `StockEntry` 为 `{code, addedAt}`. 名称**不是持久化数据** (行情里的名称会变, 存下来的那份会过期), 只来自实时行情 (看板行用 quote.name, 详情弹窗标题同源).
-- `parseStocks()` 校验 code, addedAt 和重复 code; 旧文档里的 name 按白名单重建丢弃.
-- `patchSettings()` 只合并变化的 settings 字段, 保留锁内读取到的最新 stocks; 合并结果与文件相同时不写盘 (全量重置后 persistence 补写默认值时走这条短路). `stocksAdd()`, `stocksRemove()` 在锁内读取最新文档后修改. `replaceStocks()` 表示明确的整表替换, 当前仅用于 mock reset.
-- `resetSettingsFile()` 重置为默认文档, 损坏文件也能修复; 应用内由 `settings/resetAll.ts` 的 `resetAll()` 触发 (重置文件 → 设置内存默认值 → 自选股重新载入). 它在锁内先读一次只为判断版本: 读得出来就照常覆盖, 读不出来 (损坏或缺失) 直接修. 版本过新的文件也拒绝覆盖 (重设不是它的逃生门).
-
-写入流程:
-
-1. 获取 `settings.json.lock`.
-2. 在锁内重新读取并校验最新 settings.json.
-3. 只修改当前操作负责的字段.
-4. 写入同目录唯一临时文件.
-5. rename 原子替换 settings.json.
-6. 校验 lock token 后释放.
-
-Lock 元数据包含 token, pid 和 createdAt. 元数据先写入临时文件, 再通过 hard link 原子发布, 不暴露空 lock 文件. Lock 使用 PID 和 30 秒 lease 判断 stale. 普通等待每 25ms 重试, 2 秒后给出可读错误.
-
-元数据读不懂的锁按残留处理 (本程序的锁不会出现半写的元数据): mtime 超过 2 秒立即清理, 否则等到本次调用用掉一半等待预算时清理. 后一半是必须的: 文件时间戳与调用方 `Date.now()` 之间的偏移随机器而异, 只看 mtime 时偏移为正会让清理永远晚于 busy 报错. `LOCK_UNREADABLE_GRACE_MS` 由 `LOCK_TIMEOUT_MS` 折半派生, 两者不要再合并成一个常量.
-
-`settingsPersistence` 在启动时 hydrate store. Store 变化后使用 100ms debounce 合并 patch, 串行写入, 保存失败时保留 pending patch, 后续变更或退出时重试. `stop()` 必须幂等并 flush 所有 pending 数据.
-
-## 轮询语义
-
-所有网络轮询使用 `src/hooks/usePolling.ts`.
-
-- 挂载后立即执行一次.
-- 单实例最多一个 in-flight task.
-- `intervalMs` 表示相邻任务的最小启动间隔.
-- task 完成后只等待 `intervalMs - taskDuration` 的剩余时间.
-- task 超过 interval 时下一轮立即开始, 但不并发.
-- 手动 refresh 清除 timer 并立即执行, 已有请求时忽略.
-- interval 变化在非请求期间重新排程.
-- 卸载或 restartKey 变化时清 timer 并 abort 当前请求.
-
-默认 interval 来自 `useSettingsStore`, 不在 StockList 或详情 store 保存重复值.
-
-详情 `restartKey` 必须包含打开的 code 和 `period` (store 只持有 `code`, 名称随行情走). 切股票或周期时旧请求必须 abort, store 还要检查当前 code/period, 防止陈旧结果落地.
-
-## 请求 timeout 和 minimum duration
-
-`src/api/index.ts` 的全部行情请求使用统一 timing wrapper.
-
-- 每次请求开始时读取最新 `requestTimeoutMs` 和 `minimumRequestDurationMs` (`api/lib/tools.ts` 直接读 `useSettingsStore.getState()`, 这就是依赖图里 api -> stores 那条边).
-- 调用者 signal 与 `AbortSignal.timeout()` 使用 `AbortSignal.any()` 合并.
-- minimum duration 只作用于成功请求, 失败和 HTTP error 立即返回.
-- minimum duration 补时支持调用者 signal 中止.
-- 配置变化只影响新请求, 不修改已经启动的请求.
-
-API 函数: `fetchQuotes()`, `fetchQuoteNames()` (行情里只要 code 与 name 时的投影, 内部复用 `fetchQuotes`, 因此 timing wrapper 只套一层, 空 codes 的短路也由 `fetchQuotes` 负责), `fetchIntraday()`, `fetchFiveDay()`, `fetchHistorical()`.
-
-实时行情使用 GBK. 必须先 `response.arrayBuffer()`, 再使用 `TextDecoder('gbk')`. 不使用 `response.text()`.
-
-## StockList 数据模型
-
-`StockListStep.table` 使用统一 rows:
-
-```ts
-type StockListRow = { kind: 'quote'; code: string; quote: Quote } | { kind: 'missing'; code: string }
-```
-
-禁止恢复 `quotes + missing` 双数组拼接. 统一 rows 用于渲染, 选择, Enter 打开详情和可视窗口.
-
-行的名称只在 quote 里: 缺失行 (行情没返回该代码) 没有第二个名称来源, 名称列显示 `--`, 其余列按列元数据显示占位文案. 打开详情也只用 code, 名称由详情弹窗自己从行情行里取 (`useStockListStore` 的 quote).
-
-选择身份使用 `selectedCode`, 不使用数组 index. 它是 `useStockList` 的状态: 刷新后保持仍存在的 code, 消失时按原来的下标回退到附近的行.
-
-`gg` 跳到顶部, `G` 跳到底部: 选中首行或末行, 与方向键走同一个 `selectIndex`, 不另写一套落点规则. `gg` 是两键序列, 第一键只有前缀意义 (不参与渲染, 因此是 hook 里的 ref 而不是 state), 其余按键让序列从零开始; 浮层打开时前缀作废 (浮层期间本 hook 的 `useInput` 失活, 收尾键落在浮层手里). ink 把同一 chunk 里的多个字符按粘贴一次性交出, 因此两次 `g` 必须分两次按键读入.
-
-窗口只在选中行要移出窗口时才滑动: 方向键, `gg`/`G`, 排序和刷新后的锚定都走 `scrollOffsetToReveal` 这一条规则 (已经在窗口里就一点不动). 不给"换顺序"另写落点规则: 选中行只是换了位置, 没移出窗口就不该动视口.
-
-按涨跌幅排序 (`s` 键) 是**视图**, 不是数据: `step.rows` 始终是自选股文件顺序, 排序模式 `sortMode` (`default | desc | asc` 三态循环) 只决定显示顺序, 因此回到 `default` 不需要重读 settings.json. 显示顺序只经由 `commands/StockList/lib.ts` 的 `displayedRows(step, sortMode)` 取出, `sortedRows(rows, sortMode)` 是它的底座: 看板渲染, `moveSelection`, `cycleSortMode` 和刷新后的视口锚定都用它, 因此只有一个来源. 缺失行没有涨跌幅可比, 一律排在末尾, 不参与升降序. 排序指示器只在排过序之后出现在 Card 右上角 (`涨跌幅 ▼` / `涨跌幅 ▲`, cyan 显示, 与刷新间隔并排); 排序是 hook 的内存状态, 不写盘.
-
-StockList 会逐字段比较 Quote. 数据未变化时复用旧 Quote 引用, 让 Zustand selector 的 `Object.is` 跳过无意义更新.
-
-右上角固定有一段刷新间隔 (`{value} ms`): 它取设置里的 `quotePollIntervalMs`, 不是某次刷新的耗时, 也不随刷新变化, 因此在 loading/empty/error 各 step 都在, 改设置后立即跟着变, 位置排在排序指示器之后, 两段之间用 `|` 分隔 (分隔符自己一个 Text). 除这两段外右上角不再显示别的角标. 不设手动刷新键: 刷新只由轮询驱动, 只有删除成功后会额外触发一次.
-
-上边框中间 (`borderTopCenter`) 是公共组件 `components/MarketIndexTicker/`: 传入一串指数行情, 它让上证指数与深证成指轮流显示, 每 5 秒换一个, 换的时候用 1 秒打字机把新的一行从左往右写出来 (首帧整行瞬显, 不播过渡; 只有一条时切换定时器不挂). 行情来自独立的 `useMarketIndexStore`: 它只请求 `MARKET_INDEX_CODES` (上证指数与深证成指), 按代码顺序落地, 缺哪条就少哪条. 它与自选股互不认识, 指数也不进表格行, 拉取失败保留上一次的行情 (指数只是角标, 不为它单开错误状态, 离开看板也不清空, 没有 loading 态).
-
-轮询接线在看板自己的 `hooks/useStockList.ts`: 它窄 selector 订阅该 store, 除自选股那条之外另挂一条 `usePolling`, 间隔同样取设置里的 `quotePollIntervalMs` (与看板同一个值, 不新增第二份间隔设置), 两条请求各自独立.
-
-名称来自实时行情, 数值用 `formatPrice` / `formatSigned` / `formatPercent`, 与界面语言无关, 因此这项功能一个文案键都不占. 组件自己不认识 store: 行情走 props (看板 `index.tsx` 把 `useStockList()` 返回的 `indices` 传给 `MarketIndexTicker`), 只有涨跌色订阅 `useSettingsStore`. 轮播与打字机状态在组件自己的 `MarketIndexTicker/hooks/useMarketIndexTicker.ts` (与 CheckboxGrid 同构), 它按帧重渲染的只有这一个组件; 行与动画的纯函数 (`indexSegments` / `typewriterSegments` 与三个 `INDEX_*_MS`) 在组件自己的 `MarketIndexTicker/lib.ts`, 段类型直接复用 `lib/quoteTable.ts` 的 `Row`, 渲染复用 `QuoteRow`.
-
-打字机按显示宽度逐字写出 (CJK 不切半个字), 并把整行补空格到最终宽度 (它摆在居中槽位里, 行宽随进度变化会让文字左右跳). 行情没返回的指数不占位 (轮播按 `indices.length` 取模), 一条都没有时该组件不渲染任何东西, 上边框中间只留下槽位自己的空管道 `||`. 角标落在边框槽位上, 与右上角的刷新间隔同级: 看板的 loading/empty/error 各 step 都在.
-
-看板按 `d` 删除选中那一只: 用选中行拼一条 `StockRemoveEntry` (名称取行内实时行情, 缺失行没有名称, 弹窗因此只列代码) 打开共享的 DialogRemoveConfirm (删除流程见 Command, hook 和 store 分层一节), 并把 `usePolling` 的 `refresh` 登记成收尾动作: 删除成功后立刻刷新一次 (选中股消失时按原下标回退到邻近的行, 删空则进入 empty). 一个都不算删掉时弹窗进 error, 收尾动作不调用, 那一行要等下一次轮询才消失. `refresh()` 在请求进行中不并发, 那种情况下同样等下一轮.
-
-## Card, Dialog 和 Text
-
-每个 command 自己渲染 full-terminal Card 和 StatusBar. App 只渲染当前 command, 然后按序堆叠渲染浮层: DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm (最后绘制即最上层). 浮层输入由各自的 isActive 门控; DialogConfirm 打开时其余浮层变暗 (bright=false) 且输入失活, 仅确认弹窗保持明亮, 其余浮层保留挂载与状态.
-
-`src/components/` 含 Card, Dialog, AppLogo, SpaceMask, Text, StatusBar, TextInput, CheckboxGrid, MarketIndexTicker (目录: index.tsx + hooks/ + lib.ts) 与复合弹窗 (DialogMenu, DialogStockDetail, DialogRemoveConfirm, DialogConfirm). Dialog 导出 `DIALOG_CHROME` 和 `DIALOG_WIDTH_RESERVE`; WindowSizeGuard 持有 `MIN_TERMINAL_ROWS` 与 `MIN_TERMINAL_COLUMNS` (与界面语言无关的常量), 并在尺寸达标分支把 children 包进一个终端尺寸的 Box, 作为 `full` Card 百分比尺寸的基准.
-
-Card 负责:
-
-- `full` 或显式 width/height
-- 主题 border style 和 border color
-- 左上 borderTopLeft, 右上 borderTopRight, 左下 borderBottomLeft, 右下 borderBottomRight 与上边框中段 borderTopCenter (五处内容都由 CardCorner 渲染, 绝对定位压在边框行上, 固定单行并裁剪溢出, 内容两侧各一个 `|`)
-- 上边框中段跨满内容区并 `justifyContent="center"`. 它与四个角同在一行, 因此顺序上排在四角**之前**绘制: 万一内容过宽, 被压住的是中间而不是标题和角标
-- 内容 padding 和可选 `mask` (打开时用 SpaceMask 盖住其后内容)
-- footer
-
-`full` 把 width 和 height 都写成 100%, Card 因此不再读 `useWindowSize`; 代价是必须有一个给定尺寸的祖先, 由 `WindowSizeGuard` 尺寸达标分支包出的 Box 充当. 脱离这个祖先渲染 `full` Card 时 `height: '100%'` 解析不到确定值, 会退回内容高度 (ink 只给 root node 设宽度, 不设高度), 因此测试显式提供一个给定尺寸的父盒锁定这条契约.
-
-Dialog 支持 `above`, `borderTopLeft`, `borderTopRight`, `borderBottomLeft`, `borderBottomRight`, `hint` 和 `width` (四角类型从 CardProps Pick 而来), footer 由 StatusBar 渲染 hint 和时钟. Dialog 使用 absolute full-terminal Box 居中 Card, 外层保持透明, 让底层 command 的 dim 状态可见; Card 传入 `mask` 铺满 content 区域.
-
-`above` 渲染在 Card 之上并与 Card 居中同轴, 与 Card 之间的一行间距由 Dialog 的 `marginBottom` 提供, 槽位内容不自带外边距. 它是唯一不参与 Card 宽度也不在 Card `mask` 之内的浮层槽位: art 覆盖的单元格 (含字母之间的空格) 由 Ink 逐格重写, 自身那一带不会与底层文字串行, 左右两侧仍是底层 command 的 dim 内容. 目前只有 DialogMenu 用它与 AppLogo 搭配.
-
-AppLogo 是应用 ASCII art (两行), 各行必须等宽, 且宽度不得超过 `MIN_TERMINAL_COLUMNS` (否则在恰好卡着宽度下限的终端上 art 会被裁). `tests/appLogo.test.ts` 有守卫用例锁定这两条; 组件不铺 mask, 也不接受宽度参数.
-
-弹窗宽度由 `components/Dialog.tsx` 的 `dialogContentWidth(...)` 与 `dialogWidth(columns, widest)` 统一计算, 各弹窗不再各写一份公式: 内容侧先取最宽的一项并套上限, 外层取标题, 内容, hint 的最大值 (下限 24), 再加 `DIALOG_CHROME` 与 `DIALOG_WIDTH_RESERVE`, 上限为终端宽度减 2. 内容是列表时把每项宽度逐个传给 `dialogContentWidth`, 不要先把整串宽度拼出来.
-
-SpaceMask 用在 card 被 `mask` 时铺出内容区 clientWidth*clientHeight 个空格 (absolute + flexDirection column, 每行一个 Text). 测量在 Card 内部的 `MaskedContent` 里完成: 它只在该 Card 需要 `mask` 时挂载, 自身带着 `useBoxMetrics`, 普通 Card 因此完全不做布局测量. 测量完成前 (`hasMeasured` 为 false, 即首帧) 不渲染, 与 ScrollBox, CheckboxGrid 用 `hasMeasured` 兜底的写法一致. Card 不接受 `backgroundColor`, 遮蔽一律走 `mask`.
-
-ScrollBox 用 ink 8 的 `contentOffsetY` 滚动: 视口是 `flexBasis={0} flexGrow={1} overflow="hidden"` 的 Box, 整份 list (不切片) 放在一个 `flexShrink={0}` 的 wrapper 里, `contentOffsetY` 把它上移钳制后的偏移. `flexBasis={0}` 不能省: 视口默认 `flexBasis: auto` 会以整段内容为基准尺寸, 内容高于视口时同一列的表头行会被 flex 收缩挤掉. 可视行数取 `useBoxMetrics` 的 clientHeight, 经 `onVisibleChange` 交给调用方; 偏移的钳制规则与 `commands/StockList/lib.ts` 的 `visibleWindow` 相同, 两处各有一份是分层使然 (components 不 import commands), 改一处要同时改另一处.
-
-本地 `src/components/Text.tsx` 是项目文字入口, 负责主题默认 foreground 和 overlay dim. Ink 原生 Text 只在封装内部或测试中直接使用.
-
-CheckboxGrid 是多选网格: 方向键移动, 空格勾选, 回车提交勾选项 (至少一个才触发). 内部处理光标滚动窗口, `isActive` 控制输入, 外部通过 key 重挂载 (resetToken 变化) 清空勾选. 重挂载会把光标带回第一格, 因此另有 `defaultCursor` (可选, 默认 0, 越界时按 `clampCursor` 钳制) 与 `onCursorChange` (光标移动时回传新下标, 初始位置不回传): 删除页用它们让删除后的光标停在原来的位置 (同一个下标, 越界时落到末格). 网格自身不受这两个值影响, 它们只在挂载时读一次.
-
-列数和列间距都不写死在组件里: `columnCount` (至少为 1) 与 `columnGap` (至少为 2) 都是必填 prop, 组件不设默认值, 也不读终端尺寸. 列数推导函数 `gridColumnCount(contentWidth, columnGap)` 与其它网格几何一起放在 `CheckboxGrid/lib.ts`: 按内容区宽度取每格仍不小于最小单元格宽度的最大列数 (最小单元格宽度 24 列, 即 `[x] 四字名称 (sh600000)` 的宽度), 最后钳制到 2..8.
-
-StockRemove 在 `index.tsx` 里用 Ink 的 `useWindowSize()` 取终端列数, 再按 `gridColumnCount(columns - TABLE_CHROME, columnGap)` 推导列数: 单元格等分 Card 内容区宽度 (`columns - TABLE_CHROME`). 列数变化 (终端宽度变化) 会改变光标所在的行, 所以 hook 在渲染前用 `scrollForCursor` 再钳制一次滚动偏移.
-
-## TextInput 协议
-
-TextInput 的 props 是 `{ prompt, onSubmit, placeholder?, isActive? }`: `isActive` 默认为 true, 由 command 传入 `!overlayOpen.open` (组件不自己读浮层状态), 组件内部再叠加 `!submitted`, 因此回车后输入框不再接受按键并收起光标. 返回入口 `ActionResult` 复用这两个字段 (`Pick<TextInputProps, 'isActive' | 'onSubmit'>`), 自己不 import command 或 store: "按 Enter 返回" 的行为由命令的 hook 提供, 例如 `useStockAdd()` 的 `handleSubmit`.
-
-TextInput 的 value 和 submitted 是组件本地状态. 业务 store 保存:
-
-```ts
-{
-  error: string | undefined
-  resetToken: number
-}
-```
-
-resetToken 变化时清空输入并重新激活. 命令给不同步骤添加 token 前缀, 例如 `code-1` 和 `confirm-1`. 不依赖 React key 强制 remount.
-
-TextInput 和全局快捷键没有事件冒泡停止机制. TextInput 在激活期间 (isActive 且未提交) 通过 `useInputFocusStore` 做引用计数: App 的 `useInput` 在计数大于 0 时忽略 q, 让输入字符归输入框所有; esc 仍打开菜单, 它是输入页唯一的返回入口, 且 TextInput 不消费 escape. 因此 StockAdd 的 hint 只列 `菜单(esc)`, 不再宣传 `退出(q)`. 新增自由文本编辑模式时复用 TextInput 即可, 不要再让输入字符触发全局动作.
-
-## 行情解析和显示
-
-A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 停牌显示 `--` 和 `common.suspended` (英文 `Suspended`), 但只替换数值列, 代码与名称列照常显示; 接口缺失显示 `--` 和 `common.noData` (英文 `No data`).
-
-`src/api/lib/parsers.ts` 是纯解析层: `parseQuoteText()` (实时行情文本), `parseIntradayResponse()` (当日分时), `parseFiveDayResponse()` (五日分钟数据), `parseHistoricalResponse()` (日, 周, 月 K).
-
-腾讯在名称字段里用空格把短名称补齐到固定显示宽度 (如 `万  科Ａ`, `深 赛 格`), `parseQuoteText()` 去掉全部空白字符后再写入 `Quote.name`, 名称列截断因此只按真实字符数计算.
-
-年 K 使用后复权月 K 在本地按年份聚合. Chart 数据和行情语义色不受 UI theme preset 覆盖.
-
-## 测试和验证
-
-测试使用 Vitest. **一个源文件一个测试文件**, 均位于 `tests/`, 文件名取自对应的源文件 (首字母小写): `src/api/index.ts` -> `tests/api.test.ts`, `src/commands/StockList/index.tsx` -> `tests/stockList.test.tsx`. 命令目录与 settings 目录重名时命令侧带 `Command` 后缀: `tests/settingsCommand.test.tsx` 测 `commands/Settings/index.tsx`, `tests/schema.test.ts` / `tests/file.test.ts` 测 `settings/` 下的同名文件. 命令或组件的 `lib.ts` 用 `<feature>Lib.test.ts` (`tests/stockListLib.test.ts`, `tests/checkboxGridLib.test.ts`, `tests/stockChartLib.test.ts`, `tests/marketIndexTickerLib.test.ts`). 入口接线由 `tests/main.test.tsx` 覆盖 `src/main.tsx`.
-
-`tests/architecture.test.ts` 是没有单一对应源文件的跨文件守卫, 机械检查本地 import 后缀, 依赖方向 (i18n 叶子层, navigation/components 不依赖 commands) 与纯状态层不引入 React/Ink 运行时. 它是 "一个源文件一个测试文件" 的刻意例外, 新增此类全局约束时继续放在这个文件, 不要拆成无主的多个文件.
-
-`tests/helpers/` 放共享测试设施, 不参与用例收集:
-
-- `ink.tsx` --- 渲染到固定尺寸输出 (`CaptureOutput` / `createInput` / `renderInk` / `plain`) 与四种等待: `waitForFrame` (after 之后任取一帧), `waitForLatestFrame` (只看最新一帧), `waitForState` (轮询状态), `waitForInput` (让出一拍: 同一 tick 连写的两个按键会被 ink 合并成一个输入, 两键序列必须分开写), 以及所有渲染用例共用的收尾 `unmountApp(instance)`: `unmount()` 后 `await waitUntilExit()`, 等 ink 把 unmount 写出的最后一帧落盘.
-- `app.tsx` --- App 级断言: `renderApp`, `resetStores`, `assertFrameSize`, `selectedCodeIn`, `isDimmed`, 以及把看板, 删除网格和指数角标钉在给定数据上的 `stubBoardRows` / `stubRemoveEntries` / `stubMarketIndices`.
-- `fixtures.ts` --- 行情与自选股夹具: `quote` / `quoteRow` / `missingRow` / `rowCodes` / `stockEntry` / `removeEntry`.
-- `clock.ts` --- 时钟帧断言: `CLOCK_PATTERN` 与 `clockIn()`.
-
-测试文件必须隔离 `XDG_CONFIG_HOME`, 不读写用户真实 settings.json. 全局 Zustand singleton 在渲染用例之间由 `resetStores()` 用 `getInitialState()` 恢复; 指数 store 是例外, 它改为钉成空角标 (`stubMarketIndices()`), 因为看板一挂载就会发起第二条请求, 不钉住的话每个 App 级用例都会真的联网. 需要指数数据的用例在 `resetStores()` 之后自己 `stubMarketIndices([...])` 覆盖.
-
-断言选中行反显与浮层 dim 的用例需要 Ink 真的输出 SGR 序列, 因此 `FORCE_COLOR` 由 `vitest.config.ts` 的 `test.env` 提供: chalk 在模块求值时就定下颜色档位, 写在测试文件顶部或 helper 里都太迟. 需要彩色断言的新文件不必自己设这个变量.
-
-`vitest.config.ts` 的 `setupFiles` 先加载 `src/lib/polyfill.ts`, 与生产入口保持一致: 测试直接 import 源文件, 不经过 `src/main.tsx`, 缺少 `getOrInsertComputed` 的运行时会在 `WindowSizeGuard` 的模块顶层求值时就抛错.
-
-涉及渲染帧或文案断言的测试必须固定语言: 模块级 `activeLocale` 初值是 `zh-hans`, 但 `language` 默认值 `auto` 会跟随运行环境的系统语言, 因此 `resetStores()` (同时把 store 的 `language` 置为 `zh-hans`), `tests/persistence.test.ts`, `tests/api.test.ts` 与 `tests/schema.test.ts` / `tests/file.test.ts` 的 `beforeEach` 都显式 `setActiveLocale(DEFAULT_LOCALE)`. 新增此类测试必须做同样的固定. 需要中文或英文文案时用 `t(key)` 而不是字面量.
-
-`tests/quoteTable.test.ts` 持有三语言列宽的守卫用例: 表头宽度, 停牌/缺失占位文案宽度, 以及单位列在档位边界 (含四舍五入) 的渲染文本宽度都不超过列宽, 另有 `LIST_WIDTH_SUM` 锁定各 locale 的列宽之和, 以及名称列省略后不超出列宽的用例. 改动 `ColumnSpec.widths` 或 `format.ts` 的单位档位时必须同步更新这些常量. `cell()` 只补齐不截断, 因此超宽文本会撑宽整行并让后续列错位. `tests/windowSizeGuard.test.tsx` 另有一条用例校验 `MIN_TERMINAL_COLUMNS` 覆盖全部 locale 的看板占宽.
-
-`tests/useSettingsStore.test.ts` 与 `tests/useStockListStore.test.ts` 持有字段覆盖守卫: 逐个字段翻转让 `settingsEqual` / `settingsPatch` / `quotesEqual` 必须识别, 新增 `Settings` 或 `Quote` 字段而漏改这三个函数时用例失败 (`Quote.code` 由行情 map 的键决定, 不参与逐字段比较). `Settings` 里的数值项还必须同步 `SETTING_LIMITS`, 否则边界覆盖用例失败; 越界值由 `hydrateSettings` clamp.
-
-覆盖率由 `@vitest/coverage-v8` 统计. `pnpm test:coverage` 使用 `vitest.config.ts` 的全局阈值 (statements 93.5 / branches 87 / functions 97 / lines 95) 判定, 明显回落时以退出码 1 失败. 阈值是防回落的基线, 不是目标值: 新代码应带测试, 确实覆盖不到的分支先说明原因再调整阈值. HTML 报告写入 `coverage/`, 已被 `.gitignore` 忽略.
+## 验证
 
 修改后至少运行:
 
@@ -541,20 +111,3 @@ script -qec "stty cols 160 rows 40; pnpm dev" /dev/null
 ```
 
 涉及 settings 或 stocks 时设置临时 `XDG_CONFIG_HOME`.
-
-## 代码和界面规范
-
-- 中文使用 ASCII `, . : ; ! ? ( )`, 标点后按英文规则留空格.
-- 禁止中文全角标点, 顿号和 U+3000 空格.
-- 不使用 emoji.
-- 上述三条同样适用于 catalog 内容, 由 `tests/catalog.test.ts` 的标点守卫用例机械校验.
-- 不新增兼容 alias, migration 或 deprecated API, 除非任务明确要求.
-- 不新增第二份路由, overlay, poll interval 或 settings 状态.
-- 不新增第二份文案来源: 显示文案只放 catalog, 组件与常量表存 `MessageKey` 并在渲染处解析.
-- 不直接修改 Zustand store 内部字段来绕过 action, 测试 setup 和明确初始化除外.
-- store 里的类型统一带该 store 的 feature 前缀 (含只经 Step 联合类型暴露的): `useStockListStore` 有 `StockListRow` / `StockListStep` / `StockListDependencies`, `useStockAddStore` 有 `StockAddCandidate`. 不写 `StockRow` / `StockCandidate` 这类省掉 feature 的形式. 唯一的例外是 `StockEntry`: 它由多个 store 共用, 定义在 settings/schema.
-- 前缀动词区分 I/O: 走 HTTP 的用 `fetchX` (fetchQuotes, fetchQuoteNames), 从文件读的用 `loadX` (loadStocks, loadEntries).
-- 同一种数据在各层用同一个名字: 删除网格的 `entries` 和确认弹窗的 `entries` 是同一份 `StockRemoveEntry[]`, 不一处叫 `entries` 另一处叫 `targets`. 泛型组件自己的词汇不算别名 (CheckboxGrid 的 `items` 指任意 T).
-- 表格宽度由列元数据推导, CJK 宽度使用项目本地函数.
-- command 不复制 Card, StatusBar, registry 或 persistence 逻辑.
-- 所有退出走 Ink, 所有持久化退出前 flush.
