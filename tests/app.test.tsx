@@ -111,3 +111,20 @@ test('浮层打开时终端尺寸不足, stdin 仍被引用', async () => {
     resetStores()
   }
 })
+
+test('无浮层且没有输入框聚焦时 q 退出应用', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+
+  resetStores()
+  stubBoardRows([])
+  const instance = renderApp(output, input)
+
+  try {
+    await waitForFrame(output, 0, (candidate) => plain(candidate).includes('自选股票看板'))
+    input.write('q')
+    await instance.waitUntilExit()
+  } finally {
+    resetStores()
+  }
+})

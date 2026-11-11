@@ -27,6 +27,11 @@ test('删除确认弹窗 confirm 阶段忽略不在 hint 里的 esc', async () =
     input.write('\x1B')
     await delay(100)
     expect(dialogStore.getState().step.type).toBe('confirm')
+
+    // ctrl 组合键同样不触发 y/n 分支
+    input.write('\x01')
+    await delay(100)
+    expect(dialogStore.getState().step.type).toBe('confirm')
   } finally {
     await unmountApp(instance)
     resetStores()

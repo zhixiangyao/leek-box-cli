@@ -5,6 +5,7 @@ import { TABLE_CHROME } from '../src/components/WindowSizeGuard.tsx'
 import { t } from '../src/i18n/core.ts'
 import { useCommandStore } from '../src/stores/useCommandStore.ts'
 import { useDialogRemoveConfirmStore } from '../src/stores/useDialogRemoveConfirmStore.ts'
+import { useStockRemoveStore } from '../src/stores/useStockRemoveStore.ts'
 import {
   assertFrameSize,
   BOARD_COLUMNS,
@@ -33,6 +34,50 @@ test('App 的删除命令渲染自己的标题与 hint', async () => {
     expect(plain(frame)).not.toMatch(/15:00 \(5000ms\)/)
     expect(plain(frame)).toMatch(/删除测试股/)
     assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('删除页在自选股为空时显示空列表提示', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+
+  resetStores()
+  stubBoardRows([])
+  stubRemoveEntries([])
+  useCommandStore.setState({ command: 'stock-remove' })
+
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes(t('common.watchlistEmpty')))
+    expect(plain(frame)).toContain(t('common.watchlistEmpty'))
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('删除页加载失败时显示错误信息', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+
+  resetStores()
+  stubBoardRows([])
+  stubRemoveEntries([])
+  useCommandStore.setState({ command: 'stock-remove' })
+
+  const instance = renderApp(output)
+
+  try {
+    await waitForFrame(output, 0, (candidate) => plain(candidate).includes(t('common.watchlistEmpty')))
+
+    const after = output.frames.length
+    useStockRemoveStore.setState({ entries: [], errorMessage: '网络错误' })
+    const frame = await waitForFrame(output, after, (candidate) => plain(candidate).includes('网络错误'))
+    expect(plain(frame)).toContain('网络错误')
+    expect(plain(frame)).not.toContain(t('common.watchlistEmpty'))
   } finally {
     await unmountApp(instance)
     resetStores()

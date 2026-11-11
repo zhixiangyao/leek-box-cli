@@ -347,6 +347,25 @@ test('空字符串的 XDG_CONFIG_HOME 按未设置处理, 回退到 ~/.config', 
   }
 })
 
+test('Windows 下 %APPDATA% 也缺失时回退到 ~/.config', () => {
+  const previousConfigHome = process.env['XDG_CONFIG_HOME']
+  const previousAppData = process.env['APPDATA']
+  const platform = Object.getOwnPropertyDescriptor(process, 'platform')!
+
+  try {
+    delete process.env['XDG_CONFIG_HOME']
+    delete process.env['APPDATA']
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+    expect(settingsPath()).toBe(join(homedir(), '.config', 'leek-box-cli', 'settings.json'))
+  } finally {
+    Object.defineProperty(process, 'platform', platform)
+    if (previousConfigHome === undefined) delete process.env['XDG_CONFIG_HOME']
+    else process.env['XDG_CONFIG_HOME'] = previousConfigHome
+    if (previousAppData === undefined) delete process.env['APPDATA']
+    else process.env['APPDATA'] = previousAppData
+  }
+})
+
 test('Windows 下未设置 XDG 时使用 %APPDATA%', () => {
   const previousConfigHome = process.env['XDG_CONFIG_HOME']
   const previousAppData = process.env['APPDATA']

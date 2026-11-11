@@ -8,7 +8,16 @@ import { useDialogStockDetailStore } from '../src/stores/useDialogStockDetailSto
 import { useStockListStore } from '../src/stores/useStockListStore.ts'
 import { BOARD_COLUMNS, BOARD_ROWS, resetStores } from './helpers/app.tsx'
 import { quote } from './helpers/fixtures.ts'
-import { CaptureOutput, createInput, plain, renderInk, unmountApp, waitForFrame, waitForState } from './helpers/ink.tsx'
+import {
+  CaptureOutput,
+  createInput,
+  plain,
+  renderInk,
+  unmountApp,
+  waitForFrame,
+  waitForInput,
+  waitForState,
+} from './helpers/ink.tsx'
 
 /** 详情弹窗自己读 store, 测试直接钉住状态, 图表请求不联网 */
 const openDetail = (overrides: Partial<ReturnType<typeof useDialogStockDetailStore.getState>> = {}) => {
@@ -88,6 +97,28 @@ test('详情弹窗渲染请求错误与空数据文案', async () => {
   }
 })
 
+test('详情弹窗有数据时渲染图表而不是空提示', async () => {
+  resetStores()
+  openDetail({
+    status: 'ready',
+    points: [
+      { time: '0930', price: 10, volume: 100 },
+      { time: '1500', price: 11, volume: 300 },
+    ],
+  })
+  const { output, instance } = renderDetail()
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('浦发银行'))
+    const text = plain(frame)
+    expect(text).not.toContain(t('dialogStockDetail.empty', { period: t('chart.period.intraday') }))
+    expect(text).toContain('sh600000')
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
 test('详情弹窗数字键切换周期, esc 关闭', async () => {
   resetStores()
   openDetail()
@@ -95,6 +126,14 @@ test('详情弹窗数字键切换周期, esc 关闭', async () => {
 
   try {
     await waitForFrame(output, 0, (candidate) => plain(candidate).includes('浦发银行'))
+
+    // ctrl 组合键与非周期数字键都不切换周期
+    input.write('\x01')
+    await waitForInput()
+    input.write('9')
+    await waitForInput()
+    expect(useDialogStockDetailStore.getState().period).toBe('intraday')
+    expect(useDialogStockDetailStore.getState().code).toBe('sh600000')
 
     input.write('2')
     await waitForState(() => useDialogStockDetailStore.getState().period === 'five-day')

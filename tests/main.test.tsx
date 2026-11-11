@@ -3,6 +3,7 @@ import process from 'node:process'
 import { afterEach, expect, test, vi } from 'vitest'
 
 import type { RunDependencies, StartApp } from '../src/cli/run.ts'
+import { t } from '../src/i18n/core.ts'
 import { APP_NAME } from '../src/lib/version.ts'
 import { useCommandStore } from '../src/stores/useCommandStore.ts'
 
@@ -65,6 +66,22 @@ test('startApp 写入初始命令并以 alternate screen 启动 Ink, 退出时 f
   })
   expect(stop).toHaveBeenCalledTimes(1)
   expect(process.exitCode).toBeUndefined()
+})
+
+test('持久化错误经 console.error 报告', async () => {
+  mocks.render.mockReturnValue({ waitUntilExit: async () => undefined })
+  mocks.startSettingsPersistence.mockResolvedValue({ stop: async () => true })
+  const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+  try {
+    await startApp()({})
+    const onError = mocks.startSettingsPersistence.mock.calls.at(-1)![0] as (error: unknown) => void
+    onError(new Error('磁盘已满'))
+
+    expect(errorSpy).toHaveBeenCalledWith(t('app.persistenceFailed', { error: '磁盘已满' }))
+  } finally {
+    errorSpy.mockRestore()
+  }
 })
 
 test('持久化没有成功 flush 时置退出码 1', async () => {

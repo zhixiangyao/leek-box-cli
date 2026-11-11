@@ -76,6 +76,24 @@ test('TextInput: 回车后不再接受输入', async () => {
   }
 })
 
+test('TextInput: backspace 与 delete 删除最后一个字符', async () => {
+  const { output, input, instance } = renderInput(true, () => {})
+
+  try {
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('code: '))
+    await type(input, '600')
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('code: 600█'))
+
+    await press(input, '\x7f')
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('code: 60█'))
+
+    await press(input, '\x1B[3~')
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('code: 6█'))
+  } finally {
+    await unmountApp(instance)
+  }
+})
+
 test('TextInput: 省略 isActive 时默认为 true, 仍接受输入', async () => {
   const submitted: string[] = []
   const { output, input, instance } = renderInput(undefined, (value) => submitted.push(value))

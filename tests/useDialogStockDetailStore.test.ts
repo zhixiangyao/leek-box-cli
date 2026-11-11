@@ -26,6 +26,32 @@ test('股票详情忽略先前打开代码已完成的请求', async () => {
   expect(store.getState().code).toBe('sz000001')
 })
 
+test('先前代码的请求失败不会把新股票置为 error', async () => {
+  let rejectOld: (error: Error) => void = () => undefined
+  const store = createDialogStockDetailStore({
+    fetchIntraday: (code) =>
+      code === 'sh600000'
+        ? new Promise<IntradayPoint[]>((_resolve, reject) => {
+            rejectOld = reject
+          })
+        : Promise.resolve(pointsOf(12)),
+    fetchFiveDay: async () => [],
+    fetchHistorical: async () => [],
+  })
+
+  store.getState().open('sh600000')
+  const pendingOld = store.getState().refreshChart('sh600000', 'intraday')
+  store.getState().open('sz000001')
+  await store.getState().refreshChart('sz000001', 'intraday')
+
+  rejectOld(new Error('接口超时'))
+  await pendingOld
+
+  expect(store.getState().status).toBe('ready')
+  expect(store.getState().errorMessage).toBeUndefined()
+  expect(store.getState().code).toBe('sz000001')
+})
+
 test('五日与 K 线按周期调用各自的依赖', async () => {
   const fiveDayPoints: FiveDayPoint[] = [
     { time: '0930', price: 10, volume: 10, sessionDate: '2026-10-23', prevClose: 9.9 },

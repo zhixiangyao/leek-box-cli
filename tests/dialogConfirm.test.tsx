@@ -35,6 +35,40 @@ test('通用确认弹窗确认态: hint 为 取消(n) 确定(y)', async () => {
   }
 })
 
+test('通用确认弹窗确认态: esc 与 ctrl 组合键不关闭, n 取消', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+
+  resetStores()
+  stubBoardRows()
+
+  const instance = renderApp(output, input)
+
+  try {
+    const confirm = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    const after = output.frames.length
+    useDialogConfirmStore.setState({
+      config: { title: '确认重置吗?', content: '此操作将重置所有设置与自选股为默认值.', isError: false, confirm },
+    })
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes('取消(n)'))
+
+    // confirm 态的 esc 不在 hint 里, ctrl 组合键也不触发确认或取消
+    input.write('\x1B')
+    await delay(100)
+    input.write('\x19')
+    await delay(100)
+    expect(useDialogConfirmStore.getState().config).not.toBeUndefined()
+    expect(confirm).not.toHaveBeenCalled()
+
+    input.write('n')
+    await waitForFrame(output, after, (candidate) => !plain(candidate).includes('确认重置吗'))
+    expect(useDialogConfirmStore.getState().config).toBeUndefined()
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
 test('通用确认弹窗错误态: update 换上失败信息并把 hint 切到 关闭(esc) 重试(y)', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
   const input = createInput()

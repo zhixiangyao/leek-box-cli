@@ -56,6 +56,14 @@ test('typewriterSegments 不切出半个 CJK 字', () => {
   expect(rowText(revealed)).toBe(`上证指a${' '.repeat(4)}`)
 })
 
+test('typewriterSegments 放不下整字的段落不输出空文本段', () => {
+  const segments: Row = [{ text: 'ab' }, { text: '上证', color: 'red' }]
+  // 进度只够写出 2 列: 第二段的首字宽 2 列, 整字留给下一帧
+  const revealed = typewriterSegments(segments, 2 / 6)
+
+  expect(revealed).toStrictEqual([{ text: 'ab' }, { text: '    ' }])
+})
+
 test('typewriterSegments 保留段落颜色', () => {
   const segments: Row = [{ text: '上证指数 ' }, { text: '3245.67', color: 'red' }]
   const revealed = typewriterSegments(segments, 1)

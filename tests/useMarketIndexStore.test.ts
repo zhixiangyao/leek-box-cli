@@ -29,6 +29,20 @@ test('行情没返回的指数不占位', async () => {
   expect(store.getState().indices.map((entry) => entry.code)).toStrictEqual(['sh000001'])
 })
 
+test('已取消的信号不落地指数行情', async () => {
+  const controller = new AbortController()
+  const store = createMarketIndexStore({
+    fetchQuotes: async (codes) => {
+      controller.abort()
+      return codes.map((code) => quote({ code, name: code }))
+    },
+  })
+
+  await store.getState().refreshIndices(controller.signal)
+
+  expect(store.getState().indices).toStrictEqual([])
+})
+
 test('拉取失败时保留上一次的行情', async () => {
   let failing = false
   const store = createMarketIndexStore({

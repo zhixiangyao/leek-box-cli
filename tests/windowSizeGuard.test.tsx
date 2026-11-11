@@ -68,6 +68,22 @@ test('只有高度不足时仍拦截子树, 宽度行保持通过状态', async 
   }
 })
 
+test('只有宽度不足时仍拦截子树, 高度行保持通过状态', async () => {
+  resetStores()
+  const { output, instance } = renderGuard(40, MIN_TERMINAL_ROWS)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes(t('windowGuard.tooSmall')))
+    const text = plain(frame)
+    expect(text).not.toContain('board-child')
+    expect(text).toContain(t('windowGuard.width', { value: 40 }))
+    expect(text).toContain(t('windowGuard.height', { value: MIN_TERMINAL_ROWS }))
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
 test('终端尺寸变化时在拦截与渲染子树之间切换', async () => {
   resetStores()
   const { output, instance } = renderGuard(40, 10)

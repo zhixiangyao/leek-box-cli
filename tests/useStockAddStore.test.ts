@@ -1,9 +1,15 @@
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import process from 'node:process'
+
 import { expect, test } from 'vitest'
 
 import type { Quote } from '../src/api/types.ts'
 import { yesNoErrorMessage } from '../src/lib/yesNo.ts'
+import { loadStocks } from '../src/settings/file.ts'
 import type { StockEntry } from '../src/settings/schema.ts'
-import { createStockAddStore, type StockAddDependencies } from '../src/stores/useStockAddStore.ts'
+import { createStockAddStore, type StockAddDependencies, useStockAddStore } from '../src/stores/useStockAddStore.ts'
 import { quote, stockEntry } from './helpers/fixtures.ts'
 
 /** StockAdd store 默认依赖: 600000/000001 可归一化, 行情全部命中 */
@@ -163,4 +169,70 @@ test('StockAdd store reset 作废在途校验并回到输入阶段', async () =>
   await pending
 
   expect(store.getState().step.type).toBe('input-code')
+})
+
+test('reset 之后在途的校验失败与写入结果都不落地', async () => {
+  let rejectFetch!: (error: Error) => void
+  const fetchStore = addStore({
+    fetchQuotes: () =>
+      new Promise((_resolve, reject) => {
+        rejectFetch = reject
+      }),
+  })
+  const fetchPending = fetchStore.getState().handleCodeInput('600000')
+  fetchStore.getState().reset()
+  rejectFetch(new Error('接口超时'))
+  await fetchPending
+  expect(fetchStore.getState().step.type).toBe('input-code')
+
+  let resolveWrite!: (count: number) => void
+  const writeStore = addStore({
+    stocksAdd: () =>
+      new Promise((resolve) => {
+        resolveWrite = resolve
+      }),
+  })
+  await writeStore.getState().handleCodeInput('600000')
+  const writePending = writeStore.getState().handleConfirm('y')
+  writeStore.getState().reset()
+  resolveWrite(1)
+  await writePending
+  expect(writeStore.getState().step.type).toBe('input-code')
+
+  let rejectWrite!: (error: Error) => void
+  const failStore = addStore({
+    stocksAdd: () =>
+      new Promise((_resolve, reject) => {
+        rejectWrite = reject
+      }),
+  })
+  await failStore.getState().handleCodeInput('600000')
+  const failPending = failStore.getState().handleConfirm('y')
+  failStore.getState().reset()
+  rejectWrite(new Error('锁超时'))
+  await failPending
+  expect(failStore.getState().step.type).toBe('input-code')
+})
+
+test('默认依赖的 store 用当前时间写入 addedAt', async () => {
+  const configHome = await mkdtemp(join(tmpdir(), 'leek-box-cli-add-'))
+  const previousConfigHome = process.env['XDG_CONFIG_HOME']
+
+  try {
+    process.env['XDG_CONFIG_HOME'] = configHome
+    useStockAddStore.setState({
+      step: { type: 'confirm', entries: [{ code: 'sh600000', name: '浦发银行', current: 10 }] },
+    })
+
+    await useStockAddStore.getState().handleConfirm('y')
+
+    expect(useStockAddStore.getState().step.type).toBe('done')
+    const added = (await loadStocks()).find((entry) => entry.code === 'sh600000')
+    expect(added?.addedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+  } finally {
+    useStockAddStore.setState(useStockAddStore.getInitialState(), true)
+    if (previousConfigHome === undefined) delete process.env['XDG_CONFIG_HOME']
+    else process.env['XDG_CONFIG_HOME'] = previousConfigHome
+    await rm(configHome, { recursive: true, force: true })
+  }
 })

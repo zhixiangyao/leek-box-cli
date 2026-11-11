@@ -62,6 +62,29 @@ test('parseQuoteText 去掉腾讯名称字段里的填充空格', () => {
   expect(quotes.map((quote) => quote.name)).toStrictEqual(['万科Ａ', '深赛格'])
 })
 
+test('parseQuoteText 跳过字段不足或名称为空的记录', () => {
+  const shortRow = `v_sh600000="${Array<string>(10).fill('x').join('~')}"`
+  const blankName = Array<string>(50).fill('')
+  blankName[1] = '   '
+  blankName[3] = '10.00'
+  const blankNameRow = `v_sz000001="${blankName.join('~')}"`
+
+  expect(() => parseQuoteText(`${shortRow};${blankNameRow};`)).toThrow(/未查询到任何行情数据/)
+})
+
+test('parseFiveDayResponse 对非数值昨收按 0 处理', () => {
+  const points = parseFiveDayResponse(
+    { data: { sh600000: { data: [{ date: '20260818', prec: null, data: ['0930 10.00 abc'] }] } } },
+    'sh600000',
+  )
+
+  expect(points).toStrictEqual([{ time: '0930', price: 10, volume: 0, sessionDate: '2026-08-18', prevClose: 0 }])
+})
+
+test('parseHistoricalResponse 在复权与原始数据都缺失时返回空数组', () => {
+  expect(parseHistoricalResponse({ data: { sh600000: {} } }, 'sh600000')).toStrictEqual([])
+})
+
 test('parseFiveDayResponse 按日期升序展开并附带会话元数据', () => {
   const points = parseFiveDayResponse(
     {
@@ -165,6 +188,9 @@ test('parseIntradayResponse 过滤格式错误和收盘后的数据点', () => {
               '1260 10.10 200 2000',
               '1500 10.20 300 3000',
               '1501 10.30 400 4000',
+              '0930 abc 100',
+              '0931 -1 100',
+              '0915 10.15 abc',
               'bad',
               42,
             ],
@@ -178,6 +204,7 @@ test('parseIntradayResponse 过滤格式错误和收盘后的数据点', () => {
   expect(points).toStrictEqual([
     { time: '0930', price: 10, volume: 100 },
     { time: '1500', price: 10.2, volume: 300 },
+    { time: '0915', price: 10.15, volume: 0 },
   ])
   expect(parseIntradayResponse({}, 'sh600000')).toStrictEqual([])
 })

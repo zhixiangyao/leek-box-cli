@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -213,6 +213,43 @@ test('菜单的重置项打开确认弹窗, 确认后重置设置与文件且菜
     if (previousConfigHome === undefined) delete process.env['XDG_CONFIG_HOME']
     else process.env['XDG_CONFIG_HOME'] = previousConfigHome
     await rm(configHome, { recursive: true, force: true })
+  }
+})
+
+test('重置失败时确认弹窗保留并进入错误态', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+  const root = await mkdtemp(join(tmpdir(), 'leek-box-cli-menu-fail-'))
+  const previousConfigHome = process.env['XDG_CONFIG_HOME']
+  // 把配置目录放到一个普通文件下面: mkdir 必然失败, 重置无法完成
+  const blocker = join(root, 'blocker')
+  await writeFile(blocker, '', 'utf8')
+  let instance: ReturnType<typeof renderApp> | undefined
+
+  try {
+    process.env['XDG_CONFIG_HOME'] = join(blocker, 'nested')
+    resetStores()
+    stubBoardRows([])
+    instance = renderApp(output, input)
+
+    const after = output.frames.length
+    input.write('\x1B')
+    await waitForState(() => useDialogMenuStore.getState().highlightedType === 'stock-list')
+    input.write('5')
+    await waitForState(() => useDialogConfirmStore.getState().config !== undefined)
+
+    input.write('y')
+    await waitForState(() => useDialogConfirmStore.getState().config?.isError === true)
+    expect(useDialogConfirmStore.getState().config?.content).toContain(t('menu.resetFailed', { error: '' }).trimEnd())
+    // 失败不关闭弹窗, 菜单仍在其下方保持挂载
+    expect(useDialogMenuStore.getState().highlightedType).toBe('reset')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes(t('dialogConfirm.errorHint')))
+  } finally {
+    if (instance) await unmountApp(instance)
+    resetStores()
+    if (previousConfigHome === undefined) delete process.env['XDG_CONFIG_HOME']
+    else process.env['XDG_CONFIG_HOME'] = previousConfigHome
+    await rm(root, { recursive: true, force: true })
   }
 })
 

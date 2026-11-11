@@ -518,7 +518,7 @@ A 股颜色为涨红, 跌绿, 平灰 (trendColorMode 可切换为涨绿跌红). 
 
 `tests/useSettingsStore.test.ts` 与 `tests/useStockListStore.test.ts` 持有字段覆盖守卫: 逐个字段翻转让 `settingsEqual` / `settingsPatch` / `quotesEqual` 必须识别, 新增 `Settings` 或 `Quote` 字段而漏改这三个函数时用例失败 (`Quote.code` 由行情 map 的键决定, 不参与逐字段比较). `Settings` 里的数值项还必须同步 `SETTING_LIMITS`, 否则边界覆盖用例失败; 越界值由 `hydrateSettings` clamp.
 
-覆盖率由 `@vitest/coverage-v8` 统计. `pnpm test:coverage` 使用 `vitest.config.ts` 的全局阈值 (statements 93 / branches 86 / functions 96 / lines 94) 判定, 明显回落时以退出码 1 失败. 阈值是防回落的基线, 不是目标值: 新代码应带测试, 确实覆盖不到的分支先说明原因再调整阈值. HTML 报告写入 `coverage/`, 已被 `.gitignore` 忽略.
+覆盖率由 `@vitest/coverage-v8` 统计. `pnpm test:coverage` 使用 `vitest.config.ts` 的全局阈值 (statements 93.5 / branches 87 / functions 97 / lines 95) 判定, 明显回落时以退出码 1 失败. 阈值是防回落的基线, 不是目标值: 新代码应带测试, 确实覆盖不到的分支先说明原因再调整阈值. HTML 报告写入 `coverage/`, 已被 `.gitignore` 忽略.
 
 修改后至少运行:
 

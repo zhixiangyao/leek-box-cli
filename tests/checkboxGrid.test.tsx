@@ -177,6 +177,23 @@ test('CheckboxGrid: columnGap 决定两列之间的距离', async () => {
   expect(await columnOffset(20)).toBeGreaterThan(await columnOffset(2))
 })
 
+test('CheckboxGrid: ctrl 组合键不移动光标也不改变勾选', async () => {
+  const items = makeItems(9)
+  const submitted: Item[][] = []
+  const { output, input, instance } = renderGrid(items, true, (selected) => submitted.push(selected))
+
+  try {
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[ ] 股票00'))
+    await press(input, '\x01')
+    await press(input, ' ')
+    // 光标仍在首格: ctrl 组合键被忽略
+    await waitForLatestFrame(output, (frame) => plain(frame).includes('[x] 股票00'))
+    expect(submitted).toStrictEqual([])
+  } finally {
+    await unmountApp(instance)
+  }
+})
+
 test('CheckboxGrid: isActive 为 false 时忽略输入', async () => {
   const items = makeItems(9)
   const submitted: Item[][] = []

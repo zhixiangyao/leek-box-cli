@@ -14,14 +14,16 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
+      // 纯类型文件没有运行时代码, 计入覆盖率只会永远显示 0
+      exclude: ['src/api/types.ts', 'src/i18n/types.ts'],
       reporter: ['text', 'html'],
       reportsDirectory: 'coverage',
       // 基线略低于当前实测值, 给不可达分支留一点余量; 明显回落时 CI 会失败
       thresholds: {
-        statements: 93,
-        branches: 86,
-        functions: 96,
-        lines: 94,
+        statements: 93.5,
+        branches: 87,
+        functions: 97,
+        lines: 95,
       },
     },
   },

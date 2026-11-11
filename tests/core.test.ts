@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, expect, test } from 'vitest'
 
+import { CATALOGS } from '../src/i18n/catalog/index.ts'
 import { applyLanguage, createTranslator, getActiveLocale, setActiveLocale, t } from '../src/i18n/core.ts'
 import { DEFAULT_LOCALE } from '../src/i18n/locale.ts'
+import type { MessageKey } from '../src/i18n/types.ts'
 
 const LOCALE_ENV_KEYS = ['LC_ALL', 'LC_MESSAGES', 'LANG'] as const
 
@@ -58,6 +60,26 @@ test('t 对英文的复数键区分 one 与 other', () => {
   expect(translate('dialogRemoveConfirm.allMissing', { count: 3 })).toBe(
     '3 selected entries are no longer in the watchlist.',
   )
+})
+
+test('当前语言的文案缺失时回退默认语言, 两边都没有时返回键名', () => {
+  const english = CATALOGS.en as unknown as Record<string, unknown>
+  const savedReset = english['menu.reset'] as string
+  const savedSaving = english['stockAdd.saving'] as { one: string; other: string }
+
+  try {
+    delete english['menu.reset']
+    expect(createTranslator('en')('menu.reset')).toBe(t('menu.reset'))
+
+    // 复数形态缺失时回退 other
+    english['stockAdd.saving'] = { other: savedSaving.other }
+    expect(createTranslator('en')('stockAdd.saving', { count: 1 })).toBe(savedSaving.other.replace('{count}', '1'))
+
+    expect(createTranslator('en')('missing.key' as MessageKey)).toBe('missing.key')
+  } finally {
+    english['menu.reset'] = savedReset
+    english['stockAdd.saving'] = savedSaving
+  }
 })
 
 test('t 忽略字符串型条目上的 count 参数', () => {

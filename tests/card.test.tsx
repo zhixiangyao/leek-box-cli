@@ -76,6 +76,42 @@ test('Card borderTopCenter 落在上边框行并水平居中', async () => {
   }
 })
 
+test('Card 四个角标分别落在上下边框行', async () => {
+  const columns = 41
+  const rows = 9
+  const output = new CaptureOutput(columns, rows)
+  const instance = renderInk(
+    createElement(
+      Box,
+      { width: columns, height: rows },
+      createElement(
+        TestCard,
+        {
+          full: true,
+          borderTopLeft: createElement(Text, null, 'TL'),
+          borderTopRight: createElement(Text, null, 'TR'),
+          borderBottomLeft: createElement(Text, null, 'BL'),
+          borderBottomRight: createElement(Text, null, 'BR'),
+        },
+        createElement(Text, null, 'content'),
+      ),
+    ),
+    { output },
+  )
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('BL'))
+    const lines = plain(frame).split('\n')
+    expect(lines[0]).toContain('TL')
+    expect(lines[0]).toContain('TR')
+    expect(lines.at(-1)).toContain('BL')
+    expect(lines.at(-1)).toContain('BR')
+    assertFrameSize(frame, columns, rows)
+  } finally {
+    await unmountApp(instance)
+  }
+})
+
 test('Card borderTopCenter 过宽时被四角压住 (四角排在中段之后绘制)', async () => {
   const columns = 41
   const rows = 9

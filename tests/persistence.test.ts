@@ -105,6 +105,18 @@ test('非 language 的设置变更不触发 locale 解析', async () => {
   await persistence.stop()
 })
 
+test('设置未实际变化时不排程保存', async () => {
+  const persistence = await startSettingsPersistence(() => undefined)
+
+  // 写入与当前相同的值: settingsEqual 判等后直接返回, 不产生 pending patch
+  useSettingsStore.getState().updateSettings({ themePreset: 'classic' })
+  await advanceDebounce()
+  expect(fileMocks.patchSettings).not.toHaveBeenCalled()
+
+  expect(await persistence.stop()).toBe(true)
+  expect(fileMocks.patchSettings).not.toHaveBeenCalled()
+})
+
 test('设置变化在 debounce 后保存变化的字段', async () => {
   const persistence = await startSettingsPersistence(() => undefined)
   useSettingsStore.getState().updateSettings({ themePreset: 'ocean', borderStyle: 'double' })

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 import { setActiveLocale } from '../src/i18n/core.ts'
 import { DEFAULT_LOCALE, detectLocale, LOCALES, resolveLanguage } from '../src/i18n/locale.ts'
@@ -75,6 +75,18 @@ test('detectLocale 对不支持的语言回退到默认中文', () => {
 test('detectLocale 始终返回受支持的 locale', () => {
   expect(LOCALES).toContain(detectLocale())
   expect(resolveLanguage('auto')).toBe(detectLocale())
+})
+
+test('Intl 不可用时回退默认语言', () => {
+  const spy = vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => {
+    throw new Error('Intl unavailable')
+  })
+
+  try {
+    expect(detectLocale()).toBe(DEFAULT_LOCALE)
+  } finally {
+    spy.mockRestore()
+  }
 })
 
 test('resolveLanguage 对具体语言原样返回, 不读取环境变量', () => {

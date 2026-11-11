@@ -94,6 +94,46 @@ test('App 的 vim 键: 设置命令 h/l 切换 option 类配置项', async () =>
   }
 })
 
+test('App 的设置命令 h/l 切换边框样式与界面语言', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+
+  resetStores()
+  stubBoardRows([])
+  useCommandStore.setState({ command: 'settings' })
+
+  const instance = renderApp(output, input)
+
+  try {
+    let after = output.frames.length
+    // 外观组顺序: 主题, 涨跌色, 边框, 语言
+    input.write('j')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes(SELECTED_TREND_COLOR))
+    after = output.frames.length
+    input.write('j')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes(SELECTED_BORDER))
+
+    const initialBorder = useSettingsStore.getState().borderStyle
+    input.write('l')
+    await waitForState(() => useSettingsStore.getState().borderStyle !== initialBorder)
+    input.write('h')
+    await waitForState(() => useSettingsStore.getState().borderStyle === initialBorder)
+
+    after = output.frames.length
+    input.write('j')
+    await waitForFrame(output, after, (candidate) => plain(candidate).includes(SELECTED_LANGUAGE))
+
+    const initialLanguage = useSettingsStore.getState().language
+    input.write('l')
+    await waitForState(() => useSettingsStore.getState().language !== initialLanguage)
+    input.write('h')
+    await waitForState(() => useSettingsStore.getState().language === initialLanguage)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
 test('App 的设置命令 Enter 与右方向键同样切换 option', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
   const input = createInput()

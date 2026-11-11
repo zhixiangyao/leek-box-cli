@@ -81,7 +81,8 @@ test('parseStocks 接受完整的持久化数据结构', () => {
   expect(parseStocks([validStock])).toStrictEqual([validStock])
 })
 
-test('parseStocks 拒绝缺少字段的数据并标明条目位置', () => {
+test('parseStocks 拒绝非对象与缺少字段的数据并标明条目位置', () => {
+  expect(() => parseStocks(['not-an-object'])).toThrow(/第 1 项不是对象/)
   expect(() => parseStocks([{ code: 'sh600000' }])).toThrow(/第 1 项 addedAt 无效/)
   expect(() => parseStocks([{ ...validStock, code: '600000' }])).toThrow(/第 1 项 code 无效/)
 })
@@ -120,6 +121,21 @@ test('版本过新的错误带上文件里的 language, 缺失或非法时留空
   // language 本身读不出来时不能拦住那句升级提示, 由入口回退系统语言
   expect(await languageOf({ ...validDocument(), schemaVersion: version, language: 'ja-JP' })).toBeUndefined()
   expect(await languageOf({ schemaVersion: version })).toBeUndefined()
+})
+
+test('parseSettingsDocument 拒绝非对象文档与缺失的分组', () => {
+  expect(() => parseDocument(null)).toThrow(/顶层数据不是对象/)
+  expect(() => parseDocument({ ...validDocument(), theme: null })).toThrow(/theme 无效/)
+  expect(() => parseDocument({ ...validDocument(), request: null })).toThrow(/request 无效/)
+  expect(() => parseStocks('not-an-array')).toThrow(/stocks 不是数组/)
+})
+
+test('parseSettingsDocument 拒绝非正整数的 schemaVersion', () => {
+  for (const schemaVersion of [0, -1, 1.5, '1', null, true]) {
+    expect(() => parseDocument({ ...validDocument(), schemaVersion }), JSON.stringify(schemaVersion)).toThrow(
+      /schemaVersion 无效/,
+    )
+  }
 })
 
 test('parseSettingsDocument 校验主题并采用默认涨跌颜色模式', () => {

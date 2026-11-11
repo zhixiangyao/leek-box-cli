@@ -161,6 +161,34 @@ test('StockRemove store 陈旧的一轮不会把网格退回只有代码的状�
   await stale
 })
 
+test('StockRemove store 陈旧的一轮行情名称不会覆盖新一轮网格', async () => {
+  let resolveFirstNames!: (names: QuoteName[]) => void
+  let calls = 0
+  const store = removeStore({
+    loadStocks: async () => [stockEntry('sh600000'), stockEntry('sz000001')],
+    fetchQuoteNames: async (): Promise<QuoteName[]> => {
+      calls += 1
+      if (calls > 1) return [['sh600000', '浦发银行']] as QuoteName[]
+      return new Promise<QuoteName[]>((resolve) => {
+        resolveFirstNames = resolve
+      })
+    },
+  })
+
+  const stale = store.getState().loadEntries()
+  await delay(0)
+  await store.getState().loadEntries()
+  expect(store.getState().entries).toStrictEqual([removeEntry('sh600000', '浦发银行'), removeEntry('sz000001')])
+
+  // 第一轮的行情名称现在才回来: 它属于上一代, 不得把新一轮的条目覆盖回去
+  resolveFirstNames([
+    ['sh600000', '旧名称'],
+    ['sz000001', '平安银行'],
+  ])
+  await stale
+  expect(store.getState().entries).toStrictEqual([removeEntry('sh600000', '浦发银行'), removeEntry('sz000001')])
+})
+
 test('StockRemove store 行情失败时暴露错误并清空网格', async () => {
   let fails = true
   const store = removeStore({

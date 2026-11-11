@@ -53,6 +53,77 @@ test('App 的看板命令渲染自己的标题, hint 与列顺序', async () => 
   }
 })
 
+test('App 的看板在自选股为空时显示空列表提示', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const input = createInput()
+
+  resetStores()
+  useStockListStore.setState({ step: { type: 'empty' }, refreshQuotes: async () => undefined })
+
+  const instance = renderApp(output, input)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes(t('common.watchlistEmpty')))
+    expect(plain(frame)).toContain(t('common.watchlistEmpty'))
+    // 空列表上 G 跳到底部与 ctrl 组合键都不改变状态
+    input.write('G')
+    await waitForInput()
+    input.write('\x01')
+    await waitForInput()
+    expect(plain(output.frames.at(-1) ?? '')).toContain(t('common.watchlistEmpty'))
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板在行情错误时显示错误与数据源提示', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+
+  resetStores()
+  useStockListStore.setState({
+    step: { type: 'error', message: '接口超时' },
+    refreshQuotes: async () => undefined,
+  })
+
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) => plain(candidate).includes('接口超时'))
+    expect(plain(frame)).toContain('接口超时')
+    expect(plain(frame)).toContain(t('stockList.sourceError'))
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
+test('App 的看板在刷新失败时保留表格并显示失败行', async () => {
+  const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
+  const rows = [missingRow('sh600000')]
+
+  resetStores()
+  useStockListStore.setState({
+    step: { type: 'table', rows, errorLine: '接口超时' },
+    refreshQuotes: async () => undefined,
+  })
+
+  const instance = renderApp(output)
+
+  try {
+    const frame = await waitForFrame(output, 0, (candidate) =>
+      plain(candidate).includes(t('stockList.refreshFailed', { error: '接口超时' })),
+    )
+    expect(plain(frame)).toContain(t('stockList.refreshFailed', { error: '接口超时' }))
+    assertFrameSize(frame, BOARD_COLUMNS, BOARD_ROWS)
+  } finally {
+    await unmountApp(instance)
+    resetStores()
+  }
+})
+
 test('App 的看板排序键 s: 按涨跌幅排序并在右上角显示方向', async () => {
   const output = new CaptureOutput(BOARD_COLUMNS, BOARD_ROWS)
   const input = createInput()

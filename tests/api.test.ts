@@ -148,6 +148,48 @@ test('fetchHistorical 按年请求月 K 聚合到年份并裁剪最后 barCount'
   )
 })
 
+test('fetchHistorical 对非年周期使用前复权与原始粒度并裁剪 barCount', async () => {
+  const fetchMock = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      data: {
+        sh600000: {
+          qfqday: [
+            ['2026-08-17', '10.00', '10.20', '10.30', '9.90', '100'],
+            ['2026-08-18', '10.20', '10.40', '10.50', '10.10', '200'],
+            ['2026-08-19', '10.40', '10.60', '10.70', '10.30', '300'],
+          ],
+        },
+      },
+    }),
+  }))
+  vi.stubGlobal('fetch', fetchMock)
+
+  const points = await fetchHistorical('sh600000', { period: 'day', barCount: 2 })
+  expect(points.map((point) => point.date)).toStrictEqual(['2026-08-18', '2026-08-19'])
+  expect(fetchMock).toHaveBeenCalledWith(
+    'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh600000%2Cday%2C%2C%2C2%2Cqfq',
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  )
+
+  await fetchHistorical('sh600000', { period: 'month', barCount: 60 })
+  expect(fetchMock).toHaveBeenLastCalledWith(
+    'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh600000%2Cmonth%2C%2C%2C60%2Cqfq',
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  )
+})
+
+test('fetchHistorical 对非 2xx 响应抛错', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: false, status: 502 })),
+  )
+
+  await expect(fetchHistorical('sh600000', { period: 'week', barCount: 60 })).rejects.toThrow(
+    t('api.error.historical', { status: 502 }),
+  )
+})
+
 test('fetchQuoteNames 投影为代码与名称并复用 fetchQuotes 的空请求短路', async () => {
   const fetchMock = vi.fn(async () => ({
     ok: true,

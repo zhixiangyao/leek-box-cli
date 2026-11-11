@@ -1,9 +1,53 @@
-import { mkdtemp, readFile, rm, stat, utimes, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, unlink, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 
-import { afterEach, beforeEach, expect, test } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+
+interface OneShotHook {
+  path: string
+  run: () => Promise<void>
+}
+
+/** 模拟锁文件在两次文件操作之间被别的进程删掉, 只有命中路径的那一次调用触发 */
+const fsHooks = vi.hoisted(() => ({
+  readFile: undefined as OneShotHook | undefined,
+  stat: undefined as OneShotHook | undefined,
+  rm: undefined as OneShotHook | undefined,
+}))
+
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>()
+
+  return {
+    ...actual,
+    readFile: async (...args: Parameters<typeof actual.readFile>) => {
+      const hook = fsHooks.readFile
+      if (hook?.path === String(args[0])) {
+        fsHooks.readFile = undefined
+        await hook.run()
+      }
+      return actual.readFile(...args)
+    },
+    stat: async (...args: Parameters<typeof actual.stat>) => {
+      const hook = fsHooks.stat
+      if (hook?.path === String(args[0])) {
+        fsHooks.stat = undefined
+        await hook.run()
+      }
+      return actual.stat(...args)
+    },
+    rm: async (...args: Parameters<typeof actual.rm>) => {
+      const hook = fsHooks.rm
+      if (hook?.path === String(args[0])) {
+        fsHooks.rm = undefined
+        await hook.run()
+      }
+      return actual.rm(...args)
+    },
+  }
+})
 
 import { withFileLock } from '../src/settings/lock.ts'
 
@@ -14,6 +58,9 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
+  fsHooks.readFile = undefined
+  fsHooks.stat = undefined
+  fsHooks.rm = undefined
   await rm(configHome, { recursive: true, force: true })
 })
 
@@ -78,6 +125,32 @@ test('超过 30 秒 lease 的锁被视为过期并清理', async () => {
   expect(executed).toBe(true)
 })
 
+test('元数据字段不完整或类型非法的锁按残留清理', async () => {
+  const invalidMetadata = [
+    'null',
+    '[]',
+    {},
+    { token: 1, pid: process.pid, createdAt: Date.now() },
+    { token: 'x', pid: String(process.pid), createdAt: Date.now() },
+    { token: 'x', pid: 1.5, createdAt: Date.now() },
+    { token: 'x', pid: 0, createdAt: Date.now() },
+    { token: 'x', pid: process.pid, createdAt: 'now' },
+    { token: 'x', pid: process.pid, createdAt: null },
+  ]
+
+  for (const contents of invalidMetadata) {
+    const lockPath = await prepareLockFile(contents)
+    const stale = new Date(Date.now() - 3000)
+    await utimes(lockPath, stale, stale)
+
+    let executed = false
+    await withFileLock(configHome, async () => {
+      executed = true
+    })
+    expect(executed, JSON.stringify(contents)).toBe(true)
+  }
+})
+
 test('元数据无效且 mtime 超过超时窗口的锁被清理', async () => {
   const lockPath = await prepareLockFile('not-json')
   await utimes(lockPath, new Date(Date.now() - 3000), new Date(Date.now() - 3000))
@@ -117,6 +190,123 @@ test('获取锁前会创建目标目录', async () => {
   })
   expect(executed).toBe(true)
   await expect(stat(`${nestedPath}.lock`)).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+const gone = () => Object.assign(new Error('lock removed by another process'), { code: 'ENOENT' })
+
+test('锁在 EEXIST 之后被别的进程删除时直接重试', async () => {
+  const lockPath = await prepareLockFile({ token: 'race', pid: process.pid, createdAt: Date.now() })
+  fsHooks.readFile = {
+    path: lockPath,
+    run: async () => {
+      await unlink(lockPath)
+      throw gone()
+    },
+  }
+
+  let executed = false
+  await withFileLock(configHome, async () => {
+    executed = true
+  })
+  expect(executed).toBe(true)
+})
+
+test('元数据读不懂且锁在 stat 之前消失时直接重试', async () => {
+  const lockPath = await prepareLockFile('not-json')
+  fsHooks.stat = {
+    path: lockPath,
+    run: async () => {
+      await unlink(lockPath)
+      throw gone()
+    },
+  }
+
+  let executed = false
+  await withFileLock(configHome, async () => {
+    executed = true
+  })
+  expect(executed).toBe(true)
+})
+
+test('清理过期锁时文件已被删除, 重试后继续', async () => {
+  const lockPath = await prepareLockFile({ token: 'dead', pid: 999_999_999, createdAt: Date.now() })
+  fsHooks.rm = {
+    path: lockPath,
+    run: async () => {
+      await unlink(lockPath)
+      throw gone()
+    },
+  }
+
+  let executed = false
+  await withFileLock(configHome, async () => {
+    executed = true
+  })
+  expect(executed).toBe(true)
+})
+
+test('释放锁时的非 ENOENT 读取错误向上传播', async () => {
+  const lockPath = `${configHome}.lock`
+  fsHooks.readFile = {
+    path: lockPath,
+    run: async () => {
+      throw Object.assign(new Error('cleanup failed'), { code: 'EACCES' })
+    },
+  }
+
+  try {
+    await expect(withFileLock(configHome, async () => 'ok')).rejects.toMatchObject({ code: 'EACCES' })
+  } finally {
+    await unlink(lockPath).catch(() => undefined)
+  }
+})
+
+test('释放锁时锁文件已消失不算清理错误', async () => {
+  const lockPath = `${configHome}.lock`
+  fsHooks.readFile = {
+    path: lockPath,
+    run: async () => {
+      await unlink(lockPath)
+      throw gone()
+    },
+  }
+
+  await expect(withFileLock(configHome, async () => 'ok')).resolves.toBe('ok')
+})
+
+const accessDenied = () => Object.assign(new Error('permission denied'), { code: 'EACCES' })
+
+test('检查残留锁时读取失败会向上传播', async () => {
+  const lockPath = await prepareLockFile({ token: 'busy', pid: process.pid, createdAt: Date.now() })
+  fsHooks.readFile = { path: lockPath, run: async () => Promise.reject(accessDenied()) }
+
+  try {
+    await expect(withFileLock(configHome, async () => 'never')).rejects.toMatchObject({ code: 'EACCES' })
+  } finally {
+    await unlink(lockPath).catch(() => undefined)
+  }
+})
+
+test('检查残留锁时 stat 失败会向上传播', async () => {
+  const lockPath = await prepareLockFile('not-json')
+  fsHooks.stat = { path: lockPath, run: async () => Promise.reject(accessDenied()) }
+
+  try {
+    await expect(withFileLock(configHome, async () => 'never')).rejects.toMatchObject({ code: 'EACCES' })
+  } finally {
+    await unlink(lockPath).catch(() => undefined)
+  }
+})
+
+test('删除残留锁失败会向上传播', async () => {
+  const lockPath = await prepareLockFile({ token: 'dead', pid: 999_999_999, createdAt: Date.now() })
+  fsHooks.rm = { path: lockPath, run: async () => Promise.reject(accessDenied()) }
+
+  try {
+    await expect(withFileLock(configHome, async () => 'never')).rejects.toMatchObject({ code: 'EACCES' })
+  } finally {
+    await unlink(lockPath).catch(() => undefined)
+  }
 })
 
 test('持有期间锁文件被别的调用方替换时, 释放不删除对方的锁', async () => {
